@@ -688,13 +688,13 @@ pub const IFence = extern struct {
 
     fn Methods(comptime T: type) type {
         return extern struct {
-            pub inline fn GetCompletedValue(self: *Self) u64 {
+            pub inline fn GetCompletedValue(self: *T) u64 {
                 return self.vtbl.GetCompletedValue(self);
             }
-            pub inline fn SetEventOnCompletion(self: *Self, value: u64, event: os.HANDLE) os.HRESULT {
+            pub inline fn SetEventOnCompletion(self: *T, value: u64, event: os.HANDLE) os.HRESULT {
                 return self.vtbl.SetEventOnCompletion(self, value, event);
             }
-            pub inline fn Signal(self: *Self, value: u64) os.HRESULT {
+            pub inline fn Signal(self: *T, value: u64) os.HRESULT {
                 return self.vtbl.Signal(self, value);
             }
         };
