@@ -3,7 +3,7 @@ const Builder = @import("std").build.Builder;
 pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("zig_d3d12_test", "src/main.zig");
+    const exe = b.addExecutable("zig-d3d12-test", "src/main.zig");
     exe.setTarget(.{
         .cpu_arch = .x86_64,
         .os_tag = .windows,
