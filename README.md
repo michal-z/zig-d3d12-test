@@ -1,1 +1,1 @@
-# zig_d3d12_test
+# zig-d3d12-test
