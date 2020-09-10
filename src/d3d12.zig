@@ -1135,10 +1135,10 @@ pub const IID_IPipelineState = os.GUID{
 
 pub var GetDebugInterface: fn (*const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
 pub var CreateDevice: fn (
-    pAdapter: ?*IUnknown,
-    MinimumFeatureLevel: FEATURE_LEVEL,
-    guid: *const os.GUID,
-    ppDevice: **c_void,
+    ?*IUnknown,
+    FEATURE_LEVEL,
+    *const os.GUID,
+    **c_void,
 ) callconv(.Stdcall) HRESULT = undefined;
 
 pub fn init() void {
