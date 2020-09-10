@@ -861,8 +861,16 @@ pub const IGraphicsCommandList = extern struct {
         ) callconv(.Stdcall) void,
         ResolveSubresource: fn (*Self, *IResource, u32, *IResource, u32, FORMAT) callconv(.Stdcall) void,
         IASetPrimitiveTopology: fn (*Self, PRIMITIVE_TOPOLOGY) callconv(.Stdcall) void,
-        RSSetViewports: fn (*Self, u32, *const VIEWPORT) callconv(.Stdcall) void,
-        RSSetScissorRects: fn (*Self, u32, *const RECT) callconv(.Stdcall) void,
+        RSSetViewports: fn (*Self, u32, [*]const VIEWPORT) callconv(.Stdcall) void,
+        RSSetScissorRects: fn (*Self, u32, [*]const RECT) callconv(.Stdcall) void,
+        OMSetBlendFactor: fn (*Self, *const [4]f32) callconv(.Stdcall) void,
+        OMSetStencilRef: fn (*Self, u32) callconv(.Stdcall) void,
+        SetPipelineState: fn (*Self, *IPipelineState) callconv(.Stdcall) void,
+        ResourceBarrier: fn (*Self, u32, [*]const RESOURCE_BARRIER) callconv(.Stdcall) void,
+        ExecuteBundle: fn (*Self, *IGraphicsCommandList) callconv(.Stdcall) void,
+        SetDescriptorHeaps: fn (*Self, u32, [*]const *IDescriptorHeap) callconv(.Stdcall) void,
+        SetComputeRootSignature: fn (*Self, *IRootSignature) callconv(.Stdcall) void,
+        SetGraphicsRootSignature: fn (*Self, *IRootSignature) callconv(.Stdcall) void,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -986,11 +994,39 @@ pub const IGraphicsCommandList = extern struct {
             pub inline fn IASetPrimitiveTopology(self: *T, topology: PRIMITIVE_TOPOLOGY) void {
                 self.vtbl.IASetPrimitiveTopology(self, topology);
             }
-            pub inline fn RSSetViewports(self: *T, num: u32, viewports: *const VIEWPORT) void {
+            pub inline fn RSSetViewports(self: *T, num: u32, viewports: [*]const VIEWPORT) void {
                 self.vtbl.RSSetViewports(self, num, viewports);
             }
-            pub inline fn RSSetScissorRects(self: *T, num: u32, rects: *const RECT) void {
+            pub inline fn RSSetScissorRects(self: *T, num: u32, rects: [*]const RECT) void {
                 self.vtbl.RSSetScissorRects(self, num, rects);
+            }
+            pub inline fn OMSetBlendFactor(self: *T, blend_factor: *const [4]f32) void {
+                self.vtbl.OMSetBlendFactor(self, blend_factor);
+            }
+            pub inline fn OMSetStencilRef(self: *T, stencil_ref: u32) void {
+                self.vtbl.OMSetStencilRef(self, stencil_ref);
+            }
+            pub inline fn SetPipelineState(self: *T, pso: *IPipelineState) void {
+                self.vtbl.SetPipelineState(self, pso);
+            }
+            pub inline fn ResourceBarrier(
+                self: *T,
+                num: u32,
+                barriers: [*]const D3D12_RESOURCE_BARRIER,
+            ) void {
+                self.vtbl.ResourceBarrier(self, num, barriers);
+            }
+            pub inline fn ExecuteBundle(self: *T, cmdlist: *IGraphicsCommandList) void {
+                self.vtbl.ExecuteBundle(self, cmdlist);
+            }
+            pub inline fn SetDescriptorHeaps(self: *T, num: u32, heaps: [*]const *IDescriptorHeap) void {
+                self.vtbl.SetDescriptorHeaps(self, num, heaps);
+            }
+            pub inline fn SetComputeRootSignature(self: *T, root_signature: *IRootSignature) void {
+                self.vtbl.SetComputeRootSignature(self, root_signature);
+            }
+            pub inline fn SetGraphicsRootSignature(self: *T, root_signature: *IRootSignature) void {
+                self.vtbl.SetGraphicsRootSignature(self, root_signature);
             }
         };
     }
