@@ -309,25 +309,27 @@ pub const SUBRESOURCE_FOOTPRINT = extern struct {
     RowPitch: u32,
 };
 
+const HRESULT = os.HRESULT;
+
 pub const IUnknown = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
     },
     usingnamespace IUnknown.Methods(Self);
 
     fn Methods(comptime T: type) type {
         return extern struct {
-            pub inline fn QueryInterface(self: *T, guid: *const os.GUID, outobj: **c_void) os.HRESULT {
+            pub inline fn QueryInterface(self: *T, guid: *const os.GUID, outobj: **c_void) HRESULT {
                 return self.vtbl.QueryInterface(self, guid, outobj);
             }
-            pub inline fn AddRef(self: *T) os.ULONG {
+            pub inline fn AddRef(self: *T) u32 {
                 return self.vtbl.AddRef(self);
             }
-            pub inline fn Release(self: *T) os.ULONG {
+            pub inline fn Release(self: *T) u32 {
                 return self.vtbl.Release(self);
             }
         };
@@ -339,22 +341,22 @@ pub const IBlob = extern struct {
     vtbl: *const extern struct {
         const Self = ID3DBlob;
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3DBlob
-        GetBufferPointer: fn (*Self) callconv(.Stdcall) os.LPVOID,
-        GetBufferSize: fn (*Self) callconv(.Stdcall) os.SIZE_T,
+        GetBufferPointer: fn (*Self) callconv(.Stdcall) *c_void,
+        GetBufferSize: fn (*Self) callconv(.Stdcall) usize,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IBlob.Methods(Self);
 
     fn Methods(comptime T: type) type {
         return extern struct {
-            pub inline fn GetBufferPointer(self: *T) os.LPVOID {
+            pub inline fn GetBufferPointer(self: *T) *c_void {
                 return self.vtbl.GetBufferPointer(self);
             }
-            pub inline fn GetBufferSize(self: *T) os.SIZE_T {
+            pub inline fn GetBufferSize(self: *T) usize {
                 return self.vtbl.GetBufferSize(self);
             }
         };
@@ -365,9 +367,9 @@ pub const IDebug = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Debug
         EnableDebugLayer: fn (*Self) callconv(.Stdcall) void,
     },
@@ -387,14 +389,14 @@ pub const IObject = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -406,7 +408,7 @@ pub const IObject = extern struct {
                 guid: *const os.GUID,
                 data_size: *u32,
                 data: ?*c_void,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.GetPrivateData(self, guid, data_size, data);
             }
             pub inline fn SetPrivateData(
@@ -414,17 +416,17 @@ pub const IObject = extern struct {
                 guid: *const os.GUID,
                 data_size: u32,
                 data: ?*const c_void,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.SetPrivateData(self, guid, data_size, data);
             }
             pub inline fn SetPrivateDataInterface(
                 self: *T,
                 guid: *const os.GUID,
                 data: ?*const IUnknown,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.SetPrivateDataInterface(self, guid, data);
             }
-            pub inline fn SetName(self: *T, name: ?*const u16) os.HRESULT {
+            pub inline fn SetName(self: *T, name: ?*const u16) HRESULT {
                 return self.vtbl.SetName(self, name);
             }
         };
@@ -435,16 +437,16 @@ pub const IDeviceChild = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) os.HRESULT,
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -456,7 +458,7 @@ pub const IDeviceChild = extern struct {
                 self: *T,
                 guid: *const os.GUID,
                 device: **c_void,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.GetDevice(self, guid, device);
             }
         };
@@ -467,16 +469,16 @@ pub const IRootSignature = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) os.HRESULT,
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -487,16 +489,16 @@ pub const IPageable = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) os.HRESULT,
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -507,16 +509,16 @@ pub const IHeap = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) os.HRESULT,
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12Heap
         GetDesc: fn (*Self, *HEAP_DESC) callconv(.Stdcall) *HEAP_DESC,
     },
@@ -540,18 +542,18 @@ pub const IResource = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) os.HRESULT,
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12Resource
-        Map: fn (*Self, u32, *const RANGE, **c_void) callconv(.Stdcall) os.HRESULT,
+        Map: fn (*Self, u32, *const RANGE, **c_void) callconv(.Stdcall) HRESULT,
         Unmap: fn (*Self, u32, *const RANGE) callconv(.Stdcall) void,
         GetDesc: fn (*Self, *RESOURCE_DESC) callconv(.Stdcall) *RESOURCE_DESC,
         GetGPUVirtualAddress: fn (*Self) callconv(.Stdcall) GPU_VIRTUAL_ADDRESS,
@@ -562,9 +564,9 @@ pub const IResource = extern struct {
             *const c_void,
             u32,
             u32,
-        ) callconv(.Stdcall) os.HRESULT,
-        ReadFromSubresource: fn (*Self, *c_void, u32, u32, u32, *const BOX) callconv(.Stdcall) os.HRESULT,
-        GetHeapProperties: fn (*Self, *HEAP_PROPERTIES, *HEAP_FLAGS) callconv(.Stdcall) os.HRESULT,
+        ) callconv(.Stdcall) HRESULT,
+        ReadFromSubresource: fn (*Self, *c_void, u32, u32, u32, *const BOX) callconv(.Stdcall) HRESULT,
+        GetHeapProperties: fn (*Self, *HEAP_PROPERTIES, *HEAP_FLAGS) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -578,7 +580,7 @@ pub const IResource = extern struct {
                 subresource: u32,
                 read_range: *const RANGE,
                 data: **c_void,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.Map(self, subresource, read_range, data);
             }
             pub inline fn Unmap(self: *Self, subresource: u32, written_range: *const RANGE) void {
@@ -593,7 +595,7 @@ pub const IResource = extern struct {
                 src_data: *const c_void,
                 src_row_pitch: u32,
                 src_depth_pitch: u32,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.WriteToSubresource(
                     self,
                     dst_subresource,
@@ -610,7 +612,7 @@ pub const IResource = extern struct {
                 dst_depth_pitch: u32,
                 src_subresource: u32,
                 src_box: *const BOX,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.ReadFromSubresource(
                     self,
                     dst_data,
@@ -624,7 +626,7 @@ pub const IResource = extern struct {
                 self: *Self,
                 properties: *HEAP_PROPERTIES,
                 flags: *HEAP_FLAGS,
-            ) os.HRESULT {
+            ) HRESULT {
                 return self.vtbl.GetHeapProperties(self, properties, flags);
             }
         };
@@ -635,18 +637,18 @@ pub const ICommandAllocator = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) os.HRESULT,
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12CommandAllocator
-        Reset: fn (*Self) callconv(.Stdcall) os.HRESULT,
+        Reset: fn (*Self) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -655,7 +657,7 @@ pub const ICommandAllocator = extern struct {
 
     fn Methods(comptime T: type) type {
         return extern struct {
-            pub inline fn Reset(self: *T) os.HRESULT {
+            pub inline fn Reset(self: *T) HRESULT {
                 return self.vtbl.Reset(self);
             }
         };
@@ -666,20 +668,20 @@ pub const IFence = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) os.ULONG,
-        Release: fn (*Self) callconv(.Stdcall) os.ULONG,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D12Object
-        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) os.HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) os.HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) os.HRESULT,
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) os.HRESULT,
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12Fence
         GetCompletedValue: fn (*Self) callconv(.Stdcall) u64,
-        SetEventOnCompletion: fn (*Self, u64, os.HANDLE) callconv(.Stdcall) os.HRESULT,
-        Signal: fn (*Self, u64) callconv(.Stdcall) os.HRESULT,
+        SetEventOnCompletion: fn (*Self, u64, os.HANDLE) callconv(.Stdcall) HRESULT,
+        Signal: fn (*Self, u64) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -691,11 +693,304 @@ pub const IFence = extern struct {
             pub inline fn GetCompletedValue(self: *T) u64 {
                 return self.vtbl.GetCompletedValue(self);
             }
-            pub inline fn SetEventOnCompletion(self: *T, value: u64, event: os.HANDLE) os.HRESULT {
+            pub inline fn SetEventOnCompletion(self: *T, value: u64, event: os.HANDLE) HRESULT {
                 return self.vtbl.SetEventOnCompletion(self, value, event);
             }
-            pub inline fn Signal(self: *T, value: u64) os.HRESULT {
+            pub inline fn Signal(self: *T, value: u64) HRESULT {
                 return self.vtbl.Signal(self, value);
+            }
+        };
+    }
+};
+
+pub const IPipelineState = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12Object
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        // ID3D12DeviceChild
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // ID3D12PipelineState
+        GetCachedBlob: fn (*Self, *IBlob) callconv(.Stdcall) HRESULT,
+    },
+    usingnamespace IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+    usingnamespace IPipelineState.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn GetCachedBlob(self: *T, blob: *IBlob) HRESULT {
+                return self.vtbl.GetCachedBlob(self, blob);
+            }
+        };
+    }
+};
+
+pub const IDescriptorHeap = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12Object
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        // ID3D12DeviceChild
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // ID3D12DescriptorHeap
+        GetDesc: fn (*Self, *DESCRIPTOR_HEAP_DESC) callconv(.Stdcall) *DESCRIPTOR_HEAP_DESC,
+        GetCPUDescriptorHandleForHeapStart: fn (
+            *Self,
+            *CPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) *CPU_DESCRIPTOR_HANDLE,
+        GetGPUDescriptorHandleForHeapStart: fn (
+            *Self,
+            *GPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) *GPU_DESCRIPTOR_HANDLE,
+    },
+    usingnamespace IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+    usingnamespace IDescriptorHeap.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn GetDesc(self: *T) DESCRIPTOR_HEAP_DESC {
+                var desc: DESCRIPTOR_HEAP_DESC = undefined;
+                self.vtbl.GetDesc(self, &desc);
+                return desc;
+            }
+            pub inline fn GetCPUDescriptorHandleForHeapStart(self: *T) CPU_DESCRIPTOR_HANDLE {
+                var handle: CPU_DESCRIPTOR_HANDLE = undefined;
+                self.vtbl.GetCPUDescriptorHandleForHeapStart(self, &handle);
+                return handle;
+            }
+            pub inline fn GetGPUDescriptorHandleForHeapStart(self: *T) GPU_DESCRIPTOR_HANDLE {
+                var handle: GPU_DESCRIPTOR_HANDLE = undefined;
+                self.vtbl.GetGPUDescriptorHandleForHeapStart(self, &handle);
+                return handle;
+            }
+        };
+    }
+};
+
+pub const ICommandList = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12Object
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        // ID3D12DeviceChild
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // ID3D12CommandList
+        GetType: fn (*Self) callconv(.Stdcall) COMMAND_LIST_TYPE,
+    },
+    usingnamespace IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+    usingnamespace ICommandList.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn GetType(self: *T, blob: *IBlob) COMMAND_LIST_TYPE {
+                return self.vtbl.GetType(self);
+            }
+        };
+    }
+};
+
+pub const IGraphicsCommandList = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12Object
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        // ID3D12DeviceChild
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // ID3D12CommandList
+        GetType: fn (*Self) callconv(.Stdcall) COMMAND_LIST_TYPE,
+        // ID3D12GraphicsCommandList
+        Close: fn (*Self) callconv(.Stdcall) HRESULT,
+        Reset: fn (*Self, *ICommandAllocator) callconv(.Stdcall) HRESULT,
+        ClearState: fn (*Self, *IPipelineState) callconv(.Stdcall) void,
+        DrawInstanced: fn (*Self, u32, u32, u32, u32) callconv(.Stdcall) void,
+        DrawIndexedInstanced: fn (*Self, u32, u32, u32, i32, u32) callconv(.Stdcall) void,
+        Dispatch: fn (*Self, u32, u32, u32) callconv(.Stdcall) void,
+        CopyBufferRegion: fn (*Self, *IResource, u64, *IResource, u64, u64) callconv(.Stdcall) void,
+        CopyTextureRegion: fn (
+            *Self,
+            *const D3D12_TEXTURE_COPY_LOCATION,
+            u32,
+            u32,
+            u32,
+            *const D3D12_TEXTURE_COPY_LOCATION,
+            *const D3D12_BOX,
+        ) callconv(.Stdcall) void,
+        CopyResource: fn (*Self, *IResource, *IResource) callconv(.Stdcall) void,
+        CopyTiles: fn (
+            *Self,
+            *IResource,
+            *const TILED_RESOURCE_COORDINATE,
+            *const TILE_REGION_SIZE,
+            *IResource,
+            buffer_start_offset_in_bytes: u64,
+            TILE_COPY_FLAGS,
+        ) callconv(.Stdcall) void,
+        ResolveSubresource: fn (*Self, *IResource, u32, *IResource, u32, FORMAT) callconv(.Stdcall) void,
+        IASetPrimitiveTopology: fn (*Self, PRIMITIVE_TOPOLOGY) callconv(.Stdcall) void,
+        RSSetViewports: fn (*Self, u32, *const VIEWPORT) callconv(.Stdcall) void,
+        RSSetScissorRects: fn (*Self, u32, *const RECT) callconv(.Stdcall) void,
+    },
+    usingnamespace IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+    usingnamespace ICommandList.Methods(Self);
+    usingnamespace IGraphicsCommandList.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn Close(self: *T) HRESULT {
+                return self.vtbl.Close(self);
+            }
+            pub inline fn Reset(self: *T, allocator: *ICommandAllocator) HRESULT {
+                return self.vtbl.Reset(self, allocator);
+            }
+            pub inline fn ClearState(self: *T, pso: *IPipelineState) void {
+                self.vtbl.ClearState(self, pso);
+            }
+            pub inline fn DrawInstanced(
+                self: *T,
+                vertex_count_per_instance: u32,
+                instance_count: u32,
+                start_vertex_location: u32,
+                start_instance_location: u32,
+            ) void {
+                self.vtbl.DrawInstanced(
+                    self,
+                    vertex_count_per_instance,
+                    instance_count,
+                    start_vertex_location,
+                    start_instance_location,
+                );
+            }
+            pub inline fn DrawIndexedInstanced(
+                self: *T,
+                index_count_per_instance: u32,
+                instance_count: u32,
+                start_index_location: u32,
+                base_vertex_location: i32,
+                start_instance_location: u32,
+            ) void {
+                self.vtbl.DrawIndexedInstanced(
+                    self,
+                    index_count_per_instance,
+                    instance_count,
+                    start_index_location,
+                    base_vertex_location,
+                    start_instance_location,
+                );
+            }
+            pub inline fn Dispatch(self: *T, count_x: u32, count_y: u32, count_z: u32) void {
+                self.vtbl.Dispatch(self, count_x, count_y, count_z);
+            }
+            pub inline fn CopyBufferRegion(
+                self: *T,
+                dst_buffer: *IResource,
+                dst_offset: u64,
+                src_buffer: *IResource,
+                src_offset: u64,
+                num_bytes: u64,
+            ) void {
+                self.vtbl.CopyBufferRegion(
+                    self,
+                    dst_buffer,
+                    dst_offset,
+                    src_buffer,
+                    src_offset,
+                    num_bytes,
+                );
+            }
+            pub inline fn CopyTextureRegion(
+                self: *T,
+                dst: *const D3D12_TEXTURE_COPY_LOCATION,
+                dst_x: u32,
+                dst_y: u32,
+                dst_z: u32,
+                src: *const D3D12_TEXTURE_COPY_LOCATION,
+                src_box: *const D3D12_BOX,
+            ) void {
+                self.vtbl.CopyTextureRegion(self, dst, dst_x, dst_y, dst_z, src, src_box);
+            }
+            pub inline fn CopyResource(self: *T, dst: *IResource, src: *ID3D12Resource) void {
+                self.vtbl.CopyResource(self, dst, src);
+            }
+            pub inline fn CopyTiles(
+                self: *T,
+                tiled_resource: *IResource,
+                tile_region_start_coordinate: *const TILED_RESOURCE_COORDINATE,
+                tile_region_size: *const D3D12_TILE_REGION_SIZE,
+                buffer: *IResource,
+                buffer_start_offset_in_bytes: u64,
+                flags: TILE_COPY_FLAGS,
+            ) void {
+                self.vtbl.CopyTiles(
+                    self,
+                    tiled_resource,
+                    tile_region_start_coordinate,
+                    tile_region_size,
+                    buffer,
+                    buffer_start_offset_in_bytes,
+                    flags,
+                );
+            }
+            pub inline fn ResolveSubresource(
+                self: *T,
+                dst_resource: *IResource,
+                dst_subresource: u32,
+                src_resource: *ID3D12Resource,
+                src_subresource: u32,
+                format: FORMAT,
+            ) void {
+                self.vtbl.ResolveSubresource(
+                    self,
+                    dst_resource,
+                    dst_subresource,
+                    src_resource,
+                    src_subresource,
+                    format,
+                );
+            }
+            pub inline fn IASetPrimitiveTopology(self: *T, topology: PRIMITIVE_TOPOLOGY) void {
+                self.vtbl.IASetPrimitiveTopology(self, topology);
+            }
+            pub inline fn RSSetViewports(self: *T, num: u32, viewports: *const VIEWPORT) void {
+                self.vtbl.RSSetViewports(self, num, viewports);
+            }
+            pub inline fn RSSetScissorRects(self: *T, num: u32, rects: *const RECT) void {
+                self.vtbl.RSSetScissorRects(self, num, rects);
             }
         };
     }
@@ -786,13 +1081,13 @@ pub const IID_IPipelineState = os.GUID{
     .Data4 = .{ 0xa8, 0x28, 0xac, 0xe9, 0x48, 0x62, 0x24, 0x45 },
 };
 
-pub var GetDebugInterface: fn (*const os.GUID, **c_void) callconv(.Stdcall) os.HRESULT = undefined;
+pub var GetDebugInterface: fn (*const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
 pub var CreateDevice: fn (
     pAdapter: ?*IUnknown,
     MinimumFeatureLevel: FEATURE_LEVEL,
     guid: *const os.GUID,
     ppDevice: **c_void,
-) callconv(.Stdcall) os.HRESULT = undefined;
+) callconv(.Stdcall) HRESULT = undefined;
 
 pub fn init() void {
     // TODO: Handle error.
