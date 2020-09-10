@@ -309,6 +309,23 @@ pub const SUBRESOURCE_FOOTPRINT = extern struct {
     RowPitch: u32,
 };
 
+pub const COMMAND_QUEUE_FLAGS = extern enum {
+    NONE = 0,
+    DISABLE_GPU_TIMEOUT = 0x1,
+};
+
+pub const COMMAND_QUEUE_PRIORITY = extern enum {
+    NORMAL = 0,
+    HIGH = 100,
+};
+
+pub const COMMAND_QUEUE_DESC = extern struct {
+    Type: COMMAND_LIST_TYPE,
+    Priority: i32,
+    Flags: COMMAND_QUEUE_FLAGS,
+    NodeMask: u32,
+};
+
 const HRESULT = os.HRESULT;
 
 pub const IUnknown = extern struct {
@@ -1043,6 +1060,101 @@ pub const IGraphicsCommandList = extern struct {
                 base_descriptor: GPU_DESCRIPTOR_HANDLE,
             ) void {
                 self.vtbl.SetGraphicsRootDescriptorTable(self, root_parameter_index, base_descriptor);
+            }
+        };
+    }
+};
+
+pub const ICommandQueue = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12Object
+        GetPrivateData: fn (*Self, *const GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        // ID3D12DeviceChild
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // ID3D12CommandQueue
+        UpdateTileMappings: fn (
+            *Self,
+            *IResource,
+            u32,
+            [*]const TILED_RESOURCE_COORDINATE,
+            [*]const TILE_REGION_SIZE,
+            *IHeap,
+            u32,
+            [*]const TILE_RANGE_FLAGS,
+            [*]const u32,
+            [*]const u32,
+            flags: TILE_MAPPING_FLAGS,
+        ) callconv(.Stdcall) void,
+        CopyTileMappings: fn (
+            *Self,
+            *IResource,
+            *const TILED_RESOURCE_COORDINATE,
+            *IResource,
+            *const TILED_RESOURCE_COORDINATE,
+            *const TILE_REGION_SIZE,
+            TILE_MAPPING_FLAGS,
+        ) callconv(.Stdcall) void,
+    },
+    usingnamespace IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+    usingnamespace ICommandQueue.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn UpdateTileMappings(
+                self: *T,
+                resource: *IResource,
+                num_resource_regions: u32,
+                resource_region_start_coordinates: [*]const TILED_RESOURCE_COORDINATE,
+                resource_region_sizes: [*]const TILE_REGION_SIZE,
+                heap: *IHeap,
+                num_ranges: u32,
+                range_flags: [*]const TILE_RANGE_FLAGS,
+                heap_range_start_offsets: [*]const u32,
+                range_tile_counts: [*]const u32,
+                flags: TILE_MAPPING_FLAGS,
+            ) void {
+                self.vtbl.UpdateTileMappings(
+                    self,
+                    resource,
+                    num_resource_regions,
+                    resource_region_start_coordinates,
+                    resource_region_sizes,
+                    heap,
+                    num_ranges,
+                    range_flags,
+                    heap_range_start_offsets,
+                    range_tile_counts,
+                    flags,
+                );
+            }
+            pub inline fn CopyTileMappings(
+                self: *T,
+                dst_resource: *IResource,
+                dst_region_start_coordinate: *const TILED_RESOURCE_COORDINATE,
+                src_resource: *IResource,
+                src_region_start_coordinate: *const TILED_RESOURCE_COORDINATE,
+                region_size: *const TILE_REGION_SIZE,
+                flags: TILE_MAPPING_FLAGS,
+            ) void {
+                self.vtbl.CopyTileMappings(
+                    self,
+                    dst_resource,
+                    dst_region_start_coordinate,
+                    src_resource,
+                    src_region_start_coordinate,
+                    region_size,
+                    flags,
+                );
             }
         };
     }

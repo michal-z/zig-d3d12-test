@@ -155,6 +155,8 @@ pub fn main() !void {
     var device: *c_void = undefined;
     vhr(d3d12.CreateDevice(null, d3d12.FEATURE_LEVEL._11_1, &d3d12.IID_IDevice, &device));
 
+    var cmdqueue_desc: d3d12.COMMAND_QUEUE_DESC = undefined;
+
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
         if (os.user32.PeekMessageA(&message, null, 0, 0, os.user32.PM_REMOVE)) {
