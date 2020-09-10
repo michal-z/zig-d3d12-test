@@ -871,6 +871,8 @@ pub const IGraphicsCommandList = extern struct {
         SetDescriptorHeaps: fn (*Self, u32, [*]const *IDescriptorHeap) callconv(.Stdcall) void,
         SetComputeRootSignature: fn (*Self, *IRootSignature) callconv(.Stdcall) void,
         SetGraphicsRootSignature: fn (*Self, *IRootSignature) callconv(.Stdcall) void,
+        SetComputeRootDescriptorTable: fn (*Self, u32, GPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
+        SetGraphicsRootDescriptorTable: fn (*Self, u32, GPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1027,6 +1029,20 @@ pub const IGraphicsCommandList = extern struct {
             }
             pub inline fn SetGraphicsRootSignature(self: *T, root_signature: *IRootSignature) void {
                 self.vtbl.SetGraphicsRootSignature(self, root_signature);
+            }
+            pub inline fn SetComputeRootDescriptorTable(
+                self: *T,
+                root_parameter_index: u32,
+                base_descriptor: GPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.SetComputeRootDescriptorTable(self, root_parameter_index, base_descriptor);
+            }
+            pub inline fn SetGraphicsRootDescriptorTable(
+                self: *T,
+                root_parameter_index: u32,
+                base_descriptor: GPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.SetGraphicsRootDescriptorTable(self, root_parameter_index, base_descriptor);
             }
         };
     }
