@@ -176,6 +176,7 @@ pub const MODE_SCALING = extern enum {
 };
 
 pub const CREATE_FACTORY_DEBUG = 0x01;
+pub const USAGE_RENDER_TARGET_OUTPUT = 0x00000020;
 
 const HRESULT = os.HRESULT;
 
