@@ -944,6 +944,31 @@ pub const IGraphicsCommandList = extern struct {
             u32,
             [*]const RECT,
         ) callconv(.Stdcall) void,
+        DiscardResource: fn (*Self, *IResource, *const DISCARD_REGION) callconv(.Stdcall) void,
+        BeginQuery: fn (*Self, *IQueryHeap, QUERY_TYPE, u32) callconv(.Stdcall) void,
+        EndQuery: fn (*Self, *IQueryHeap, QUERY_TYPE, u32) callconv(.Stdcall) void,
+        ResolveQueryData: fn (
+            *Self,
+            *IQueryHeap,
+            QUERY_TYPE,
+            u32,
+            u32,
+            *IResource,
+            u64,
+        ) callconv(.Stdcall) void,
+        SetPredication: fn (*Self, *IResource, u64, PREDICATION_OP) callconv(.Stdcall) void,
+        SetMarker: fn (*Self, u32, *const c_void, u32) callconv(.Stdcall) void,
+        BeginEvent: fn (*Self, u32, *const c_void, u32) callconv(.Stdcall) void,
+        EndEvent: fn (*Self) callconv(.Stdcall) void,
+        ExecuteIndirect: fn (
+            *Self,
+            *ICommandSignature,
+            u32,
+            *IResource,
+            u64,
+            *IResource,
+            u64,
+        ) callconv(.Stdcall) void,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1279,6 +1304,84 @@ pub const IGraphicsCommandList = extern struct {
                     values,
                     num_rects,
                     rects,
+                );
+            }
+            pub inline fn DiscardResource(
+                self: *T,
+                resource: *IResource,
+                region: *const DISCARD_REGION,
+            ) void {
+                self.vtbl.DiscardResource(self, resource, region);
+            }
+            pub inline fn BeginQuery(
+                self: *T,
+                query: *IQueryHeap,
+                query_type: QUERY_TYPE,
+                index: u32,
+            ) void {
+                self.vtbl.BeginQuery(self, query, query_type, index);
+            }
+            pub inline fn EndQuery(
+                self: *T,
+                query: *IQueryHeap,
+                query_type: QUERY_TYPE,
+                index: u32,
+            ) void {
+                self.vtbl.EndQuery(self, query, query_type, index);
+            }
+            pub inline fn ResolveQueryData(
+                self: *T,
+                query: *IQueryHeap,
+                query_type: QUERY_TYPE,
+                start_index: u32,
+                num_queries: u32,
+                dst_resource: *IResource,
+                buffer_offset: u64,
+            ) void {
+                self.vtbl.ResolveQueryData(
+                    self,
+                    query,
+                    query_type,
+                    start_index,
+                    num_queries,
+                    dst_resource,
+                    buffer_offset,
+                );
+            }
+            pub inline fn SetPredication(
+                self: *T,
+                buffer: *IResource,
+                buffer_offset: u64,
+                operation: PREDICATION_OP,
+            ) void {
+                self.vtbl.SetPredication(self, buffer, buffer_offset, operation);
+            }
+            pub inline fn SetMarker(self: *T, metadata: u32, data: *const c_void, size: u32) void {
+                self.vtbl.SetMarker(self, metadata, data, size);
+            }
+            pub inline fn BeginEvent(self: *T, metadata: u32, data: *const c_void, size: u32) void {
+                self.vtbl.BeginEvent(self, metadata, data, size);
+            }
+            pub inline fn EndEvent(self: *T) void {
+                self.vtbl.EndEvent(self);
+            }
+            pub inline fn ExecuteIndirect(
+                self: *T,
+                command_signature: *ICommandSignature,
+                max_command_count: u32,
+                arg_buffer: *IResource,
+                arg_buffer_offset: u64,
+                count_buffer: *IResource,
+                count_buffer_offset: u64,
+            ) void {
+                self.vtbl.ExecuteIndirect(
+                    self,
+                    command_signature,
+                    max_command_count,
+                    arg_buffer,
+                    arg_buffer_offset,
+                    count_buffer,
+                    count_buffer_offset,
                 );
             }
         };
