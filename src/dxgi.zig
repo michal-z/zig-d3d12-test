@@ -197,7 +197,7 @@ pub const IDeviceSubObject = extern struct {
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // IDXGIDeviceSubObject
-        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -207,6 +207,103 @@ pub const IDeviceSubObject = extern struct {
         return extern struct {
             pub inline fn GetDevice(self: *T, guid: *const os.GUID, device: **c_void) HRESULT {
                 return self.vtbl.GetDevice(self, guid, device);
+            }
+        };
+    }
+};
+
+pub const IFactory4 = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // IDXGIObject
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const os.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // IDXGIFactory
+        _empty0: [3]*c_void,
+        CreateSwapChain: fn (
+            *Self,
+            *os.IUnknown,
+            *SWAP_CHAIN_DESC,
+            **ISwapChain,
+        ) callconv(.Stdcall) HRESULT,
+        _empty1: [17]*c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IFactory4.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn CreateSwapChain(
+                self: *T,
+                device: *os.IUnknown,
+                desc: *SWAP_CHAIN_DESC,
+                swapchain: **ISwapChain,
+            ) HRESULT {
+                return self.vtbl.CreateSwapChain(self, device, desc, swapchain);
+            }
+        };
+    }
+};
+
+pub const ISwapChain3 = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // IDXGIObject
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const os.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // IDXGIDeviceSubObject
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // IDXGISwapChain
+        Present: fn (*Self, u32, u32) callconv(.Stdcall) HRESULT,
+        GetBuffer: fn (*Self, u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        _empty0: [8]*c_void,
+        // IDXGISwapChain2
+        _empty1: [18]*c_void,
+        // IDXGISwapChain3
+        GetCurrentBackBufferIndex: fn (*Self) callconv(.Stdcall) u32,
+        _empty2: [3]*c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceSubObject.Methods(Self);
+    usingnamespace ISwapChain3.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn Present(self: *T, interval: u32, flags: u32) HRESULT {
+                return self.vtbl.Present(self, interval, flags);
+            }
+            pub inline fn GetBuffer(
+                self: *T,
+                buffer: u32,
+                guid: *const os.GUID,
+                surface: **c_void,
+            ) HRESULT {
+                return self.vtbl.GetBuffer(self, buffer, guid, surface);
+            }
+            pub inline fn GetCurrentBackBufferIndex(self: *T) u32 {
+                return self.vtbl.GetCurrentBackBufferIndex(self);
             }
         };
     }
