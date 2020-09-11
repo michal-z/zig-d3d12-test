@@ -159,14 +159,19 @@ pub fn main() !void {
         &d3d12.IID_IDevice,
         @ptrCast(**c_void, &device),
     ));
-    _ = device.GetNodeCount();
+    std.log.info("node count is {}", .{device.GetNodeCount()});
 
-    const cmdqueue_desc = d3d12.COMMAND_QUEUE_DESC{
-        .Type = d3d12.COMMAND_LIST_TYPE.DIRECT,
-        .Priority = @enumToInt(d3d12.COMMAND_QUEUE_PRIORITY.NORMAL),
-        .Flags = d3d12.COMMAND_QUEUE_FLAGS.NONE,
-        .NodeMask = 0,
-    };
+    var cmdqueue: *d3d12.ICommandQueue = undefined;
+    vhr(device.CreateCommandQueue(
+        &d3d12.COMMAND_QUEUE_DESC{
+            .Type = d3d12.COMMAND_LIST_TYPE.DIRECT,
+            .Priority = @enumToInt(d3d12.COMMAND_QUEUE_PRIORITY.NORMAL),
+            .Flags = d3d12.COMMAND_QUEUE_FLAGS.NONE,
+            .NodeMask = 0,
+        },
+        &d3d12.IID_ICommandQueue,
+        @ptrCast(**c_void, &cmdqueue),
+    ));
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);

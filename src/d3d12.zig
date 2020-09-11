@@ -1,5 +1,6 @@
 const std = @import("std");
 const os = std.os.windows;
+const dxgi = @import("dxgi.zig");
 
 pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
 pub const DEFAULT_DEPTH_BIAS = 0;
@@ -7,134 +8,6 @@ pub const DEFAULT_DEPTH_BIAS_CLAMP = 0.0;
 pub const DEFAULT_SLOPE_SCALED_DEPTH_BIAS = 0.0;
 pub const DEFAULT_STENCIL_READ_MASK = 0xff;
 pub const DEFAULT_STENCIL_WRITE_MASK = 0xff;
-
-pub const FORMAT = extern enum {
-    UNKNOWN = 0,
-    R32G32B32A32_TYPELESS = 1,
-    R32G32B32A32_FLOAT = 2,
-    R32G32B32A32_UINT = 3,
-    R32G32B32A32_SINT = 4,
-    R32G32B32_TYPELESS = 5,
-    R32G32B32_FLOAT = 6,
-    R32G32B32_UINT = 7,
-    R32G32B32_SINT = 8,
-    R16G16B16A16_TYPELESS = 9,
-    R16G16B16A16_FLOAT = 10,
-    R16G16B16A16_UNORM = 11,
-    R16G16B16A16_UINT = 12,
-    R16G16B16A16_SNORM = 13,
-    R16G16B16A16_SINT = 14,
-    R32G32_TYPELESS = 15,
-    R32G32_FLOAT = 16,
-    R32G32_UINT = 17,
-    R32G32_SINT = 18,
-    R32G8X24_TYPELESS = 19,
-    D32_FLOAT_S8X24_UINT = 20,
-    R32_FLOAT_X8X24_TYPELESS = 21,
-    X32_TYPELESS_G8X24_UINT = 22,
-    R10G10B10A2_TYPELESS = 23,
-    R10G10B10A2_UNORM = 24,
-    R10G10B10A2_UINT = 25,
-    R11G11B10_FLOAT = 26,
-    R8G8B8A8_TYPELESS = 27,
-    R8G8B8A8_UNORM = 28,
-    R8G8B8A8_UNORM_SRGB = 29,
-    R8G8B8A8_UINT = 30,
-    R8G8B8A8_SNORM = 31,
-    R8G8B8A8_SINT = 32,
-    R16G16_TYPELESS = 33,
-    R16G16_FLOAT = 34,
-    R16G16_UNORM = 35,
-    R16G16_UINT = 36,
-    R16G16_SNORM = 37,
-    R16G16_SINT = 38,
-    R32_TYPELESS = 39,
-    D32_FLOAT = 40,
-    R32_FLOAT = 41,
-    R32_UINT = 42,
-    R32_SINT = 43,
-    R24G8_TYPELESS = 44,
-    D24_UNORM_S8_UINT = 45,
-    R24_UNORM_X8_TYPELESS = 46,
-    X24_TYPELESS_G8_UINT = 47,
-    R8G8_TYPELESS = 48,
-    R8G8_UNORM = 49,
-    R8G8_UINT = 50,
-    R8G8_SNORM = 51,
-    R8G8_SINT = 52,
-    R16_TYPELESS = 53,
-    R16_FLOAT = 54,
-    D16_UNORM = 55,
-    R16_UNORM = 56,
-    R16_UINT = 57,
-    R16_SNORM = 58,
-    R16_SINT = 59,
-    R8_TYPELESS = 60,
-    R8_UNORM = 61,
-    R8_UINT = 62,
-    R8_SNORM = 63,
-    R8_SINT = 64,
-    A8_UNORM = 65,
-    R1_UNORM = 66,
-    R9G9B9E5_SHAREDEXP = 67,
-    R8G8_B8G8_UNORM = 68,
-    G8R8_G8B8_UNORM = 69,
-    BC1_TYPELESS = 70,
-    BC1_UNORM = 71,
-    BC1_UNORM_SRGB = 72,
-    BC2_TYPELESS = 73,
-    BC2_UNORM = 74,
-    BC2_UNORM_SRGB = 75,
-    BC3_TYPELESS = 76,
-    BC3_UNORM = 77,
-    BC3_UNORM_SRGB = 78,
-    BC4_TYPELESS = 79,
-    BC4_UNORM = 80,
-    BC4_SNORM = 81,
-    BC5_TYPELESS = 82,
-    BC5_UNORM = 83,
-    BC5_SNORM = 84,
-    B5G6R5_UNORM = 85,
-    B5G5R5A1_UNORM = 86,
-    B8G8R8A8_UNORM = 87,
-    B8G8R8X8_UNORM = 88,
-    R10G10B10_XR_BIAS_A2_UNORM = 89,
-    B8G8R8A8_TYPELESS = 90,
-    B8G8R8A8_UNORM_SRGB = 91,
-    B8G8R8X8_TYPELESS = 92,
-    B8G8R8X8_UNORM_SRGB = 93,
-    BC6H_TYPELESS = 94,
-    BC6H_UF16 = 95,
-    BC6H_SF16 = 96,
-    BC7_TYPELESS = 97,
-    BC7_UNORM = 98,
-    BC7_UNORM_SRGB = 99,
-    AYUV = 100,
-    Y410 = 101,
-    Y416 = 102,
-    NV12 = 103,
-    P010 = 104,
-    P016 = 105,
-    _420_OPAQUE = 106,
-    YUY2 = 107,
-    Y210 = 108,
-    Y216 = 109,
-    NV11 = 110,
-    AI44 = 111,
-    IA44 = 112,
-    P8 = 113,
-    A8P8 = 114,
-    B4G4R4A4_UNORM = 115,
-    P208 = 130,
-    V208 = 131,
-    V408 = 132,
-    FORCE_UINT = 0xffffffff,
-};
-
-pub const SAMPLE_DESC = extern struct {
-    Count: u32,
-    Quality: u32,
-};
 
 pub const GPU_VIRTUAL_ADDRESS = u64;
 
@@ -237,8 +110,8 @@ pub const RESOURCE_DESC = extern struct {
     Height: u32,
     DepthOrArraySize: u16,
     MipLevels: u16,
-    Format: FORMAT,
-    SampleDesc: SAMPLE_DESC,
+    Format: dxgi.FORMAT,
+    SampleDesc: dxgi.SAMPLE_DESC,
     Layout: TEXTURE_LAYOUT,
     Flags: RESOURCE_FLAGS,
 };
@@ -302,7 +175,7 @@ pub const COMMAND_LIST_TYPE = extern enum {
 };
 
 pub const SUBRESOURCE_FOOTPRINT = extern struct {
-    Format: FORMAT,
+    Format: dxgi.FORMAT,
     Width: u32,
     Height: u32,
     Depth: u32,
@@ -324,6 +197,53 @@ pub const COMMAND_QUEUE_DESC = extern struct {
     Priority: i32,
     Flags: COMMAND_QUEUE_FLAGS,
     NodeMask: u32,
+};
+
+pub const TILED_RESOURCE_COORDINATE = extern struct {
+    X: u32,
+    Y: u32,
+    Z: u32,
+    Subresource: u32,
+};
+
+pub const TILE_REGION_SIZE = extern struct {
+    NumTiles: u32,
+    UseBox: i32,
+    Width: u32,
+    Height: u16,
+    Depth: u16,
+};
+
+pub const TILE_RANGE_FLAGS = extern enum {
+    NONE = 0,
+    NULL = 1,
+    SKIP = 2,
+    REUSE_SINGLE_TILE = 4,
+};
+
+pub const SUBRESOURCE_TILING = extern struct {
+    WidthInTiles: u32,
+    HeightInTiles: u16,
+    DepthInTiles: u16,
+    StartTileIndexInOverallResource: u32,
+};
+
+pub const TILE_SHAPE = extern struct {
+    WidthInTexels: u32,
+    HeightInTexels: u32,
+    DepthInTexels: u32,
+};
+
+pub const TILE_MAPPING_FLAGS = extern enum {
+    NONE = 0,
+    NO_HAZARD = 0x1,
+};
+
+pub const TILE_COPY_FLAGS = extern enum {
+    NONE = 0,
+    NO_HAZARD = 0x1,
+    LINEAR_BUFFER_TO_SWIZZLED_TILED_RESOURCE = 0x2,
+    SWIZZLED_TILED_RESOURCE_TO_LINEAR_BUFFER = 0x4,
 };
 
 const HRESULT = os.HRESULT;
@@ -876,7 +796,14 @@ pub const IGraphicsCommandList = extern struct {
             buffer_start_offset_in_bytes: u64,
             TILE_COPY_FLAGS,
         ) callconv(.Stdcall) void,
-        ResolveSubresource: fn (*Self, *IResource, u32, *IResource, u32, FORMAT) callconv(.Stdcall) void,
+        ResolveSubresource: fn (
+            *Self,
+            *IResource,
+            u32,
+            *IResource,
+            u32,
+            dxgi.FORMAT,
+        ) callconv(.Stdcall) void,
         IASetPrimitiveTopology: fn (*Self, PRIMITIVE_TOPOLOGY) callconv(.Stdcall) void,
         RSSetViewports: fn (*Self, u32, [*]const VIEWPORT) callconv(.Stdcall) void,
         RSSetScissorRects: fn (*Self, u32, [*]const RECT) callconv(.Stdcall) void,
@@ -1078,7 +1005,7 @@ pub const IGraphicsCommandList = extern struct {
                 dst_subresource: u32,
                 src_resource: *ID3D12Resource,
                 src_subresource: u32,
-                format: FORMAT,
+                format: dxgi.FORMAT,
             ) void {
                 self.vtbl.ResolveSubresource(
                     self,
@@ -1543,6 +1470,18 @@ pub const IDevice = extern struct {
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12Device
         GetNodeCount: fn (*Self) callconv(.Stdcall) u32,
+        CreateCommandQueue: fn (
+            *Self,
+            *const COMMAND_QUEUE_DESC,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        CreateCommandAllocator: fn (
+            *Self,
+            COMMAND_LIST_TYPE,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1552,6 +1491,22 @@ pub const IDevice = extern struct {
         return extern struct {
             pub inline fn GetNodeCount(self: *T) u32 {
                 return self.vtbl.GetNodeCount(self);
+            }
+            pub inline fn CreateCommandQueue(
+                self: *T,
+                desc: *const COMMAND_QUEUE_DESC,
+                guid: *const os.GUID,
+                obj: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateCommandQueue(self, desc, guid, obj);
+            }
+            pub inline fn CreateCommandAllocator(
+                self: *T,
+                cmdlist_type: COMMAND_LIST_TYPE,
+                guid: *const os.GUID,
+                obj: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateCommandAllocator(self, cmdlist_type, guid, obj);
             }
         };
     }
