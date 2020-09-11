@@ -155,7 +155,12 @@ pub fn main() !void {
     var device: *c_void = undefined;
     vhr(d3d12.CreateDevice(null, d3d12.FEATURE_LEVEL._11_1, &d3d12.IID_IDevice, &device));
 
-    var cmdqueue_desc: d3d12.COMMAND_QUEUE_DESC = undefined;
+    const cmdqueue_desc = d3d12.COMMAND_QUEUE_DESC{
+        .Type = d3d12.COMMAND_LIST_TYPE.DIRECT,
+        .Priority = @enumToInt(d3d12.COMMAND_QUEUE_PRIORITY.NORMAL),
+        .Flags = d3d12.COMMAND_QUEUE_FLAGS.NONE,
+        .NodeMask = 0,
+    };
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);

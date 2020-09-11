@@ -890,6 +890,60 @@ pub const IGraphicsCommandList = extern struct {
         SetGraphicsRootSignature: fn (*Self, *IRootSignature) callconv(.Stdcall) void,
         SetComputeRootDescriptorTable: fn (*Self, u32, GPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
         SetGraphicsRootDescriptorTable: fn (*Self, u32, GPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
+        SetComputeRoot32BitConstant: fn (*Self, u32, u32, u32) callconv(.Stdcall) void,
+        SetGraphicsRoot32BitConstant: fn (*Self, u32, u32, u32) callconv(.Stdcall) void,
+        SetComputeRoot32BitConstants: fn (*Self, u32, u32, [*]const c_void, u32) callconv(.Stdcall) void,
+        SetGraphicsRoot32BitConstants: fn (*Self, u32, u32, [*]const c_void, u32) callconv(.Stdcall) void,
+        SetComputeRootConstantBufferView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
+        SetGraphicsRootConstantBufferView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
+        SetComputeRootShaderResourceView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
+        SetGraphicsRootShaderResourceView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
+        SetComputeRootUnorderedAccessView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
+        SetGraphicsRootUnorderedAccessView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
+        IASetIndexBuffer: fn (*Self, *const INDEX_BUFFER_VIEW) callconv(.Stdcall) void,
+        IASetVertexBuffers: fn (*Self, u32, u32, [*]const VERTEX_BUFFER_VIEW) callconv(.Stdcall) void,
+        SOSetTargets: fn (*Self, u32, u32, [*]const STREAM_OUTPUT_BUFFER_VIEW) callconv(.Stdcall) void,
+        OMSetRenderTargets: fn (
+            *Self,
+            u32,
+            [*]const CPU_DESCRIPTOR_HANDLE,
+            i32,
+            *const CPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) void,
+        ClearDepthStencilView: fn (
+            *Self,
+            CPU_DESCRIPTOR_HANDLE,
+            CLEAR_FLAGS,
+            f32,
+            u8,
+            u32,
+            [*]const D3D12_RECT,
+        ) callconv(.Stdcall) void,
+        ClearRenderTargetView: fn (
+            *Self,
+            CPU_DESCRIPTOR_HANDLE,
+            *const [4]f32,
+            u32,
+            [*]const RECT,
+        ) callconv(.Stdcall) void,
+        ClearUnorderedAccessViewUint: fn (
+            *Self,
+            GPU_DESCRIPTOR_HANDLE,
+            CPU_DESCRIPTOR_HANDLE,
+            *IResource,
+            *const [4]u32,
+            u32,
+            [*]const RECT,
+        ) callconv(.Stdcall) void,
+        ClearUnorderedAccessViewFloat: fn (
+            *Self,
+            GPU_DESCRIPTOR_HANDLE,
+            CPU_DESCRIPTOR_HANDLE,
+            *IResource,
+            *const [4]f32,
+            u32,
+            [*]const RECT,
+        ) callconv(.Stdcall) void,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1049,17 +1103,183 @@ pub const IGraphicsCommandList = extern struct {
             }
             pub inline fn SetComputeRootDescriptorTable(
                 self: *T,
-                root_parameter_index: u32,
+                root_index: u32,
                 base_descriptor: GPU_DESCRIPTOR_HANDLE,
             ) void {
-                self.vtbl.SetComputeRootDescriptorTable(self, root_parameter_index, base_descriptor);
+                self.vtbl.SetComputeRootDescriptorTable(self, root_index, base_descriptor);
             }
             pub inline fn SetGraphicsRootDescriptorTable(
                 self: *T,
-                root_parameter_index: u32,
+                root_index: u32,
                 base_descriptor: GPU_DESCRIPTOR_HANDLE,
             ) void {
-                self.vtbl.SetGraphicsRootDescriptorTable(self, root_parameter_index, base_descriptor);
+                self.vtbl.SetGraphicsRootDescriptorTable(self, root_index, base_descriptor);
+            }
+            pub inline fn SetComputeRoot32BitConstant(self: *T, index: u32, data: u32, off: u32) void {
+                self.vtbl.SetComputeRoot32BitConstant(self, index, data, off);
+            }
+            pub inline fn SetGraphicsRoot32BitConstant(self: *T, index: u32, data: u32, off: u32) void {
+                self.vtbl.SetGraphicsRoot32BitConstant(self, index, data, off);
+            }
+            pub inline fn SetComputeRoot32BitConstants(
+                self: *T,
+                root_index: u32,
+                num: u32,
+                data: [*]const c_void,
+                offset: u32,
+            ) void {
+                self.vtbl.SetComputeRoot32BitConstants(self, root_index, num, data, offset);
+            }
+            pub inline fn SetGraphicsRoot32BitConstants(
+                self: *T,
+                root_index: u32,
+                num: u32,
+                data: [*]const c_void,
+                offset: u32,
+            ) void {
+                self.vtbl.SetGraphicsRoot32BitConstants(self, root_index, num, data, offset);
+            }
+            pub inline fn SetComputeRootConstantBufferView(
+                self: *T,
+                index: u32,
+                buffer_location: GPU_VIRTUAL_ADDRESS,
+            ) void {
+                self.vtbl.SetComputeRootConstantBufferView(self, index, buffer_location);
+            }
+            pub inline fn SetGraphicsRootConstantBufferView(
+                self: *T,
+                index: u32,
+                buffer_location: GPU_VIRTUAL_ADDRESS,
+            ) void {
+                self.vtbl.SetGraphicsRootConstantBufferView(self, index, buffer_location);
+            }
+            pub inline fn SetComputeRootShaderResourceView(
+                self: *T,
+                index: u32,
+                buffer_location: GPU_VIRTUAL_ADDRESS,
+            ) void {
+                self.vtbl.SetComputeRootShaderResourceView(self, index, buffer_location);
+            }
+            pub inline fn SetGraphicsRootShaderResourceView(
+                self: *T,
+                index: u32,
+                buffer_location: GPU_VIRTUAL_ADDRESS,
+            ) void {
+                self.vtbl.SetGraphicsRootShaderResourceView(self, index, buffer_location);
+            }
+            pub inline fn SetComputeRootUnorderedAccessView(
+                self: *T,
+                index: u32,
+                buffer_location: GPU_VIRTUAL_ADDRESS,
+            ) void {
+                self.vtbl.SetComputeRootUnorderedAccessView(self, index, buffer_location);
+            }
+            pub inline fn SetGraphicsRootUnorderedAccessView(
+                self: *T,
+                index: u32,
+                buffer_location: GPU_VIRTUAL_ADDRESS,
+            ) void {
+                self.vtbl.SetGraphicsRootUnorderedAccessView(self, index, buffer_location);
+            }
+            pub inline fn IASetIndexBuffer(self: *T, view: *const INDEX_BUFFER_VIEW) void {
+                self.vtbl.IASetIndexBuffer(self, view);
+            }
+            pub inline fn IASetVertexBuffers(
+                self: *T,
+                start_slot: u32,
+                num_views: u32,
+                views: [*]const VERTEX_BUFFER_VIEW,
+            ) void {
+                self.vtbl.IASetVertexBuffers(self, start_slot, num_views, views);
+            }
+            pub inline fn SOSetTargets(
+                self: *T,
+                start_slot: u32,
+                num_views: u32,
+                views: [*]const STREAM_OUTPUT_BUFFER_VIEW,
+            ) void {
+                self.vtbl.SOSetTargets(self, start_slot, num_views, views);
+            }
+            pub inline fn OMSetRenderTargets(
+                self: *T,
+                num_rt_descriptors: u32,
+                rt_descriptors: [*]const CPU_DESCRIPTOR_HANDLE,
+                single_handle: bool,
+                ds_descriptors: *const CPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.OMSetRenderTargets(
+                    self,
+                    num_rt_descriptors,
+                    rt_descriptors,
+                    single_handle,
+                    ds_descriptors,
+                );
+            }
+            pub inline fn ClearDepthStencilView(
+                self: *T,
+                ds_view: CPU_DESCRIPTOR_HANDLE,
+                clear_flags: CLEAR_FLAGS,
+                depth: f32,
+                stencil: u8,
+                num_rects: u32,
+                rects: ?[*]const D3D12_RECT,
+            ) void {
+                self.vtbl.ClearDepthStencilView(
+                    self,
+                    ds_view,
+                    clear_flags,
+                    depth,
+                    stencil,
+                    num_rects,
+                    rects,
+                );
+            }
+            pub inline fn ClearRenderTargetView(
+                self: *T,
+                rt_view: CPU_DESCRIPTOR_HANDLE,
+                rgba: *const [4]f32,
+                num_rects: u32,
+                rects: [*]const RECT,
+            ) void {
+                self.vtbl.ClearRenderTargetView(self, rt_view, rgba, num_rects, rects);
+            }
+            pub inline fn ClearUnorderedAccessViewUint(
+                self: *T,
+                gpu_view: GPU_DESCRIPTOR_HANDLE,
+                cpu_view: CPU_DESCRIPTOR_HANDLE,
+                resource: *IResource,
+                values: *const [4]u32,
+                num_rects: u32,
+                rects: [*]const RECT,
+            ) void {
+                self.vtbl.ClearUnorderedAccessViewUint(
+                    self,
+                    gpu_view,
+                    cpu_view,
+                    resource,
+                    values,
+                    num_rects,
+                    rects,
+                );
+            }
+            pub inline fn ClearUnorderedAccessViewFloat(
+                self: *T,
+                gpu_view: GPU_DESCRIPTOR_HANDLE,
+                cpu_view: CPU_DESCRIPTOR_HANDLE,
+                resource: *IResource,
+                values: *const [4]f32,
+                num_rects: u32,
+                rects: [*]const RECT,
+            ) void {
+                self.vtbl.ClearUnorderedAccessViewFloat(
+                    self,
+                    gpu_view,
+                    cpu_view,
+                    resource,
+                    values,
+                    num_rects,
+                    rects,
+                );
             }
         };
     }
@@ -1102,6 +1322,15 @@ pub const ICommandQueue = extern struct {
             *const TILE_REGION_SIZE,
             TILE_MAPPING_FLAGS,
         ) callconv(.Stdcall) void,
+        ExecuteCommandLists: fn (*Self, u32, [*]const *ICommandList) callconv(.Stdcall) void,
+        SetMarker: fn (*Self, u32, *const c_void, u32) callconv(.Stdcall) void,
+        BeginEvent: fn (*Self, u32, *const c_void, u32) callconv(.Stdcall) void,
+        EndEvent: fn (*Self) callconv(.Stdcall) void,
+        Signal: fn (*Self, *IFence, u64) callconv(.Stdcall) HRESULT,
+        Wait: fn (*Self, *IFence, u64) callconv(.Stdcall) HRESULT,
+        GetTimestampFrequency: fn (*Self, *u64) callconv(.Stdcall) HRESULT,
+        GetClockCalibration: fn (*Self, *u64, *u64) callconv(.Stdcall) HRESULT,
+        GetDesc: fn (*Self, *COMMAND_QUEUE_DESC) callconv(.Stdcall) *COMMAND_QUEUE_DESC,
     },
     usingnamespace IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1155,6 +1384,43 @@ pub const ICommandQueue = extern struct {
                     region_size,
                     flags,
                 );
+            }
+            pub inline fn ExecuteCommandLists(
+                self: *T,
+                num: u32,
+                cmdlists: [*]const *ICommandList,
+            ) void {
+                self.vtbl.ExecuteCommandLists(self, num, cmdlists);
+            }
+            pub inline fn SetMarker(self: *T, metadata: u32, data: *const c_void, size: u32) void {
+                self.vtbl.SetMarker(self, metadata, data, size);
+            }
+            pub inline fn BeginEvent(self: *T, metadata: u32, data: *const c_void, size: u32) void {
+                self.vtbl.BeginEvent(self, metadata, data, size);
+            }
+            pub inline fn EndEvent(self: *T) void {
+                self.vtbl.EndEvent(self);
+            }
+            pub inline fn Signal(self: *T, fence: *IFence, value: u64) HRESULT {
+                return self.vtbl.Signal(self, fence, value);
+            }
+            pub inline fn Wait(self: *T, fence: *IFence, value: u64) HRESULT {
+                return self.vtbl.Wait(self, fence, value);
+            }
+            pub inline fn GetTimestampFrequency(self: *T, frequency: *u64) HRESULT {
+                return self.vtbl.GetTimestampFrequency(self, frequency);
+            }
+            pub inline fn GetClockCalibration(
+                self: *T,
+                gpu_timestamp: *u64,
+                cpu_timestamp: *u64,
+            ) HRESULT {
+                return self.vtbl.GetClockCalibration(self, gpu_timestamp, cpu_timestamp);
+            }
+            pub inline fn GetDesc(self: *T) COMMAND_QUEUE_DESC {
+                var desc: COMMAND_QUEUE_DESC = undefined;
+                self.vtbl.GetDesc(self, &desc);
+                return desc;
             }
         };
     }
