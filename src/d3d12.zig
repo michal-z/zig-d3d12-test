@@ -1,5 +1,6 @@
 const std = @import("std");
 const os = std.os.windows;
+const osl = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 
 pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
@@ -248,31 +249,6 @@ pub const TILE_COPY_FLAGS = extern enum {
 
 const HRESULT = os.HRESULT;
 
-pub const IUnknown = extern struct {
-    const Self = @This();
-    vtbl: *const extern struct {
-        // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
-    },
-    usingnamespace IUnknown.Methods(Self);
-
-    fn Methods(comptime T: type) type {
-        return extern struct {
-            pub inline fn QueryInterface(self: *T, guid: *const os.GUID, outobj: **c_void) HRESULT {
-                return self.vtbl.QueryInterface(self, guid, outobj);
-            }
-            pub inline fn AddRef(self: *T) u32 {
-                return self.vtbl.AddRef(self);
-            }
-            pub inline fn Release(self: *T) u32 {
-                return self.vtbl.Release(self);
-            }
-        };
-    }
-};
-
 pub const IBlob = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
@@ -285,7 +261,7 @@ pub const IBlob = extern struct {
         GetBufferPointer: fn (*Self) callconv(.Stdcall) *c_void,
         GetBufferSize: fn (*Self) callconv(.Stdcall) usize,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IBlob.Methods(Self);
 
     fn Methods(comptime T: type) type {
@@ -310,7 +286,7 @@ pub const IDebug = extern struct {
         // ID3D12Debug
         EnableDebugLayer: fn (*Self) callconv(.Stdcall) void,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IDebug.Methods(Self);
 
     fn Methods(comptime T: type) type {
@@ -332,10 +308,14 @@ pub const IObject = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
 
     fn Methods(comptime T: type) type {
@@ -359,7 +339,7 @@ pub const IObject = extern struct {
             pub inline fn SetPrivateDataInterface(
                 self: *T,
                 guid: *const os.GUID,
-                data: ?*const IUnknown,
+                data: ?*const osl.IUnknown,
             ) HRESULT {
                 return self.vtbl.SetPrivateDataInterface(self, guid, data);
             }
@@ -380,12 +360,16 @@ pub const IDeviceChild = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
 
@@ -412,12 +396,16 @@ pub const IRootSignature = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
 };
@@ -432,12 +420,16 @@ pub const IPageable = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
 };
@@ -452,14 +444,18 @@ pub const IHeap = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12Heap
         GetDesc: fn (*Self, *HEAP_DESC) callconv(.Stdcall) *HEAP_DESC,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace IHeap.Methods(Self);
@@ -485,7 +481,11 @@ pub const IResource = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
@@ -505,7 +505,7 @@ pub const IResource = extern struct {
         ReadFromSubresource: fn (*Self, *c_void, u32, u32, u32, *const BOX) callconv(.Stdcall) HRESULT,
         GetHeapProperties: fn (*Self, *HEAP_PROPERTIES, *HEAP_FLAGS) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace IResource.Methods(Self);
@@ -580,14 +580,18 @@ pub const ICommandAllocator = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12CommandAllocator
         Reset: fn (*Self) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace ICommandAllocator.Methods(Self);
@@ -611,7 +615,11 @@ pub const IFence = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
@@ -620,7 +628,7 @@ pub const IFence = extern struct {
         SetEventOnCompletion: fn (*Self, u64, os.HANDLE) callconv(.Stdcall) HRESULT,
         Signal: fn (*Self, u64) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace IFence.Methods(Self);
@@ -650,14 +658,18 @@ pub const IPipelineState = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12PipelineState
         GetCachedBlob: fn (*Self, *IBlob) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace IPipelineState.Methods(Self);
@@ -681,7 +693,11 @@ pub const IDescriptorHeap = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
@@ -696,7 +712,7 @@ pub const IDescriptorHeap = extern struct {
             *GPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) *GPU_DESCRIPTOR_HANDLE,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace IDescriptorHeap.Methods(Self);
@@ -732,14 +748,18 @@ pub const ICommandList = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12CommandList
         GetType: fn (*Self) callconv(.Stdcall) COMMAND_LIST_TYPE,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace ICommandList.Methods(Self);
@@ -763,7 +783,11 @@ pub const IGraphicsCommandList = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
@@ -897,7 +921,7 @@ pub const IGraphicsCommandList = extern struct {
             u64,
         ) callconv(.Stdcall) void,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace ICommandList.Methods(Self);
@@ -1325,7 +1349,7 @@ pub const ICommandQueue = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const osl.IUnknown) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
@@ -1362,7 +1386,7 @@ pub const ICommandQueue = extern struct {
         GetClockCalibration: fn (*Self, *u64, *u64) callconv(.Stdcall) HRESULT,
         GetDesc: fn (*Self, *COMMAND_QUEUE_DESC) callconv(.Stdcall) *COMMAND_QUEUE_DESC,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceChild.Methods(Self);
     usingnamespace ICommandQueue.Methods(Self);
@@ -1466,7 +1490,11 @@ pub const IDevice = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12Device
         GetNodeCount: fn (*Self) callconv(.Stdcall) u32,
@@ -1483,7 +1511,7 @@ pub const IDevice = extern struct {
             **c_void,
         ) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace IUnknown.Methods(Self);
+    usingnamespace osl.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDevice.Methods(Self);
 
@@ -1599,7 +1627,7 @@ pub const IID_IPipelineState = os.GUID{
 
 pub var GetDebugInterface: fn (*const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
 pub var CreateDevice: fn (
-    ?*IUnknown,
+    ?*osl.IUnknown,
     FEATURE_LEVEL,
     *const os.GUID,
     **c_void,
