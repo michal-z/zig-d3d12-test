@@ -152,8 +152,14 @@ pub fn main() !void {
     debug.EnableDebugLayer();
     _ = debug.Release();
 
-    var device: *c_void = undefined;
-    vhr(d3d12.CreateDevice(null, d3d12.FEATURE_LEVEL._11_1, &d3d12.IID_IDevice, &device));
+    var device: *d3d12.IDevice = undefined;
+    vhr(d3d12.CreateDevice(
+        null,
+        d3d12.FEATURE_LEVEL._11_1,
+        &d3d12.IID_IDevice,
+        @ptrCast(**c_void, &device),
+    ));
+    _ = device.GetNodeCount();
 
     const cmdqueue_desc = d3d12.COMMAND_QUEUE_DESC{
         .Type = d3d12.COMMAND_LIST_TYPE.DIRECT,
