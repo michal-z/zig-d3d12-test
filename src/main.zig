@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const os = std.os.windows;
 const osl = @import("windows.zig");
+const dxgi = @import("d3d12.zig");
 const d3d12 = @import("d3d12.zig");
 
 const window_name = "zig d3d12 test";
@@ -121,6 +122,7 @@ pub fn main() !void {
         null,
     );
 
+    dxgi.init();
     d3d12.init();
 
     var debug: *d3d12.IDebug = undefined;

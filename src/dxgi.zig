@@ -127,3 +127,114 @@ pub const FORMAT = extern enum {
     V208 = 131,
     V408 = 132,
 };
+
+pub const IObject = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // IDXGIObject
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+    },
+    usingnamespace osl.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn SetPrivateData(
+                self: *T,
+                guid: *const os.GUID,
+                data_size: u32,
+                data: ?*const c_void,
+            ) HRESULT {
+                return self.vtbl.SetPrivateData(self, guid, data_size, data);
+            }
+            pub inline fn SetPrivateDataInterface(
+                self: *T,
+                guid: *const os.GUID,
+                data: ?*const osl.IUnknown,
+            ) HRESULT {
+                return self.vtbl.SetPrivateDataInterface(self, guid, data);
+            }
+            pub inline fn GetPrivateData(
+                self: *T,
+                guid: *const os.GUID,
+                data_size: *u32,
+                data: ?*c_void,
+            ) HRESULT {
+                return self.vtbl.GetPrivateData(self, guid, data_size, data);
+            }
+            pub inline fn GetParent(self: *T, guid: *const os.GUID, parent: **c_void) HRESULT {
+                return self.vtbl.GetParent(self, guid, parent);
+            }
+        };
+    }
+};
+
+pub const IDeviceSubObject = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // IDXGIObject
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const osl.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // IDXGIDeviceSubObject
+        GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
+    },
+    usingnamespace osl.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceSubObject.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn GetDevice(self: *T, guid: *const os.GUID, device: **c_void) HRESULT {
+                return self.vtbl.GetDevice(self, guid, device);
+            }
+        };
+    }
+};
+
+pub const IID_ISwapChain = os.GUID{
+    .Data1 = 0x310d36a0,
+    .Data2 = 0xd2e7,
+    .Data3 = 0x4c0a,
+    .Data4 = .{ 0xaa, 0x04, 0x6a, 0x9d, 0x23, 0xb8, 0x88, 0x6a },
+};
+pub const IID_ISwapChain3 = os.GUID{
+    .Data1 = 0x94d99bdb,
+    .Data2 = 0xf1f8,
+    .Data3 = 0x4ab0,
+    .Data4 = .{ 0xb2, 0x36, 0x7d, 0xa0, 0x17, 0x0e, 0xda, 0xb1 },
+};
+pub const IID_IFactory4 = os.GUID{
+    .Data1 = 0x1bc6ea02,
+    .Data2 = 0xef36,
+    .Data3 = 0x464f,
+    .Data4 = .{ 0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a },
+};
+
+pub var CreateFactory2: fn (u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
+
+pub fn init() void {
+    // TODO: Handle error.
+    var dxgi_dll = std.DynLib.open("/windows/system32/dxgi.dll") catch unreachable;
+    CreateFactory2 = dxgi_dll.lookup(@TypeOf(CreateFactory2), "CreateDXGIFactory2").?;
+}
