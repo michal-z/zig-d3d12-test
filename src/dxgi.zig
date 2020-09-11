@@ -1,5 +1,5 @@
 const std = @import("std");
-const os = std.os.windows;
+const os = @import("windows.zig");
 
 pub const SAMPLE_DESC = extern struct {
     Count: u32,
@@ -140,12 +140,12 @@ pub const IObject = extern struct {
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
-            ?*const osl.IUnknown,
+            ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace osl.IUnknown.Methods(Self);
+    usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
 
     fn Methods(comptime T: type) type {
@@ -161,7 +161,7 @@ pub const IObject = extern struct {
             pub inline fn SetPrivateDataInterface(
                 self: *T,
                 guid: *const os.GUID,
-                data: ?*const osl.IUnknown,
+                data: ?*const os.IUnknown,
             ) HRESULT {
                 return self.vtbl.SetPrivateDataInterface(self, guid, data);
             }
@@ -192,14 +192,14 @@ pub const IDeviceSubObject = extern struct {
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
-            ?*const osl.IUnknown,
+            ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // IDXGIDeviceSubObject
         GetDevice: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
-    usingnamespace osl.IUnknown.Methods(Self);
+    usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
     usingnamespace IDeviceSubObject.Methods(Self);
 

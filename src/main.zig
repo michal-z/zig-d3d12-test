@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const os = std.os.windows;
-const osl = @import("windows.zig");
+const os = @import("windows.zig");
 const dxgi = @import("d3d12.zig");
 const d3d12 = @import("d3d12.zig");
 
@@ -48,7 +47,7 @@ fn updateFrameStats(window: ?os.HWND, name: [*:0]const u8) struct { time: f64, d
             .{ fps, ms, name },
         ) catch buffer_slice;
 
-        _ = osl.SetWindowTextA(window, @ptrCast(os.LPCSTR, header.ptr));
+        _ = os.SetWindowTextA(window, @ptrCast(os.LPCSTR, header.ptr));
 
         state.header_refresh_time_ns = now_ns;
         state.frame_count = 0;
@@ -70,7 +69,7 @@ fn processWindowMessage(
             break :blk true;
         },
         os.user32.WM_KEYDOWN => blk: {
-            if (wparam == osl.VK_ESCAPE) {
+            if (wparam == os.VK_ESCAPE) {
                 os.user32.PostQuitMessage(0);
                 break :blk true;
             }
@@ -82,7 +81,7 @@ fn processWindowMessage(
 }
 
 pub fn main() !void {
-    _ = osl.SetProcessDPIAware();
+    _ = os.SetProcessDPIAware();
 
     const winclass = os.user32.WNDCLASSEXA{
         .style = 0,
@@ -91,7 +90,7 @@ pub fn main() !void {
         .cbWndExtra = 0,
         .hInstance = @ptrCast(os.HINSTANCE, os.kernel32.GetModuleHandleA(null)),
         .hIcon = null,
-        .hCursor = osl.LoadCursorA(null, @intToPtr(os.LPCSTR, 32512)),
+        .hCursor = os.LoadCursorA(null, @intToPtr(os.LPCSTR, 32512)),
         .hbrBackground = null,
         .lpszMenuName = null,
         .lpszClassName = window_name,
@@ -104,14 +103,14 @@ pub fn main() !void {
         os.user32.WS_CAPTION +
         os.user32.WS_MINIMIZEBOX;
 
-    var rect = osl.RECT{ .left = 0, .top = 0, .right = window_width, .bottom = window_height };
-    _ = osl.AdjustWindowRect(&rect, style, false);
+    var rect = os.RECT{ .left = 0, .top = 0, .right = window_width, .bottom = window_height };
+    _ = os.AdjustWindowRect(&rect, style, false);
 
     const window = os.user32.CreateWindowExA(
         0,
         window_name,
         window_name,
-        style + osl.WS_VISIBLE,
+        style + os.WS_VISIBLE,
         -1,
         -1,
         rect.right - rect.left,
