@@ -128,6 +128,57 @@ pub const FORMAT = extern enum {
     V408 = 132,
 };
 
+pub const USAGE = u32;
+
+pub const SWAP_EFFECT = extern enum {
+    DISCARD = 0,
+    SEQUENTIAL = 1,
+    FLIP_SEQUENTIAL = 3,
+    FLIP_DISCARD = 4,
+};
+
+pub const SWAP_CHAIN_DESC = extern struct {
+    BufferDesc: MODE_DESC,
+    SampleDesc: SAMPLE_DESC,
+    BufferUsage: USAGE,
+    BufferCount: u32,
+    OutputWindow: *c_void,
+    Windowed: bool,
+    SwapEffect: SWAP_EFFECT,
+    Flags: u32,
+};
+
+pub const MODE_DESC = extern struct {
+    Width: u32,
+    Height: u32,
+    RefreshRate: RATIONAL,
+    Format: FORMAT,
+    ScanlineOrdering: MODE_SCANLINE_ORDER,
+    Scaling: MODE_SCALING,
+};
+
+pub const RATIONAL = extern struct {
+    Numerator: u32,
+    Denominator: u32,
+};
+
+pub const MODE_SCANLINE_ORDER = extern enum {
+    UNSPECIFIED = 0,
+    PROGRESSIVE = 1,
+    UPPER_FIELD_FIRST = 2,
+    LOWER_FIELD_FIRST = 3,
+};
+
+pub const MODE_SCALING = extern enum {
+    UNSPECIFIED = 0,
+    CENTERED = 1,
+    STRETCHED = 2,
+};
+
+pub const CREATE_FACTORY_DEBUG = 0x01;
+
+const HRESULT = os.HRESULT;
+
 pub const IObject = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
@@ -234,7 +285,7 @@ pub const IFactory4 = extern struct {
             *Self,
             *os.IUnknown,
             *SWAP_CHAIN_DESC,
-            **ISwapChain,
+            **os.IUnknown, // TODO: type should be **ISwapChain
         ) callconv(.Stdcall) HRESULT,
         _empty1: [17]*c_void,
     },
@@ -248,7 +299,7 @@ pub const IFactory4 = extern struct {
                 self: *T,
                 device: *os.IUnknown,
                 desc: *SWAP_CHAIN_DESC,
-                swapchain: **ISwapChain,
+                swapchain: **os.IUnknown,
             ) HRESULT {
                 return self.vtbl.CreateSwapChain(self, device, desc, swapchain);
             }

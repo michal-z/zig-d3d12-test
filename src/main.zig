@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const os = @import("windows.zig");
-const dxgi = @import("d3d12.zig");
+const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
 
 const window_name = "zig d3d12 test";
@@ -123,6 +123,13 @@ pub fn main() !void {
 
     dxgi.init();
     d3d12.init();
+
+    var factory: *dxgi.IFactory4 = undefined;
+    vhr(dxgi.CreateFactory2(
+        dxgi.CREATE_FACTORY_DEBUG,
+        &dxgi.IID_IFactory4,
+        @ptrCast(**c_void, &factory),
+    ));
 
     var debug: *d3d12.IDebug = undefined;
     vhr(d3d12.GetDebugInterface(&d3d12.IID_IDebug, @ptrCast(**c_void, &debug)));
