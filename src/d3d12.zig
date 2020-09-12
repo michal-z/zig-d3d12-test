@@ -1348,7 +1348,11 @@ pub const ICommandQueue = extern struct {
         // ID3D12Object
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
-        SetPrivateDataInterface: fn (*Self, *const os.GUID, ?*const os.IUnknown) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const os.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
         SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
@@ -1509,6 +1513,43 @@ pub const IDevice = extern struct {
             *const os.GUID,
             **c_void,
         ) callconv(.Stdcall) HRESULT,
+        CreateGraphicsPipelineState: fn (
+            *Self,
+            *const GRAPHICS_PIPELINE_STATE_DESC,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        CreateComputePipelineState: fn (
+            *Self,
+            *const COMPUTE_PIPELINE_STATE_DESC,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        CreateCommandList: fn (
+            *Self,
+            u32,
+            COMMAND_LIST_TYPE,
+            *ICommandAllocator,
+            *IPipelineState,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        CheckFeatureSupport: fn (*Self, FEATURE, *c_void, u32) callconv(.Stdcall) HRESULT,
+        CreateDescriptorHeap: fn (
+            *Self,
+            *const DESCRIPTOR_HEAP_DESC,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        GetDescriptorHandleIncrementSize: fn (*Self, DESCRIPTOR_HEAP_TYPE) callconv(.Stdcall) u32,
+        CreateRootSignature: fn (
+            *Self,
+            u32,
+            *const c_void,
+            u64,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1534,6 +1575,73 @@ pub const IDevice = extern struct {
                 obj: **c_void,
             ) HRESULT {
                 return self.vtbl.CreateCommandAllocator(self, cmdlist_type, guid, obj);
+            }
+            pub inline fn CreateGraphicsPipelineState(
+                self: *T,
+                desc: *const GRAPHICS_PIPELINE_STATE_DESC,
+                guid: *const os.GUID,
+                pso: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateGraphicsPipelineState(self, desc, guid, pso);
+            }
+            pub inline fn CreateComputePipelineState(
+                self: *T,
+                desc: *const COMPUTE_PIPELINE_STATE_DESC,
+                guid: *const os.GUID,
+                pso: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateComputePipelineState(self, desc, guid, pso);
+            }
+            pub inline fn CreateCommandList(
+                self: *T,
+                node_mask: u32,
+                cmdlist_type: COMMAND_LIST_TYPE,
+                cmdalloc: *ICommandAllocator,
+                initial_state: *IPipelineState,
+                guid: *const os.GUID,
+                cmdlist: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateCommandList(
+                    self,
+                    node_mask,
+                    cmdlist_type,
+                    cmdalloc,
+                    initial_state,
+                    guid,
+                    cmdlist,
+                );
+            }
+            pub inline fn CheckFeatureSupport(
+                self: *T,
+                feature: FEATURE,
+                data: *c_void,
+                data_size: u32,
+            ) HRESULT {
+                return self.vtbl.CheckFeatureSupport(self, feature, data, data_size);
+            }
+            pub inline fn CreateDescriptorHeap(
+                self: *T,
+                desc: *const DESCRIPTOR_HEAP_DESC,
+                guid: *const os.GUID,
+                heap: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateDescriptorHeap(self, desc, guid, heap);
+            }
+            pub inline fn GetDescriptorHandleIncrementSize(
+                self: *T,
+                heap_type: DESCRIPTOR_HEAP_TYPE,
+            ) u32 {
+                return self.vtbl.GetDescriptorHandleIncrementSize(self, heap_type);
+            }
+            pub inline fn CreateRootSignature(
+                self: *T,
+                node_mask: u32,
+                blob: *const c_void,
+                blob_size: u64,
+                guid: *const os.GUID,
+                signature: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateRootSignature(self, node_mask, blob, blob_size, guid, signature);
             }
         };
     }

@@ -177,7 +177,7 @@ pub fn main() !void {
                 .Quality = 0,
             },
             .BufferUsage = dxgi.USAGE_RENDER_TARGET_OUTPUT,
-            .BufferCount = 2,
+            .BufferCount = 4,
             .OutputWindow = window.?,
             .Windowed = 1,
             .SwapEffect = dxgi.SWAP_EFFECT.FLIP_DISCARD,
@@ -189,6 +189,8 @@ pub fn main() !void {
     vhr(temp_swapchain.QueryInterface(&dxgi.IID_ISwapChain3, @ptrCast(**c_void, &swapchain)));
     _ = temp_swapchain.Release();
     _ = factory.Release();
+
+    var frame_fence: *d3d12.IFence = undefined;
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
