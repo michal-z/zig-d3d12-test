@@ -142,8 +142,8 @@ pub const SWAP_CHAIN_DESC = extern struct {
     SampleDesc: SAMPLE_DESC,
     BufferUsage: USAGE,
     BufferCount: u32,
-    OutputWindow: *c_void,
-    Windowed: bool,
+    OutputWindow: os.HWND,
+    Windowed: i32,
     SwapEffect: SWAP_EFFECT,
     Flags: u32,
 };
@@ -281,14 +281,14 @@ pub const IFactory4 = extern struct {
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // IDXGIFactory
-        _empty0: [3]*c_void,
+        _0: [3]*c_void, // TODO: add missing function pointers
         CreateSwapChain: fn (
             *Self,
             *os.IUnknown,
             *SWAP_CHAIN_DESC,
             **os.IUnknown, // TODO: type should be **ISwapChain
         ) callconv(.Stdcall) HRESULT,
-        _empty1: [17]*c_void,
+        _1: [17]*c_void, // TODO: add missing function pointers
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -329,12 +329,12 @@ pub const ISwapChain3 = extern struct {
         // IDXGISwapChain
         Present: fn (*Self, u32, u32) callconv(.Stdcall) HRESULT,
         GetBuffer: fn (*Self, u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        _empty0: [8]*c_void,
+        _0: [8]*c_void, // TODO: add missing function pointers
         // IDXGISwapChain2
-        _empty1: [18]*c_void,
+        _1: [18]*c_void, // TODO: add missing function pointers
         // IDXGISwapChain3
         GetCurrentBackBufferIndex: fn (*Self) callconv(.Stdcall) u32,
-        _empty2: [3]*c_void,
+        _2: [3]*c_void, // TODO: add missing function pointers
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);

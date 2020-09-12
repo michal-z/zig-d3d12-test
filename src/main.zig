@@ -9,7 +9,7 @@ const window_width = 1920;
 const window_height = 1080;
 
 pub inline fn vhr(hr: os.HRESULT) void {
-    if (hr < 0) {
+    if (hr != 0) {
         std.debug.panic("D3D12 function failed.", .{});
     }
 }
@@ -157,6 +157,39 @@ pub fn main() !void {
         @ptrCast(**c_void, &cmdqueue),
     ));
 
+    var temp_swapchain: *os.IUnknown = undefined;
+    vhr(factory.CreateSwapChain(
+        @ptrCast(*os.IUnknown, cmdqueue),
+        &dxgi.SWAP_CHAIN_DESC{
+            .BufferDesc = dxgi.MODE_DESC{
+                .Width = window_width,
+                .Height = window_height,
+                .RefreshRate = dxgi.RATIONAL{
+                    .Numerator = 0,
+                    .Denominator = 0,
+                },
+                .Format = dxgi.FORMAT.R8G8B8A8_UNORM,
+                .ScanlineOrdering = dxgi.MODE_SCANLINE_ORDER.UNSPECIFIED,
+                .Scaling = dxgi.MODE_SCALING.UNSPECIFIED,
+            },
+            .SampleDesc = dxgi.SAMPLE_DESC{
+                .Count = 1,
+                .Quality = 0,
+            },
+            .BufferUsage = dxgi.USAGE_RENDER_TARGET_OUTPUT,
+            .BufferCount = 2,
+            .OutputWindow = window.?,
+            .Windowed = 1,
+            .SwapEffect = dxgi.SWAP_EFFECT.FLIP_DISCARD,
+            .Flags = 0,
+        },
+        &temp_swapchain,
+    ));
+    var swapchain: *dxgi.ISwapChain3 = undefined;
+    vhr(temp_swapchain.QueryInterface(&dxgi.IID_ISwapChain3, @ptrCast(**c_void, &swapchain)));
+    _ = temp_swapchain.Release();
+    _ = factory.Release();
+
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
         if (os.user32.PeekMessageA(&message, null, 0, 0, os.user32.PM_REMOVE)) {
@@ -167,4 +200,8 @@ pub fn main() !void {
             const stats = updateFrameStats(window, window_name);
         }
     }
+
+    _ = swapchain.Release();
+    _ = cmdqueue.Release();
+    _ = device.Release();
 }
