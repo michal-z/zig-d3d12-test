@@ -367,7 +367,14 @@ pub const CONSERVATIVE_RASTERIZATION_MODE = extern enum {
 };
 
 pub const COMPARISON_FUNC = extern enum {
-    NEVER = 1, LESS = 2, EQUAL = 3, LESS_EQUAL = 4, GREATER = 5, NOT_EQUAL = 6, GREATER_EQUAL = 7, ALWAYS = 8
+    NEVER = 1,
+    LESS = 2,
+    EQUAL = 3,
+    LESS_EQUAL = 4,
+    GREATER = 5,
+    NOT_EQUAL = 6,
+    GREATER_EQUAL = 7,
+    ALWAYS = 8,
 };
 
 pub const DEPTH_WRITE_MASK = extern enum {
@@ -482,6 +489,415 @@ pub const PRIMITIVE_TOPOLOGY = extern enum {
     _30_CONTROL_POINT_PATCHLIST = 62,
     _31_CONTROL_POINT_PATCHLIST = 63,
     _32_CONTROL_POINT_PATCHLIST = 64,
+};
+
+pub const SHADER_COMPONENT_MAPPING = extern enum {
+    FROM_MEMORY_COMPONENT_0 = 0,
+    FROM_MEMORY_COMPONENT_1 = 1,
+    FROM_MEMORY_COMPONENT_2 = 2,
+    FROM_MEMORY_COMPONENT_3 = 3,
+    FORCE_VALUE_0 = 4,
+    FORCE_VALUE_1 = 5,
+};
+
+pub inline fn ENCODE_SHADER_4_COMPONENT_MAPPING(src0: u32, src1: u32, src2: u32, src3: u32) u32 {
+    return (src0 & 0x7) |
+        ((Src1 & 0x7) << 3) |
+        ((src2 & 0x7) << (3 * 2)) |
+        ((Src3 & 0x7) << (3 * 3)) |
+        (1 << (3 * 4));
+}
+pub const DEFAULT_SHADER_4_COMPONENT_MAPPING = ENCODE_SHADER_4_COMPONENT_MAPPING(0, 1, 2, 3);
+
+pub const BUFFER_SRV_FLAGS = extern enum {
+    NONE = 0,
+    RAW = 0x1,
+};
+
+pub const BUFFER_SRV = extern struct {
+    FirstElement: u64,
+    NumElements: u32,
+    StructureByteStride: u32,
+    Flags: BUFFER_SRV_FLAGS,
+};
+
+pub const TEX1D_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    ResourceMinLODClamp: f32,
+};
+
+pub const TEX1D_ARRAY_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+    ResourceMinLODClamp: f32,
+};
+
+pub const TEX2D_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    PlaneSlice: u32,
+    ResourceMinLODClamp: f32,
+};
+
+pub const TEX2D_ARRAY_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+    PlaneSlice: u32,
+    ResourceMinLODClamp: f32,
+};
+
+pub const TEX3D_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    ResourceMinLODClamp: f32,
+};
+
+pub const TEXCUBE_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    ResourceMinLODClamp: f32,
+};
+
+pub const TEXCUBE_ARRAY_SRV = extern struct {
+    MostDetailedMip: u32,
+    MipLevels: u32,
+    First2DArrayFace: u32,
+    NumCubes: u32,
+    ResourceMinLODClamp: f32,
+};
+
+pub const TEX2DMS_SRV = extern struct {
+    UnusedField_NothingToDefine: u32,
+};
+
+pub const TEX2DMS_ARRAY_SRV = extern struct {
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const SRV_DIMENSION = extern enum {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE1DARRAY = 3,
+    TEXTURE2D = 4,
+    TEXTURE2DARRAY = 5,
+    TEXTURE2DMS = 6,
+    TEXTURE2DMSARRAY = 7,
+    TEXTURE3D = 8,
+    TEXTURECUBE = 9,
+    TEXTURECUBEARRAY = 10,
+};
+
+pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: SRV_DIMENSION,
+    Shader4ComponentMapping: u32,
+    u: extern union {
+        Buffer: BUFFER_SRV,
+        Texture1D: TEX1D_SRV,
+        Texture1DArray: TEX1D_ARRAY_SRV,
+        Texture2D: TEX2D_SRV,
+        Texture2DArray: TEX2D_ARRAY_SRV,
+        Texture2DMS: TEX2DMS_SRV,
+        Texture2DMSArray: TEX2DMS_ARRAY_SRV,
+        Texture3D: TEX3D_SRV,
+        TextureCube: TEXCUBE_SRV,
+        TextureCubeArray: TEXCUBE_ARRAY_SRV,
+    },
+};
+
+pub const FILTER = extern enum {
+    MIN_MAG_MIP_POINT = 0,
+    MIN_MAG_POINT_MIP_LINEAR = 0x1,
+    MIN_POINT_MAG_LINEAR_MIP_POINT = 0x4,
+    MIN_POINT_MAG_MIP_LINEAR = 0x5,
+    MIN_LINEAR_MAG_MIP_POINT = 0x10,
+    MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x11,
+    MIN_MAG_LINEAR_MIP_POINT = 0x14,
+    MIN_MAG_MIP_LINEAR = 0x15,
+    ANISOTROPIC = 0x55,
+    COMPARISON_MIN_MAG_MIP_POINT = 0x80,
+    COMPARISON_MIN_MAG_POINT_MIP_LINEAR = 0x81,
+    COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x84,
+    COMPARISON_MIN_POINT_MAG_MIP_LINEAR = 0x85,
+    COMPARISON_MIN_LINEAR_MAG_MIP_POINT = 0x90,
+    COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x91,
+    COMPARISON_MIN_MAG_LINEAR_MIP_POINT = 0x94,
+    COMPARISON_MIN_MAG_MIP_LINEAR = 0x95,
+    COMPARISON_ANISOTROPIC = 0xd5,
+    MINIMUM_MIN_MAG_MIP_POINT = 0x100,
+    MINIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x101,
+    MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x104,
+    MINIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x105,
+    MINIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x110,
+    MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x111,
+    MINIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x114,
+    MINIMUM_MIN_MAG_MIP_LINEAR = 0x115,
+    MINIMUM_ANISOTROPIC = 0x155,
+    MAXIMUM_MIN_MAG_MIP_POINT = 0x180,
+    MAXIMUM_MIN_MAG_POINT_MIP_LINEAR = 0x181,
+    MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT = 0x184,
+    MAXIMUM_MIN_POINT_MAG_MIP_LINEAR = 0x185,
+    MAXIMUM_MIN_LINEAR_MAG_MIP_POINT = 0x190,
+    MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 0x191,
+    MAXIMUM_MIN_MAG_LINEAR_MIP_POINT = 0x194,
+    MAXIMUM_MIN_MAG_MIP_LINEAR = 0x195,
+    MAXIMUM_ANISOTROPIC = 0x1d5,
+};
+
+pub const FILTER_TYPE = extern enum {
+    POINT = 0,
+    LINEAR = 1,
+};
+
+pub const FILTER_REDUCTION_TYPE = extern enum {
+    STANDARD = 0,
+    COMPARISON = 1,
+    MINIMUM = 2,
+    MAXIMUM = 3,
+};
+
+pub const TEXTURE_ADDRESS_MODE = extern enum {
+    WRAP = 1,
+    MIRROR = 2,
+    CLAMP = 3,
+    BORDER = 4,
+    MIRROR_ONCE = 5,
+};
+
+pub const SAMPLER_DESC = extern struct {
+    Filter: FILTER,
+    AddressU: TEXTURE_ADDRESS_MODE,
+    AddressV: TEXTURE_ADDRESS_MODE,
+    AddressW: TEXTURE_ADDRESS_MODE,
+    MipLODBias: f32,
+    MaxAnisotropy: u32,
+    ComparisonFunc: COMPARISON_FUNC,
+    BorderColor: [4]f32,
+    MinLOD: f32,
+    MaxLOD: f32,
+};
+
+pub const CONSTANT_BUFFER_VIEW_DESC = extern struct {
+    BufferLocation: GPU_VIRTUAL_ADDRESS,
+    SizeInBytes: u32,
+};
+
+pub const BUFFER_UAV_FLAGS = extern enum {
+    NONE = 0,
+    RAW = 0x1,
+};
+
+pub const BUFFER_UAV = extern struct {
+    FirstElement: u64,
+    NumElements: u32,
+    StructureByteStride: u32,
+    CounterOffsetInBytes: u64,
+    Flags: BUFFER_UAV_FLAGS,
+};
+
+pub const TEX1D_UAV = extern struct {
+    MipSlice: u32,
+};
+
+pub const TEX1D_ARRAY_UAV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const TEX2D_UAV = extern struct {
+    MipSlice: u32,
+    PlaneSlice: u32,
+};
+
+pub const TEX2D_ARRAY_UAV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+    PlaneSlice: u32,
+};
+
+pub const TEX3D_UAV = extern struct {
+    MipSlice: u32,
+    FirstWSlice: u32,
+    WSize: u32,
+};
+
+pub const UAV_DIMENSION = extern enum {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE1DARRAY = 3,
+    TEXTURE2D = 4,
+    TEXTURE2DARRAY = 5,
+    TEXTURE3D = 8,
+};
+
+pub const UNORDERED_ACCESS_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: UAV_DIMENSION,
+    u: extern union {
+        Buffer: BUFFER_UAV,
+        Texture1D: TEX1D_UAV,
+        Texture1DArray: TEX1D_ARRAY_UAV,
+        Texture2D: TEX2D_UAV,
+        Texture2DArray: TEX2D_ARRAY_UAV,
+        Texture3D: TEX3D_UAV,
+    },
+};
+
+pub const BUFFER_RTV = extern struct {
+    FirstElement: u64,
+    NumElements: u32,
+};
+
+pub const TEX1D_RTV = extern struct {
+    MipSlice: u32,
+};
+
+pub const TEX1D_ARRAY_RTV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const TEX2D_RTV = extern struct {
+    MipSlice: u32,
+    PlaneSlice: u32,
+};
+
+pub const TEX2DMS_RTV = extern struct {
+    UnusedField_NothingToDefine: u32,
+};
+
+pub const TEX2D_ARRAY_RTV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+    PlaneSlice: u32,
+};
+
+pub const TEX2DMS_ARRAY_RTV = extern struct {
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const TEX3D_RTV = extern struct {
+    MipSlice: u32,
+    FirstWSlice: u32,
+    WSize: u32,
+};
+
+pub const RTV_DIMENSION = extern enum {
+    UNKNOWN = 0,
+    BUFFER = 1,
+    TEXTURE1D = 2,
+    TEXTURE1DARRAY = 3,
+    TEXTURE2D = 4,
+    TEXTURE2DARRAY = 5,
+    TEXTURE2DMS = 6,
+    TEXTURE2DMSARRAY = 7,
+    TEXTURE3D = 8,
+};
+
+pub const RENDER_TARGET_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: RTV_DIMENSION,
+    u: extern union {
+        Buffer: BUFFER_RTV,
+        Texture1D: TEX1D_RTV,
+        Texture1DArray: TEX1D_ARRAY_RTV,
+        Texture2D: TEX2D_RTV,
+        Texture2DArray: TEX2D_ARRAY_RTV,
+        Texture2DMS: TEX2DMS_RTV,
+        Texture2DMSArray: TEX2DMS_ARRAY_RTV,
+        Texture3D: TEX3D_RTV,
+    },
+};
+
+pub const TEX1D_DSV = extern struct {
+    MipSlice: u32,
+};
+
+pub const TEX1D_ARRAY_DSV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const TEX2D_DSV = extern struct {
+    MipSlice: u32,
+};
+
+pub const TEX2D_ARRAY_DSV = extern struct {
+    MipSlice: u32,
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const TEX2DMS_DSV = extern struct {
+    UnusedField_NothingToDefine: u32,
+};
+
+pub const TEX2DMS_ARRAY_DSV = extern struct {
+    FirstArraySlice: u32,
+    ArraySize: u32,
+};
+
+pub const DSV_FLAGS = extern enum {
+    NONE = 0,
+    READ_ONLY_DEPTH = 0x1,
+    READ_ONLY_STENCIL = 0x2,
+};
+
+pub const DSV_DIMENSION = extern enum {
+    UNKNOWN = 0,
+    TEXTURE1D = 1,
+    TEXTURE1DARRAY = 2,
+    TEXTURE2D = 3,
+    TEXTURE2DARRAY = 4,
+    TEXTURE2DMS = 5,
+    TEXTURE2DMSARRAY = 6,
+};
+
+pub const DEPTH_STENCIL_VIEW_DESC = extern struct {
+    Format: dxgi.FORMAT,
+    ViewDimension: DSV_DIMENSION,
+    Flags: DSV_FLAGS,
+    u: extern union {
+        Texture1D: TEX1D_DSV,
+        Texture1DArray: TEX1D_ARRAY_DSV,
+        Texture2D: TEX2D_DSV,
+        Texture2DArray: TEX2D_ARRAY_DSV,
+        Texture2DMS: TEX2DMS_DSV,
+        Texture2DMSArray: TEX2DMS_ARRAY_DSV,
+    },
+};
+
+pub const DEPTH_STENCIL_VALUE = extern struct {
+    Depth: f32,
+    Stencil: u8,
+};
+
+pub const CLEAR_VALUE = extern struct {
+    Format: dxgi.FORMAT,
+    u: extern union {
+        Color: [4]f32,
+        DepthStencil: DEPTH_STENCIL_VALUE,
+    },
+};
+
+pub const FENCE_FLAGS = extern enum {
+    NONE = 0,
+    SHARED = 0x1,
+    SHARED_CROSS_ADAPTER = 0x2,
 };
 
 pub const PRIMITIVE_TOPOLOGY_TYPE = extern enum {
