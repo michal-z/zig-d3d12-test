@@ -143,7 +143,7 @@ pub const SWAP_CHAIN_DESC = extern struct {
     BufferUsage: USAGE,
     BufferCount: u32,
     OutputWindow: os.HWND,
-    Windowed: i32,
+    Windowed: os.BOOL,
     SwapEffect: SWAP_EFFECT,
     Flags: u32,
 };

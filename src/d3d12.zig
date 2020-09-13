@@ -208,7 +208,7 @@ pub const TILED_RESOURCE_COORDINATE = extern struct {
 
 pub const TILE_REGION_SIZE = extern struct {
     NumTiles: u32,
-    UseBox: i32,
+    UseBox: os.BOOL,
     Width: u32,
     Height: u16,
     Depth: u16,
@@ -246,12 +246,295 @@ pub const TILE_COPY_FLAGS = extern enum {
     SWIZZLED_TILED_RESOURCE_TO_LINEAR_BUFFER = 0x4,
 };
 
+pub const SHADER_BYTECODE = extern struct {
+    pShaderBytecode: *const c_void,
+    BytecodeLength: u64,
+};
+
+pub const SO_DECLARATION_ENTRY = extern struct {
+    Stream: u32,
+    SemanticName: *const u8,
+    SemanticIndex: u32,
+    StartComponent: u8,
+    ComponentCount: u8,
+    OutputSlot: u8,
+};
+
+pub const STREAM_OUTPUT_DESC = extern struct {
+    pSODeclaration: *const SO_DECLARATION_ENTRY,
+    NumEntries: u32,
+    pBufferStrides: [*]const u32,
+    NumStrides: u32,
+    RasterizedStream: u32,
+};
+
+pub const BLEND = extern enum {
+    ZERO = 1,
+    ONE = 2,
+    SRC_COLOR = 3,
+    INV_SRC_COLOR = 4,
+    SRC_ALPHA = 5,
+    INV_SRC_ALPHA = 6,
+    DEST_ALPHA = 7,
+    INV_DEST_ALPHA = 8,
+    DEST_COLOR = 9,
+    INV_DEST_COLOR = 10,
+    SRC_ALPHA_SAT = 11,
+    BLEND_FACTOR = 14,
+    INV_BLEND_FACTOR = 15,
+    SRC1_COLOR = 16,
+    INV_SRC1_COLOR = 17,
+    SRC1_ALPHA = 18,
+    INV_SRC1_ALPHA = 19,
+};
+
+pub const BLEND_OP = extern enum {
+    ADD = 1,
+    SUBTRACT = 2,
+    REV_SUBTRACT = 3,
+    MIN = 4,
+    MAX = 5,
+};
+
+pub const COLOR_WRITE_ENABLE = extern enum {
+    RED = 1,
+    GREEN = 2,
+    BLUE = 4,
+    ALPHA = 8,
+    ALL = RED | GREEN | BLUE | ALPHA,
+};
+
+pub const LOGIC_OP = extern enum {
+    CLEAR = 0,
+    SET = 1,
+    COPY = 2,
+    COPY_INVERTED = 3,
+    NOOP = 4,
+    INVERT = 5,
+    AND = 6,
+    NAND = 7,
+    OR = 8,
+    NOR = 9,
+    XOR = 10,
+    EQUIV = 11,
+    AND_REVERSE = 12,
+    AND_INVERTED = 13,
+    OR_REVERSE = 14,
+    OR_INVERTED = 15,
+};
+
+pub const RENDER_TARGET_BLEND_DESC = extern struct {
+    BlendEnable: os.BOOL,
+    LogicOpEnable: os.BOOL,
+    SrcBlend: BLEND,
+    DestBlend: BLEND,
+    BlendOp: BLEND_OP,
+    SrcBlendAlpha: BLEND,
+    DestBlendAlpha: BLEND,
+    BlendOpAlpha: BLEND_OP,
+    LogicOp: LOGIC_OP,
+    RenderTargetWriteMask: u8,
+};
+
+pub const BLEND_DESC = extern struct {
+    AlphaToCoverageEnable: os.BOOL,
+    IndependentBlendEnable: os.BOOL,
+    RenderTarget: [8]RENDER_TARGET_BLEND_DESC,
+};
+
+pub const RASTERIZER_DESC = extern struct {
+    FillMode: FILL_MODE,
+    CullMode: CULL_MODE,
+    FrontCounterClockwise: os.BOOL,
+    DepthBias: i32,
+    DepthBiasClamp: f32,
+    SlopeScaledDepthBias: f32,
+    DepthClipEnable: os.BOOL,
+    MultisampleEnable: os.BOOL,
+    AntialiasedLineEnable: os.BOOL,
+    ForcedSampleCount: u32,
+    ConservativeRaster: CONSERVATIVE_RASTERIZATION_MODE,
+};
+
+pub const FILL_MODE = extern enum {
+    WIREFRAME = 2,
+    SOLID = 3,
+};
+
+pub const CONSERVATIVE_RASTERIZATION_MODE = extern enum {
+    OFF = 0,
+    ON = 1,
+};
+
+pub const COMPARISON_FUNC = extern enum {
+    NEVER = 1, LESS = 2, EQUAL = 3, LESS_EQUAL = 4, GREATER = 5, NOT_EQUAL = 6, GREATER_EQUAL = 7, ALWAYS = 8
+};
+
+pub const DEPTH_WRITE_MASK = extern enum {
+    ZERO = 0, ALL = 1
+};
+
+pub const STENCIL_OP = extern enum {
+    KEEP = 1,
+    ZERO = 2,
+    REPLACE = 3,
+    INCR_SAT = 4,
+    DECR_SAT = 5,
+    INVERT = 6,
+    INCR = 7,
+    DECR = 8,
+};
+
+pub const DEPTH_STENCILOP_DESC = extern struct {
+    StencilFailOp: STENCIL_OP,
+    StencilDepthFailOp: STENCIL_OP,
+    StencilPassOp: STENCIL_OP,
+    StencilFunc: COMPARISON_FUNC,
+};
+
+pub const DEPTH_STENCIL_DESC = extern struct {
+    DepthEnable: os.BOOL,
+    DepthWriteMask: DEPTH_WRITE_MASK,
+    DepthFunc: COMPARISON_FUNC,
+    StencilEnable: os.BOOL,
+    StencilReadMask: u8,
+    StencilWriteMask: u8,
+    FrontFace: DEPTH_STENCILOP_DESC,
+    BackFace: DEPTH_STENCILOP_DESC,
+};
+
+pub const INPUT_LAYOUT_DESC = extern struct {
+    pInputElementDescs: [*]const INPUT_ELEMENT_DESC,
+    NumElements: u32,
+};
+
+pub const INPUT_CLASSIFICATION = extern enum {
+    PER_VERTEX_DATA = 0,
+    PER_INSTANCE_DATA = 1,
+};
+
+pub const INPUT_ELEMENT_DESC = extern struct {
+    SemanticName: *const u8,
+    SemanticIndex: u32,
+    Format: dxgi.FORMAT,
+    InputSlot: u32,
+    AlignedByteOffset: u32,
+    InputSlotClass: INPUT_CLASSIFICATION,
+    InstanceDataStepRate: u32,
+};
+
+pub const INDEX_BUFFER_STRIP_CUT_VALUE = extern enum {
+    DISABLED = 0,
+    _0xFFFF = 1,
+    _0xFFFFFFFF = 2,
+};
+
+pub const CACHED_PIPELINE_STATE = extern struct {
+    pCachedBlob: *const c_void,
+    CachedBlobSizeInBytes: u64,
+};
+
+pub const PIPELINE_STATE_FLAGS = extern enum {
+    NONE = 0,
+    TOOL_DEBUG = 0x1,
+};
+
+pub const PRIMITIVE_TOPOLOGY = extern enum {
+    UNDEFINED = 0,
+    POINTLIST = 1,
+    LINELIST = 2,
+    LINESTRIP = 3,
+    TRIANGLELIST = 4,
+    TRIANGLESTRIP = 5,
+    LINELIST_ADJ = 10,
+    LINESTRIP_ADJ = 11,
+    TRIANGLELIST_ADJ = 12,
+    TRIANGLESTRIP_ADJ = 13,
+    _1_CONTROL_POINT_PATCHLIST = 33,
+    _2_CONTROL_POINT_PATCHLIST = 34,
+    _3_CONTROL_POINT_PATCHLIST = 35,
+    _4_CONTROL_POINT_PATCHLIST = 36,
+    _5_CONTROL_POINT_PATCHLIST = 37,
+    _6_CONTROL_POINT_PATCHLIST = 38,
+    _7_CONTROL_POINT_PATCHLIST = 39,
+    _8_CONTROL_POINT_PATCHLIST = 40,
+    _9_CONTROL_POINT_PATCHLIST = 41,
+    _10_CONTROL_POINT_PATCHLIST = 42,
+    _11_CONTROL_POINT_PATCHLIST = 43,
+    _12_CONTROL_POINT_PATCHLIST = 44,
+    _13_CONTROL_POINT_PATCHLIST = 45,
+    _14_CONTROL_POINT_PATCHLIST = 46,
+    _15_CONTROL_POINT_PATCHLIST = 47,
+    _16_CONTROL_POINT_PATCHLIST = 48,
+    _17_CONTROL_POINT_PATCHLIST = 49,
+    _18_CONTROL_POINT_PATCHLIST = 50,
+    _19_CONTROL_POINT_PATCHLIST = 51,
+    _20_CONTROL_POINT_PATCHLIST = 52,
+    _21_CONTROL_POINT_PATCHLIST = 53,
+    _22_CONTROL_POINT_PATCHLIST = 54,
+    _23_CONTROL_POINT_PATCHLIST = 55,
+    _24_CONTROL_POINT_PATCHLIST = 56,
+    _25_CONTROL_POINT_PATCHLIST = 57,
+    _26_CONTROL_POINT_PATCHLIST = 58,
+    _27_CONTROL_POINT_PATCHLIST = 59,
+    _28_CONTROL_POINT_PATCHLIST = 60,
+    _29_CONTROL_POINT_PATCHLIST = 61,
+    _30_CONTROL_POINT_PATCHLIST = 62,
+    _31_CONTROL_POINT_PATCHLIST = 63,
+    _32_CONTROL_POINT_PATCHLIST = 64,
+};
+
+pub const PRIMITIVE_TOPOLOGY_TYPE = extern enum {
+    UNDEFINED = 0,
+    POINT = 1,
+    LINE = 2,
+    TRIANGLE = 3,
+    PATCH = 4,
+};
+
+pub const CULL_MODE = extern enum {
+    NONE = 1,
+    FRONT = 2,
+    BACK = 3,
+};
+
+pub const GRAPHICS_PIPELINE_STATE_DESC = extern struct {
+    pRootSignature: *IRootSignature,
+    VS: SHADER_BYTECODE,
+    PS: SHADER_BYTECODE,
+    DS: SHADER_BYTECODE,
+    HS: SHADER_BYTECODE,
+    GS: SHADER_BYTECODE,
+    StreamOutput: STREAM_OUTPUT_DESC,
+    BlendState: BLEND_DESC,
+    SampleMask: u32,
+    RasterizerState: RASTERIZER_DESC,
+    DepthStencilState: DEPTH_STENCIL_DESC,
+    InputLayout: INPUT_LAYOUT_DESC,
+    IBStripCutValue: INDEX_BUFFER_STRIP_CUT_VALUE,
+    PrimitiveTopologyType: PRIMITIVE_TOPOLOGY_TYPE,
+    NumRenderTargets: u32,
+    RTVFormats: [8]dxgi.FORMAT,
+    DSVFormat: dxgi.FORMAT,
+    SampleDesc: dxgi.SAMPLE_DESC,
+    NodeMask: u32,
+    CachedPSO: CACHED_PIPELINE_STATE,
+    Flags: PIPELINE_STATE_FLAGS,
+};
+
+pub const COMPUTE_PIPELINE_STATE_DESC = extern struct {
+    pRootSignature: *IRootSignature,
+    CS: SHADER_BYTECODE,
+    NodeMask: u32,
+    CachedPSO: CACHED_PIPELINE_STATE,
+    Flags: PIPELINE_STATE_FLAGS,
+};
+
 const HRESULT = os.HRESULT;
 
 pub const IBlob = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
-        const Self = ID3DBlob;
         // IUnknown
         QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         AddRef: fn (*Self) callconv(.Stdcall) u32,
@@ -857,7 +1140,7 @@ pub const IGraphicsCommandList = extern struct {
             *Self,
             u32,
             [*]const CPU_DESCRIPTOR_HANDLE,
-            i32,
+            os.BOOL,
             *const CPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) void,
         ClearDepthStencilView: fn (
@@ -1550,6 +1833,36 @@ pub const IDevice = extern struct {
             *const os.GUID,
             **c_void,
         ) callconv(.Stdcall) HRESULT,
+        CreateConstantBufferView: fn (
+            *Self,
+            *const CONSTANT_BUFFER_VIEW_DESC,
+            CPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) void,
+        CreateShaderResourceView: fn (
+            *Self,
+            *IResource,
+            *const SHADER_RESOURCE_VIEW_DESC,
+            CPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) void,
+        CreateUnorderedAccessView: fn (
+            *Self,
+            *IResource,
+            *IResource,
+            *const UNORDERED_ACCESS_VIEW_DESC,
+            CPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) void,
+        CreateRenderTargetView: fn (
+            *Self,
+            *IResource,
+            *const RENDER_TARGET_VIEW_DESC,
+            CPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) void,
+        CreateDepthStencilView: fn (
+            *Self,
+            *IResource,
+            *const DEPTH_STENCIL_VIEW_DESC,
+            CPU_DESCRIPTOR_HANDLE,
+        ) callconv(.Stdcall) void,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1642,6 +1955,52 @@ pub const IDevice = extern struct {
                 signature: **c_void,
             ) HRESULT {
                 return self.vtbl.CreateRootSignature(self, node_mask, blob, blob_size, guid, signature);
+            }
+            pub inline fn CreateConstantBufferView(
+                self: *T,
+                desc: *const CONSTANT_BUFFER_VIEW_DESC,
+                dst_descriptor: CPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.CreateConstantBufferView(self, desc, dst_descriptor);
+            }
+            pub inline fn CreateShaderResourceView(
+                self: *T,
+                resource: *IResource,
+                desc: *const SHADER_RESOURCE_VIEW_DESC,
+                dst_descriptor: CPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.CreateShaderResourceView(self, resource, desc, dst_descriptor);
+            }
+            pub inline fn CreateUnorderedAccessView(
+                self: *T,
+                resource: *IResource,
+                counter_resource: *IResource,
+                desc: *const UNORDERED_ACCESS_VIEW_DESC,
+                dst_descriptor: CPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.CreateUnorderedAccessView(
+                    self,
+                    resource,
+                    counter_resource,
+                    desc,
+                    dst_descriptor,
+                );
+            }
+            pub inline fn CreateRenderTargetView(
+                self: *T,
+                resource: *IResource,
+                desc: *const RENDER_TARGET_VIEW_DESC,
+                dst_descriptor: CPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.CreateRenderTargetView(self, resource, desc, dst_descriptor);
+            }
+            pub inline fn CreateDepthStencilView(
+                self: *T,
+                resource: *IResource,
+                desc: *const DEPTH_STENCIL_VIEW_DESC,
+                dst_descriptor: CPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.CreateDepthStencilView(self, resource, desc, dst_descriptor);
             }
         };
     }
