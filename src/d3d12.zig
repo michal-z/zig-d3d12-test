@@ -498,6 +498,19 @@ pub const CULL_MODE = extern enum {
     BACK = 3,
 };
 
+pub const FEATURE = extern enum {
+    D3D12_OPTIONS = 0,
+    ARCHITECTURE = 1,
+    FEATURE_LEVELS = 2,
+    FORMAT_SUPPORT = 3,
+    MULTISAMPLE_QUALITY_LEVELS = 4,
+    FORMAT_INFO = 5,
+    GPU_VIRTUAL_ADDRESS_SUPPORT = 6,
+    SHADER_MODEL = 7,
+    D3D12_OPTIONS1 = 8,
+    ROOT_SIGNATURE = 12,
+};
+
 pub const GRAPHICS_PIPELINE_STATE_DESC = extern struct {
     pRootSignature: *IRootSignature,
     VS: SHADER_BYTECODE,
