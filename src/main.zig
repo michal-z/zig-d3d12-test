@@ -191,6 +191,14 @@ pub fn main() !void {
     _ = factory.Release();
 
     var frame_fence: *d3d12.IFence = undefined;
+    vhr(device.CreateFence(
+        0,
+        d3d12.FENCE_FLAGS.NONE,
+        &d3d12.IID_IFence,
+        @ptrCast(**c_void, &frame_fence),
+    ));
+    const frame_fence_event = try os.CreateEventEx(null, "frame_fence_event", 0, os.EVENT_ALL_ACCESS);
+    var num_frames: u64 = 0;
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
@@ -200,8 +208,20 @@ pub fn main() !void {
                 break;
         } else {
             const stats = updateFrameStats(window, window_name);
+
+            num_frames += 1;
+            vhr(swapchain.Present(0, 0));
+
+            vhr(cmdqueue.Signal(frame_fence, num_frames));
+            vhr(frame_fence.SetEventOnCompletion(num_frames, frame_fence_event));
+            try os.WaitForSingleObject(frame_fence_event, os.INFINITE);
         }
     }
+
+    num_frames += 1;
+    vhr(cmdqueue.Signal(frame_fence, num_frames));
+    vhr(frame_fence.SetEventOnCompletion(num_frames, frame_fence_event));
+    try os.WaitForSingleObject(frame_fence_event, os.INFINITE);
 
     _ = swapchain.Release();
     _ = cmdqueue.Release();
