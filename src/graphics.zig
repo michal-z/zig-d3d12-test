@@ -11,9 +11,12 @@ pub inline fn vhr(hr: os.HRESULT) void {
     }
 }
 
+const dx12_num_frames = 2;
+
 pub const Dx12Context = struct {
     device: *d3d12.IDevice,
     cmdqueue: *d3d12.ICommandQueue,
+    cmdallocs: [dx12_num_frames]*d3d12.ICommandAllocator,
     swapchain: *dxgi.ISwapChain3,
     frame_fence: *d3d12.IFence,
     frame_fence_event: os.HANDLE,
@@ -47,7 +50,6 @@ pub const Dx12Context = struct {
             &d3d12.IID_IDevice,
             @ptrCast(**c_void, &device),
         ));
-        std.log.info("node count is {}", .{device.GetNodeCount()});
 
         var cmdqueue: *d3d12.ICommandQueue = undefined;
         vhr(device.CreateCommandQueue(
@@ -103,9 +105,19 @@ pub const Dx12Context = struct {
         ));
         const frame_fence_event = try os.CreateEventEx(null, "frame_fence_event", 0, os.EVENT_ALL_ACCESS);
 
+        var cmdallocs: [dx12_num_frames]*d3d12.ICommandAllocator = undefined;
+        for (cmdallocs) |*cmdalloc| {
+            vhr(device.CreateCommandAllocator(
+                d3d12.COMMAND_LIST_TYPE.DIRECT,
+                &d3d12.IID_ICommandAllocator,
+                @ptrCast(**c_void, &cmdalloc.*),
+            ));
+        }
+
         return Dx12Context{
             .device = device,
             .cmdqueue = cmdqueue,
+            .cmdallocs = cmdallocs,
             .swapchain = swapchain,
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
