@@ -927,6 +927,11 @@ pub const FEATURE = extern enum {
     ROOT_SIGNATURE = 12,
 };
 
+pub const RESOURCE_ALLOCATION_INFO = extern struct {
+    SizeInBytes: u64,
+    Alignment: u64,
+};
+
 pub const GRAPHICS_PIPELINE_STATE_DESC = extern struct {
     pRootSignature: *IRootSignature,
     VS: SHADER_BYTECODE,
@@ -2292,6 +2297,37 @@ pub const IDevice = extern struct {
             *const DEPTH_STENCIL_VIEW_DESC,
             CPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) void,
+        CreateSampler: fn (*Self, *const SAMPLER_DESC, CPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
+        CopyDescriptors: fn (
+            *Self,
+            u32,
+            [*]const CPU_DESCRIPTOR_HANDLE,
+            [*]const u32,
+            u32,
+            [*]const CPU_DESCRIPTOR_HANDLE,
+            [*]const u32,
+            DESCRIPTOR_HEAP_TYPE,
+        ) callconv(.Stdcall) void,
+        CopyDescriptorsSimple: fn (
+            *Self,
+            u32,
+            CPU_DESCRIPTOR_HANDLE,
+            CPU_DESCRIPTOR_HANDLE,
+            DESCRIPTOR_HEAP_TYPE,
+        ) callconv(.Stdcall) void,
+        GetResourceAllocationInfo: fn (
+            *Self,
+            u32,
+            u32,
+            [*]const RESOURCE_DESC,
+            *RESOURCE_ALLOCATION_INFO,
+        ) callconv(.Stdcall) *RESOURCE_ALLOCATION_INFO,
+        GetCustomHeapProperties: fn (
+            *Self,
+            u32,
+            HEAP_TYPE,
+            *HEAP_PROPERTIES,
+        ) callconv(.Stdcall) *HEAP_PROPERTIES,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -2430,6 +2466,62 @@ pub const IDevice = extern struct {
                 dst_descriptor: CPU_DESCRIPTOR_HANDLE,
             ) void {
                 self.vtbl.CreateDepthStencilView(self, resource, desc, dst_descriptor);
+            }
+            pub inline fn CreateSampler(
+                self: *T,
+                desc: *const SAMPLER_DESC,
+                dst_descriptor: CPU_DESCRIPTOR_HANDLE,
+            ) void {
+                self.vtbl.CreateSampler(self, desc, dst_descriptor);
+            }
+            pub inline fn CopyDescriptors(
+                self: *T,
+                num_dst_ranges: u32,
+                dst_range_starts: [*]const CPU_DESCRIPTOR_HANDLE,
+                dst_range_sizes: [*]const u32,
+                num_src_ranges: u32,
+                src_range_starts: [*]const CPU_DESCRIPTOR_HANDLE,
+                src_range_sizes: [*]const u32,
+                heap_type: DESCRIPTOR_HEAP_TYPE,
+            ) void {
+                self.vtbl.CopyDescriptors(
+                    self,
+                    num_dst_ranges,
+                    dst_range_starts,
+                    dst_range_sizes,
+                    num_src_ranges,
+                    src_range_starts,
+                    src_range_sizes,
+                    heap_type,
+                );
+            }
+            pub inline fn CopyDescriptorsSimple(
+                self: *T,
+                num: u32,
+                dst_range_start: CPU_DESCRIPTOR_HANDLE,
+                src_range_start: CPU_DESCRIPTOR_HANDLE,
+                heap_type: DESCRIPTOR_HEAP_TYPE,
+            ) void {
+                self.vtbl.CopyDescriptorsSimple(self, num, dst_range_start, src_range_start, heap_type);
+            }
+            pub inline fn GetResourceAllocationInfo(
+                self: *T,
+                visible_mask: u32,
+                num_descs: u32,
+                descs: [*]const RESOURCE_DESC,
+            ) RESOURCE_ALLOCATION_INFO {
+                var info: RESOURCE_ALLOCATION_INFO = undefined;
+                self.vtbl.GetResourceAllocationInfo(self, visible_mask, num_descs, descs, &info);
+                return info;
+            }
+            pub inline fn GetCustomHeapProperties(
+                self: *T,
+                node_mask: u32,
+                heap_type: HEAP_TYPE,
+            ) HEAP_PROPERTIES {
+                var props: HEAP_PROPERTIES = undefined;
+                self.vtbl.GetCustomHeapProperties(self, node_mask, heap_type, &props);
+                return props;
             }
         };
     }
