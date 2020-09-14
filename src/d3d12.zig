@@ -253,7 +253,7 @@ pub const SHADER_BYTECODE = extern struct {
 
 pub const SO_DECLARATION_ENTRY = extern struct {
     Stream: u32,
-    SemanticName: *const u8,
+    SemanticName: os.LPCSTR,
     SemanticIndex: u32,
     StartComponent: u8,
     ComponentCount: u8,
@@ -421,7 +421,7 @@ pub const INPUT_CLASSIFICATION = extern enum {
 };
 
 pub const INPUT_ELEMENT_DESC = extern struct {
-    SemanticName: *const u8,
+    SemanticName: os.LPCSTR,
     SemanticIndex: u32,
     Format: dxgi.FORMAT,
     InputSlot: u32,
@@ -921,6 +921,87 @@ pub const RESOURCE_STATES = extern enum {
     PREDICATION = 0x200,
 };
 
+pub const PLACED_SUBRESOURCE_FOOTPRINT = extern struct {
+    Offset: u64,
+    Footprint: SUBRESOURCE_FOOTPRINT,
+};
+
+pub const TEXTURE_COPY_TYPE = extern enum {
+    SUBRESOURCE_INDEX = 0,
+    PLACED_FOOTPRINT = 1,
+};
+
+pub const TEXTURE_COPY_LOCATION = extern struct {
+    pResource: *IResource,
+    Type: D3D12_TEXTURE_COPY_TYPE,
+    u: extern union {
+        PlacedFootprint: PLACED_SUBRESOURCE_FOOTPRINT,
+        SubresourceIndex: u32,
+    },
+};
+
+pub const QUERY_HEAP_TYPE = extern enum {
+    OCCLUSION = 0,
+    TIMESTAMP = 1,
+    PIPELINE_STATISTICS = 2,
+    SO_STATISTICS = 3,
+};
+
+pub const QUERY_HEAP_DESC = extern struct {
+    Type: QUERY_HEAP_TYPE,
+    Count: u32,
+    NodeMask: u32,
+};
+
+pub const INDIRECT_ARGUMENT_TYPE = extern enum {
+    DRAW = 0,
+    DRAW_INDEXED = 1,
+    DISPATCH = 2,
+    VERTEX_BUFFER_VIEW = 3,
+    INDEX_BUFFER_VIEW = 4,
+    CONSTANT = 5,
+    CONSTANT_BUFFER_VIEW = 6,
+    SHADER_RESOURCE_VIEW = 7,
+    UNORDERED_ACCESS_VIEW = 8,
+};
+
+pub const INDIRECT_ARGUMENT_DESC = extern struct {
+    Type: INDIRECT_ARGUMENT_TYPE,
+    u: extern union {
+        VertexBuffer: extern struct {
+            Slot: u32,
+        },
+        Constant: extern struct {
+            RootParameterIndex: u32,
+            DestOffsetIn32BitValues: u32,
+            Num32BitValuesToSet: u32,
+        },
+        ConstantBufferView: extern struct {
+            RootParameterIndex: u32,
+        },
+        ShaderResourceView: extern struct {
+            RootParameterIndex: u32,
+        },
+        UnorderedAccessView: extern struct {
+            RootParameterIndex: u32,
+        },
+    },
+};
+
+pub const COMMAND_SIGNATURE_DESC = extern struct {
+    ByteStride: u32,
+    NumArgumentDescs: u32,
+    pArgumentDescs: *const INDIRECT_ARGUMENT_DESC,
+    NodeMask: u32,
+};
+
+pub const PACKED_MIP_INFO = extern struct {
+    NumStandardMips: u8,
+    NumPackedMips: u8,
+    NumTilesForPackedMips: u32,
+    StartTileIndexInOverallResource: u32,
+};
+
 pub const PRIMITIVE_TOPOLOGY_TYPE = extern enum {
     UNDEFINED = 0,
     POINT = 1,
@@ -1050,7 +1131,7 @@ pub const IObject = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -1080,7 +1161,7 @@ pub const IObject = extern struct {
             ) HRESULT {
                 return self.vtbl.SetPrivateDataInterface(self, guid, data);
             }
-            pub inline fn SetName(self: *T, name: ?*const u16) HRESULT {
+            pub inline fn SetName(self: *T, name: ?os.LPCWSTR) HRESULT {
                 return self.vtbl.SetName(self, name);
             }
         };
@@ -1102,7 +1183,7 @@ pub const IDeviceChild = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
@@ -1138,7 +1219,7 @@ pub const IRootSignature = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
@@ -1162,7 +1243,7 @@ pub const IPageable = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
     },
@@ -1186,7 +1267,7 @@ pub const IHeap = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12Heap
@@ -1223,7 +1304,7 @@ pub const IResource = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12Resource
@@ -1322,7 +1403,7 @@ pub const ICommandAllocator = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12CommandAllocator
@@ -1357,7 +1438,7 @@ pub const IFence = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12Fence
@@ -1400,7 +1481,7 @@ pub const IPipelineState = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12PipelineState
@@ -1435,7 +1516,7 @@ pub const IDescriptorHeap = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12DescriptorHeap
@@ -1490,7 +1571,7 @@ pub const ICommandList = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12CommandList
@@ -1525,7 +1606,7 @@ pub const IGraphicsCommandList = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12CommandList
@@ -2091,7 +2172,7 @@ pub const ICommandQueue = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12DeviceChild
         GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // ID3D12CommandQueue
@@ -2236,7 +2317,7 @@ pub const IDevice = extern struct {
             *const os.GUID,
             ?*const os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        SetName: fn (*Self, ?*const u16) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
         // ID3D12Device
         GetNodeCount: fn (*Self) callconv(.Stdcall) u32,
         CreateCommandQueue: fn (
@@ -2378,6 +2459,56 @@ pub const IDevice = extern struct {
             *const os.GUID,
             **c_void,
         ) callconv(.Stdcall) HRESULT,
+        CreateSharedHandle: fn (
+            *Self,
+            *IDeviceChild,
+            *const os.SECURITY_ATTRIBUTES,
+            os.DWORD,
+            os.LPCWSTR,
+            *os.HANDLE,
+        ) callconv(.Stdcall) HRESULT,
+        OpenSharedHandle: fn (*Self, os.HANDLE, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        OpenSharedHandleByName: fn (*Self, os.LPCWSTR, os.DWORD, *os.HANDLE) callconv(.Stdcall) HRESULT,
+        MakeResident: fn (*Self, u32, [*]const *IPageable) callconv(.Stdcall) HRESULT,
+        Evict: fn (*Self, u32, [*]const *IPageable) callconv(.Stdcall) HRESULT,
+        CreateFence: fn (*Self, u64, FENCE_FLAGS, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        GetDeviceRemovedReason: fn (*Self) callconv(.Stdcall) HRESULT,
+        GetCopyableFootprints: fn (
+            *Self,
+            *const RESOURCE_DESC,
+            u32,
+            u32,
+            u64,
+            *PLACED_SUBRESOURCE_FOOTPRINT,
+            *u32,
+            *u64,
+            *u64,
+        ) callconv(.Stdcall) void,
+        CreateQueryHeap: fn (
+            *Self,
+            *const QUERY_HEAP_DESC,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        SetStablePowerState: fn (*Self, os.BOOL) callconv(.Stdcall) HRESULT,
+        CreateCommandSignature: fn (
+            *Self,
+            *const COMMAND_SIGNATURE_DESC,
+            *IRootSignature,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        GetResourceTiling: fn (
+            *Self,
+            *IResource,
+            *u32,
+            *PACKED_MIP_INFO,
+            *TILE_SHAPE,
+            *u32,
+            u32,
+            *SUBRESOURCE_TILING,
+        ) callconv(.Stdcall) void,
+        GetAdapterLuid: fn (*Self) callconv(.Stdcall) i64,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -2632,6 +2763,117 @@ pub const IDevice = extern struct {
                 resource: **c_void,
             ) HRESULT {
                 return self.vtbl.CreateReservedResource(self, desc, state, clear_value, guid, resource);
+            }
+            pub inline fn CreateSharedHandle(
+                self: *T,
+                object: *IDeviceChild,
+                attributes: *const os.SECURITY_ATTRIBUTES,
+                access: os.DWORD,
+                name: os.LPCWSTR,
+                handle: *os.HANDLE,
+            ) HRESULT {
+                return self.vtbl.CreateSharedHandle(self, object, attributes, access, name, handle);
+            }
+            pub inline fn OpenSharedHandle(
+                self: *T,
+                handle: os.HANDLE,
+                guid: *const os.GUID,
+                object: **c_void,
+            ) HRESULT {
+                return self.vtbl.OpenSharedHandle(self, handle, guid, object);
+            }
+            pub inline fn OpenSharedHandleByName(
+                self: *T,
+                name: os.LPCWSTR,
+                access: os.DWORD,
+                handle: *os.HANDLE,
+            ) HRESULT {
+                return self.vtbl.OpenSharedHandleByName(self, name, access, handle);
+            }
+            pub inline fn MakeResident(self: *T, num: u32, objects: [*]const *IPageable) HRESULT {
+                return self.vtbl.MakeResident(self, num, objects);
+            }
+            pub inline fn Evict(self: *T, num: u32, objects: [*]const *IPageable) HRESULT {
+                return self.vtbl.Evict(self, num, objects);
+            }
+            pub inline fn CreateFence(
+                self: *T,
+                initial_value: u64,
+                flags: FENCE_FLAGS,
+                guid: *const os.GUID,
+                fence: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateFence(self, initial_value, flags, guid, fence);
+            }
+            pub inline fn GetDeviceRemovedReason(self: *T) HRESULT {
+                return self.vtbl.GetDeviceRemovedReason(self);
+            }
+            pub inline fn GetCopyableFootprints(
+                self: *T,
+                desc: *const RESOURCE_DESC,
+                first_subresource: u32,
+                num_subresources: u32,
+                base_offset: u64,
+                layouts: *PLACED_SUBRESOURCE_FOOTPRINT,
+                num_rows: *u32,
+                row_size: *u64,
+                total_sizie: *u64,
+            ) void {
+                self.vtbl.GetCopyableFootprints(
+                    self,
+                    desc,
+                    first_subresource,
+                    num_subresources,
+                    base_offset,
+                    layouts,
+                    num_rows,
+                    row_size,
+                    total_sizie,
+                );
+            }
+            pub inline fn CreateQueryHeap(
+                self: *T,
+                desc: *const QUERY_HEAP_DESC,
+                guid: *const os.GUID,
+                query_heap: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateQueryHeap(self, desc, guid, query_heap);
+            }
+            pub inline fn SetStablePowerState(self: *T, enable: os.BOOL) HRESULT {
+                return self.vtbl.SetStablePowerState(self, enable);
+            }
+            pub inline fn CreateCommandSignature(
+                self: *T,
+                desc: *const COMMAND_SIGNATURE_DESC,
+                root_signature: *IRootSignature,
+                guid: *const os.GUID,
+                cmd_signature: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateCommandSignature(self, desc, root_signature, guid, cmd_signature);
+            }
+            pub inline fn GetResourceTiling(
+                self: *T,
+                resource: *IResource,
+                num_resource_tiles: *u32,
+                packed_mip_desc: *PACKED_MIP_INFO,
+                std_tile_shape_non_packed_mips: *TILE_SHAPE,
+                num_subresource_tilings: *u32,
+                first_subresource: u32,
+                subresource_tiling_for_non_packed_mips: *SUBRESOURCE_TILING,
+            ) void {
+                self.vtbl.GetResourceTiling(
+                    self,
+                    resource,
+                    num_resource_tiles,
+                    packed_mip_desc,
+                    std_tile_shape_non_packed_mips,
+                    num_subresource_tilings,
+                    first_subresource,
+                    subresource_tiling_for_non_packed_mips,
+                );
+            }
+            pub inline fn GetAdapterLuid(self: *T) i64 {
+                return self.vtbl.GetAdapterLuid(self);
             }
         };
     }
