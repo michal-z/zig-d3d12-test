@@ -26,6 +26,8 @@ pub extern "user32" fn LoadCursorA(
     lpCursorName: LPCSTR,
 ) callconv(.Stdcall) HCURSOR;
 
+pub extern "user32" fn GetClientRect(HWND, *RECT) callconv(.Stdcall) BOOL;
+
 pub const IUnknown = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
