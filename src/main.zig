@@ -116,7 +116,8 @@ pub fn main() !void {
         null,
     );
 
-    var dx12 = try gr.Dx12Context.init(window.?);
+    var dx12 = gr.Dx12Context.init(window.?);
+    defer dx12.deinit();
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
@@ -130,6 +131,4 @@ pub fn main() !void {
             dx12.waitForGpu();
         }
     }
-
-    dx12.deinit();
 }

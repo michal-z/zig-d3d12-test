@@ -11,18 +11,25 @@ pub inline fn vhr(hr: os.HRESULT) void {
     }
 }
 
+pub inline fn safeRelease(obj: anytype) void {
+    _ = obj.*.Release();
+    obj.* = undefined;
+}
+
 const dx12_num_frames = 2;
+const dx12_num_swapbuffers = 4;
 
 pub const Dx12Context = struct {
     device: *d3d12.IDevice,
     cmdqueue: *d3d12.ICommandQueue,
     cmdallocs: [dx12_num_frames]*d3d12.ICommandAllocator,
     swapchain: *dxgi.ISwapChain3,
+    swapbuffers: [dx12_num_swapbuffers]*d3d12.IResource,
     frame_fence: *d3d12.IFence,
     frame_fence_event: os.HANDLE,
     num_frames: u64 = 0,
 
-    pub fn init(window: os.HWND) !Dx12Context {
+    pub fn init(window: os.HWND) Dx12Context {
         dxgi.init();
         d3d12.init();
 
@@ -83,9 +90,9 @@ pub const Dx12Context = struct {
                     .Quality = 0,
                 },
                 .BufferUsage = dxgi.USAGE_RENDER_TARGET_OUTPUT,
-                .BufferCount = 4,
+                .BufferCount = dx12_num_swapbuffers,
                 .OutputWindow = window,
-                .Windowed = 1,
+                .Windowed = os.TRUE,
                 .SwapEffect = dxgi.SWAP_EFFECT.FLIP_DISCARD,
                 .Flags = 0,
             },
@@ -93,8 +100,8 @@ pub const Dx12Context = struct {
         ));
         var swapchain: *dxgi.ISwapChain3 = undefined;
         vhr(temp_swapchain.QueryInterface(&dxgi.IID_ISwapChain3, @ptrCast(**c_void, &swapchain)));
-        _ = temp_swapchain.Release();
-        _ = factory.Release();
+        safeRelease(&temp_swapchain);
+        safeRelease(&factory);
 
         var frame_fence: *d3d12.IFence = undefined;
         vhr(device.CreateFence(
@@ -103,7 +110,12 @@ pub const Dx12Context = struct {
             &d3d12.IID_IFence,
             @ptrCast(**c_void, &frame_fence),
         ));
-        const frame_fence_event = try os.CreateEventEx(null, "frame_fence_event", 0, os.EVENT_ALL_ACCESS);
+        const frame_fence_event = os.CreateEventEx(
+            null,
+            "frame_fence_event",
+            0,
+            os.EVENT_ALL_ACCESS,
+        ) catch unreachable;
 
         var cmdallocs: [dx12_num_frames]*d3d12.ICommandAllocator = undefined;
         for (cmdallocs) |*cmdalloc| {
@@ -114,21 +126,32 @@ pub const Dx12Context = struct {
             ));
         }
 
+        var swapbuffers: [dx12_num_swapbuffers]*d3d12.IResource = undefined;
+        for (swapbuffers) |*swapbuffer, i| {
+            vhr(swapchain.GetBuffer(
+                @intCast(u32, i),
+                &d3d12.IID_IResource,
+                @ptrCast(**c_void, &swapbuffer.*),
+            ));
+        }
+
         return Dx12Context{
             .device = device,
             .cmdqueue = cmdqueue,
             .cmdallocs = cmdallocs,
             .swapchain = swapchain,
+            .swapbuffers = swapbuffers,
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
         };
     }
 
-    pub fn deinit(self: Dx12Context) void {
+    pub fn deinit(self: *Dx12Context) void {
         self.waitForGpu();
-        _ = self.swapchain.Release();
-        _ = self.cmdqueue.Release();
-        _ = self.device.Release();
+        safeRelease(&self.swapchain);
+        safeRelease(&self.cmdqueue);
+        safeRelease(&self.device);
+        self.* = undefined;
     }
 
     pub fn present(self: *Dx12Context) void {
