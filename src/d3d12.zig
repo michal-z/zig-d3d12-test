@@ -1544,12 +1544,12 @@ pub const IDescriptorHeap = extern struct {
             }
             pub inline fn GetCPUDescriptorHandleForHeapStart(self: *T) CPU_DESCRIPTOR_HANDLE {
                 var handle: CPU_DESCRIPTOR_HANDLE = undefined;
-                self.vtbl.GetCPUDescriptorHandleForHeapStart(self, &handle);
+                _ = self.vtbl.GetCPUDescriptorHandleForHeapStart(self, &handle);
                 return handle;
             }
             pub inline fn GetGPUDescriptorHandleForHeapStart(self: *T) GPU_DESCRIPTOR_HANDLE {
                 var handle: GPU_DESCRIPTOR_HANDLE = undefined;
-                self.vtbl.GetGPUDescriptorHandleForHeapStart(self, &handle);
+                _ = self.vtbl.GetGPUDescriptorHandleForHeapStart(self, &handle);
                 return handle;
             }
         };

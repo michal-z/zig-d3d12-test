@@ -116,8 +116,8 @@ pub fn main() !void {
         null,
     );
 
-    var dx12 = gr.Dx12Context.init(window.?);
-    defer dx12.deinit();
+    var dx = gr.DxContext.init(window.?);
+    defer dx.deinit();
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
@@ -127,8 +127,8 @@ pub fn main() !void {
                 break;
         } else {
             const stats = updateFrameStats(window, window_name);
-            dx12.present();
-            dx12.waitForGpu();
+            dx.present();
+            dx.waitForGpu();
         }
     }
 }

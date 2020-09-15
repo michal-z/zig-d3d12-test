@@ -16,20 +16,21 @@ pub inline fn safeRelease(obj: anytype) void {
     obj.* = undefined;
 }
 
-const dx12_num_frames = 2;
-const dx12_num_swapbuffers = 4;
+const num_frames = 2;
+const num_swapbuffers = 4;
 
-pub const Dx12Context = struct {
+pub const DxContext = struct {
     device: *d3d12.IDevice,
     cmdqueue: *d3d12.ICommandQueue,
-    cmdallocs: [dx12_num_frames]*d3d12.ICommandAllocator,
+    cmdallocs: [num_frames]*d3d12.ICommandAllocator,
     swapchain: *dxgi.ISwapChain3,
-    swapbuffers: [dx12_num_swapbuffers]*d3d12.IResource,
+    swapbuffers: [num_swapbuffers]*d3d12.IResource,
+    rtv_heap: DescriptorHeap,
     frame_fence: *d3d12.IFence,
     frame_fence_event: os.HANDLE,
-    num_frames: u64 = 0,
+    frame_count: u64 = 0,
 
-    pub fn init(window: os.HWND) Dx12Context {
+    pub fn init(window: os.HWND) DxContext {
         dxgi.init();
         d3d12.init();
 
@@ -90,7 +91,7 @@ pub const Dx12Context = struct {
                     .Quality = 0,
                 },
                 .BufferUsage = dxgi.USAGE_RENDER_TARGET_OUTPUT,
-                .BufferCount = dx12_num_swapbuffers,
+                .BufferCount = num_swapbuffers,
                 .OutputWindow = window,
                 .Windowed = os.TRUE,
                 .SwapEffect = dxgi.SWAP_EFFECT.FLIP_DISCARD,
@@ -117,7 +118,7 @@ pub const Dx12Context = struct {
             os.EVENT_ALL_ACCESS,
         ) catch unreachable;
 
-        var cmdallocs: [dx12_num_frames]*d3d12.ICommandAllocator = undefined;
+        var cmdallocs: [num_frames]*d3d12.ICommandAllocator = undefined;
         for (cmdallocs) |*cmdalloc| {
             vhr(device.CreateCommandAllocator(
                 d3d12.COMMAND_LIST_TYPE.DIRECT,
@@ -126,7 +127,7 @@ pub const Dx12Context = struct {
             ));
         }
 
-        var swapbuffers: [dx12_num_swapbuffers]*d3d12.IResource = undefined;
+        var swapbuffers: [num_swapbuffers]*d3d12.IResource = undefined;
         for (swapbuffers) |*swapbuffer, i| {
             vhr(swapchain.GetBuffer(
                 @intCast(u32, i),
@@ -135,34 +136,83 @@ pub const Dx12Context = struct {
             ));
         }
 
-        return Dx12Context{
+        return DxContext{
             .device = device,
             .cmdqueue = cmdqueue,
             .cmdallocs = cmdallocs,
             .swapchain = swapchain,
             .swapbuffers = swapbuffers,
+            .rtv_heap = DescriptorHeap.init(
+                device,
+                1024,
+                d3d12.DESCRIPTOR_HEAP_TYPE.RTV,
+                d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
+            ),
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
         };
     }
 
-    pub fn deinit(self: *Dx12Context) void {
-        self.waitForGpu();
-        safeRelease(&self.swapchain);
-        safeRelease(&self.cmdqueue);
-        safeRelease(&self.device);
-        self.* = undefined;
+    pub fn deinit(dx: *DxContext) void {
+        waitForGpu(dx.*);
+        safeRelease(&dx.swapchain);
+        safeRelease(&dx.cmdqueue);
+        safeRelease(&dx.device);
+        dx.* = undefined;
     }
 
-    pub fn present(self: *Dx12Context) void {
-        self.num_frames += 1;
-        vhr(self.swapchain.Present(0, 0));
+    pub fn present(dx: *DxContext) void {
+        dx.frame_count += 1;
+        vhr(dx.swapchain.Present(0, 0));
     }
 
-    pub fn waitForGpu(self: Dx12Context) void {
-        const value = self.num_frames + 1;
-        vhr(self.cmdqueue.Signal(self.frame_fence, value));
-        vhr(self.frame_fence.SetEventOnCompletion(value, self.frame_fence_event));
-        os.WaitForSingleObject(self.frame_fence_event, os.INFINITE) catch unreachable;
+    pub fn waitForGpu(dx: DxContext) void {
+        const value = dx.frame_count + 1;
+        vhr(dx.cmdqueue.Signal(dx.frame_fence, value));
+        vhr(dx.frame_fence.SetEventOnCompletion(value, dx.frame_fence_event));
+        os.WaitForSingleObject(dx.frame_fence_event, os.INFINITE) catch unreachable;
+    }
+};
+
+const DescriptorHeap = struct {
+    heap: *d3d12.IDescriptorHeap,
+    cpu_start: d3d12.CPU_DESCRIPTOR_HANDLE,
+    gpu_start: d3d12.GPU_DESCRIPTOR_HANDLE,
+    size: u32,
+    capacity: u32,
+    descriptor_size: u32,
+
+    fn init(
+        device: *d3d12.IDevice,
+        capacity: u32,
+        heap_type: d3d12.DESCRIPTOR_HEAP_TYPE,
+        flags: d3d12.DESCRIPTOR_HEAP_FLAGS,
+    ) DescriptorHeap {
+        assert(capacity > 0);
+
+        var heap: *d3d12.IDescriptorHeap = undefined;
+        vhr(device.CreateDescriptorHeap(
+            &d3d12.DESCRIPTOR_HEAP_DESC{
+                .Type = heap_type,
+                .NumDescriptors = capacity,
+                .Flags = flags,
+                .NodeMask = 0,
+            },
+            &d3d12.IID_IDescriptorHeap,
+            @ptrCast(**c_void, &heap),
+        ));
+
+        return DescriptorHeap{
+            .heap = heap,
+            .cpu_start = heap.GetCPUDescriptorHandleForHeapStart(),
+            .gpu_start = blk: {
+                if (flags == d3d12.DESCRIPTOR_HEAP_FLAGS.SHADER_VISIBLE)
+                    break :blk heap.GetGPUDescriptorHandleForHeapStart();
+                break :blk d3d12.GPU_DESCRIPTOR_HANDLE{ .ptr = 0 };
+            },
+            .size = 0,
+            .capacity = capacity,
+            .descriptor_size = device.GetDescriptorHandleIncrementSize(heap_type),
+        };
     }
 };
