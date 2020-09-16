@@ -5,19 +5,25 @@ const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
 
+const num_frames = 2;
+const num_swapbuffers = 4;
+const num_rtv_descriptors = 1024;
+const num_dsv_descriptors = 1024;
+const num_cbv_srv_uav_descriptors = 16 * 1024;
+
+const max_num_resources = 256;
+
 pub inline fn vhr(hr: os.HRESULT) void {
     if (hr != 0) {
         std.debug.panic("D3D12 function failed.", .{});
     }
 }
 
-pub inline fn safeRelease(obj: anytype) void {
+pub inline fn releaseCom(obj: anytype) void {
+    comptime assert(@hasDecl(@TypeOf(obj.*.*), "Release"));
     _ = obj.*.Release();
     obj.* = undefined;
 }
-
-const num_frames = 2;
-const num_swapbuffers = 4;
 
 pub const DxContext = struct {
     device: *d3d12.IDevice,
@@ -28,7 +34,7 @@ pub const DxContext = struct {
     rtv_heap: DescriptorHeap,
     frame_fence: *d3d12.IFence,
     frame_fence_event: os.HANDLE,
-    frame_count: u64 = 0,
+    frame_counter: u64 = 0,
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
@@ -49,7 +55,7 @@ pub const DxContext = struct {
         var debug: *d3d12.IDebug = undefined;
         vhr(d3d12.GetDebugInterface(&d3d12.IID_IDebug, @ptrCast(**c_void, &debug)));
         debug.EnableDebugLayer();
-        _ = debug.Release();
+        releaseCom(&debug);
 
         var device: *d3d12.IDevice = undefined;
         vhr(d3d12.CreateDevice(
@@ -101,8 +107,8 @@ pub const DxContext = struct {
         ));
         var swapchain: *dxgi.ISwapChain3 = undefined;
         vhr(temp_swapchain.QueryInterface(&dxgi.IID_ISwapChain3, @ptrCast(**c_void, &swapchain)));
-        safeRelease(&temp_swapchain);
-        safeRelease(&factory);
+        releaseCom(&temp_swapchain);
+        releaseCom(&factory);
 
         var frame_fence: *d3d12.IFence = undefined;
         vhr(device.CreateFence(
@@ -127,13 +133,24 @@ pub const DxContext = struct {
             ));
         }
 
+        var rtv_heap = DescriptorHeap.init(
+            device,
+            num_rtv_descriptors,
+            d3d12.DESCRIPTOR_HEAP_TYPE.RTV,
+            d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
+        );
+
         var swapbuffers: [num_swapbuffers]*d3d12.IResource = undefined;
-        for (swapbuffers) |*swapbuffer, i| {
-            vhr(swapchain.GetBuffer(
-                @intCast(u32, i),
-                &d3d12.IID_IResource,
-                @ptrCast(**c_void, &swapbuffer.*),
-            ));
+        {
+            var handle = rtv_heap.allocateDescriptors(num_swapbuffers).cpu_handle;
+
+            for (swapbuffers) |*swapbuffer, i| {
+                vhr(swapchain.GetBuffer(
+                    @intCast(u32, i),
+                    &d3d12.IID_IResource,
+                    @ptrCast(**c_void, &swapbuffer.*),
+                ));
+            }
         }
 
         return DxContext{
@@ -142,12 +159,7 @@ pub const DxContext = struct {
             .cmdallocs = cmdallocs,
             .swapchain = swapchain,
             .swapbuffers = swapbuffers,
-            .rtv_heap = DescriptorHeap.init(
-                device,
-                1024,
-                d3d12.DESCRIPTOR_HEAP_TYPE.RTV,
-                d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
-            ),
+            .rtv_heap = rtv_heap,
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
         };
@@ -155,19 +167,19 @@ pub const DxContext = struct {
 
     pub fn deinit(dx: *DxContext) void {
         waitForGpu(dx.*);
-        safeRelease(&dx.swapchain);
-        safeRelease(&dx.cmdqueue);
-        safeRelease(&dx.device);
+        releaseCom(&dx.swapchain);
+        releaseCom(&dx.cmdqueue);
+        releaseCom(&dx.device);
         dx.* = undefined;
     }
 
     pub fn present(dx: *DxContext) void {
-        dx.frame_count += 1;
+        dx.frame_counter += 1;
         vhr(dx.swapchain.Present(0, 0));
     }
 
     pub fn waitForGpu(dx: DxContext) void {
-        const value = dx.frame_count + 1;
+        const value = dx.frame_counter + 1;
         vhr(dx.cmdqueue.Signal(dx.frame_fence, value));
         vhr(dx.frame_fence.SetEventOnCompletion(value, dx.frame_fence_event));
         os.WaitForSingleObject(dx.frame_fence_event, os.INFINITE) catch unreachable;
@@ -215,4 +227,36 @@ const DescriptorHeap = struct {
             .descriptor_size = device.GetDescriptorHandleIncrementSize(heap_type),
         };
     }
+
+    fn allocateDescriptors(
+        self: *DescriptorHeap,
+        num_descriptors: u32,
+    ) struct { cpu_handle: d3d12.CPU_DESCRIPTOR_HANDLE, gpu_handle: d3d12.GPU_DESCRIPTOR_HANDLE } {
+        assert((self.size + num_descriptors) < self.capacity);
+
+        const cpu_handle = d3d12.CPU_DESCRIPTOR_HANDLE{
+            .ptr = self.cpu_start.ptr + self.size * self.descriptor_size,
+        };
+        const gpu_handle = d3d12.GPU_DESCRIPTOR_HANDLE{
+            .ptr = blk: {
+                if (self.gpu_start.ptr != 0)
+                    break :blk self.gpu_start.ptr + self.size * self.descriptor_size;
+                break :blk 0;
+            },
+        };
+
+        self.size += num_descriptors;
+        return .{ .cpu_handle = cpu_handle, .gpu_handle = gpu_handle };
+    }
+};
+
+pub const ResourceHandle = packed struct {
+    index: u16,
+    generation: u16,
+};
+
+const Resource = struct {
+    raw: *d3d12.IResource,
+    state: d3d12.RESOURCE_STATES,
+    format: dxgi.FORMAT,
 };
