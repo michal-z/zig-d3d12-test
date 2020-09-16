@@ -9,7 +9,8 @@ const num_frames = 2;
 const num_swapbuffers = 4;
 const num_rtv_descriptors = 1024;
 const num_dsv_descriptors = 1024;
-const num_cbv_srv_uav_descriptors = 16 * 1024;
+const num_cbv_srv_uav_cpu_descriptors = 16 * 1024;
+const num_cbv_srv_uav_gpu_descriptors = 8 * 1024;
 
 const max_num_resources = 256;
 
@@ -32,9 +33,13 @@ pub const DxContext = struct {
     swapchain: *dxgi.ISwapChain3,
     swapbuffers: [num_swapbuffers]*d3d12.IResource,
     rtv_heap: DescriptorHeap,
+    dsv_heap: DescriptorHeap,
+    cbv_srv_uav_cpu_heap: DescriptorHeap,
+    cbv_srv_uav_gpu_heaps: [num_frames]DescriptorHeap,
     frame_fence: *d3d12.IFence,
     frame_fence_event: os.HANDLE,
     frame_counter: u64 = 0,
+    frame_index: u32 = 0,
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
@@ -139,6 +144,27 @@ pub const DxContext = struct {
             d3d12.DESCRIPTOR_HEAP_TYPE.RTV,
             d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
         );
+        var dsv_heap = DescriptorHeap.init(
+            device,
+            num_dsv_descriptors,
+            d3d12.DESCRIPTOR_HEAP_TYPE.DSV,
+            d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
+        );
+        var cbv_srv_uav_cpu_heap = DescriptorHeap.init(
+            device,
+            num_cbv_srv_uav_cpu_descriptors,
+            d3d12.DESCRIPTOR_HEAP_TYPE.CBV_SRV_UAV,
+            d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
+        );
+        var cbv_srv_uav_gpu_heaps: [num_frames]DescriptorHeap = undefined;
+        for (cbv_srv_uav_gpu_heaps) |*heap| {
+            heap.* = DescriptorHeap.init(
+                device,
+                num_cbv_srv_uav_gpu_descriptors,
+                d3d12.DESCRIPTOR_HEAP_TYPE.CBV_SRV_UAV,
+                d3d12.DESCRIPTOR_HEAP_FLAGS.SHADER_VISIBLE,
+            );
+        }
 
         var swapbuffers: [num_swapbuffers]*d3d12.IResource = undefined;
         {
@@ -160,6 +186,9 @@ pub const DxContext = struct {
             .swapchain = swapchain,
             .swapbuffers = swapbuffers,
             .rtv_heap = rtv_heap,
+            .dsv_heap = dsv_heap,
+            .cbv_srv_uav_cpu_heap = cbv_srv_uav_cpu_heap,
+            .cbv_srv_uav_gpu_heaps = cbv_srv_uav_gpu_heaps,
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
         };
