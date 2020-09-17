@@ -7,10 +7,10 @@ const d3d12 = @import("d3d12.zig");
 
 const num_frames = 2;
 const num_swapbuffers = 4;
-const num_rtv_descriptors = 1024;
-const num_dsv_descriptors = 1024;
+const num_rtv_descriptors = 128;
+const num_dsv_descriptors = 128;
 const num_cbv_srv_uav_cpu_descriptors = 16 * 1024;
-const num_cbv_srv_uav_gpu_descriptors = 8 * 1024;
+const num_cbv_srv_uav_gpu_descriptors = 4 * 1024;
 
 const max_num_resources = 256;
 
@@ -40,6 +40,7 @@ pub const DxContext = struct {
     frame_fence_event: os.HANDLE,
     frame_counter: u64 = 0,
     frame_index: u32 = 0,
+    resource_pool: ResourcePool,
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
@@ -166,6 +167,8 @@ pub const DxContext = struct {
             );
         }
 
+        var resource_pool = ResourcePool.init();
+
         var swapbuffers: [num_swapbuffers]*d3d12.IResource = undefined;
         {
             var handle = rtv_heap.allocateDescriptors(num_swapbuffers).cpu_handle;
@@ -191,6 +194,7 @@ pub const DxContext = struct {
             .cbv_srv_uav_gpu_heaps = cbv_srv_uav_gpu_heaps,
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
+            .resource_pool = resource_pool,
         };
     }
 
@@ -199,6 +203,7 @@ pub const DxContext = struct {
         releaseCom(&dx.swapchain);
         releaseCom(&dx.cmdqueue);
         releaseCom(&dx.device);
+        dx.resource_pool.deinit();
         dx.* = undefined;
     }
 
@@ -229,12 +234,8 @@ pub const DxContext = struct {
         };
     }
 
-    pub fn allocateGpuDescriptors(
-        dx: *DxContext,
-        num_descriptors: u32,
-    ) struct { cpu_handle: d3d12.CPU_DESCRIPTOR_HANDLE, gpu_handle: d3d12.GPU_DESCRIPTOR_HANDLE } {
-        const d = dx.cbv_srv_uav_gpu_heaps[dx.frame_index].allocateDescriptors(num_descriptors);
-        return .{ .cpu_handle = d.cpu_handle, .gpu_handle = d.gpu_handle };
+    pub fn allocateGpuDescriptors(dx: *DxContext, num_descriptors: u32) Descriptor {
+        return dx.cbv_srv_uav_gpu_heaps[dx.frame_index].allocateDescriptors(num_descriptors);
     }
 };
 
@@ -280,10 +281,7 @@ const DescriptorHeap = struct {
         };
     }
 
-    fn allocateDescriptors(
-        self: *DescriptorHeap,
-        num_descriptors: u32,
-    ) struct { cpu_handle: d3d12.CPU_DESCRIPTOR_HANDLE, gpu_handle: d3d12.GPU_DESCRIPTOR_HANDLE } {
+    fn allocateDescriptors(self: *DescriptorHeap, num_descriptors: u32) Descriptor {
         assert((self.size + num_descriptors) < self.capacity);
 
         const cpu_handle = d3d12.CPU_DESCRIPTOR_HANDLE{
@@ -298,8 +296,13 @@ const DescriptorHeap = struct {
         };
 
         self.size += num_descriptors;
-        return .{ .cpu_handle = cpu_handle, .gpu_handle = gpu_handle };
+        return Descriptor{ .cpu_handle = cpu_handle, .gpu_handle = gpu_handle };
     }
+};
+
+const Descriptor = packed struct {
+    cpu_handle: d3d12.CPU_DESCRIPTOR_HANDLE,
+    gpu_handle: d3d12.GPU_DESCRIPTOR_HANDLE,
 };
 
 pub const ResourceHandle = packed struct {
@@ -308,7 +311,65 @@ pub const ResourceHandle = packed struct {
 };
 
 const Resource = struct {
-    raw: *d3d12.IResource,
+    raw: ?*d3d12.IResource,
     state: d3d12.RESOURCE_STATES,
     format: dxgi.FORMAT,
+};
+
+const ResourcePool = struct {
+    resources: []Resource,
+    generations: []u16,
+
+    fn init() ResourcePool {
+        return ResourcePool{
+            .resources = blk: {
+                var resources = std.heap.page_allocator.alloc(
+                    Resource,
+                    max_num_resources + 1,
+                ) catch unreachable;
+                for (resources) |*res| {
+                    res.* = Resource{
+                        .raw = null,
+                        .state = d3d12.RESOURCE_STATES.COMMON,
+                        .format = dxgi.FORMAT.UNKNOWN,
+                    };
+                }
+                break :blk resources;
+            },
+            .generations = blk: {
+                var generations = std.heap.page_allocator.alloc(
+                    u16,
+                    max_num_resources + 1,
+                ) catch unreachable;
+                for (generations) |*gen| {
+                    gen.* = 0;
+                }
+                break :blk generations;
+            },
+        };
+    }
+
+    fn deinit(self: *ResourcePool) void {
+        std.heap.page_allocator.free(self.resources);
+        std.heap.page_allocator.free(self.generations);
+        self.* = undefined;
+    }
+
+    fn addResource(
+        self: *ResourcePool,
+        raw: *d3d12.IResource,
+        state: d3d12.RESOURCE_STATES,
+        format: dxgi.FORMAT,
+    ) ResourceHandle {
+        var slot_idx: u32 = 1;
+        while (slot_idx <= max_num_resources) : (slot_idx += 1) {
+            if (self.resources[slot_idx].raw == null)
+                break;
+        }
+        assert(slot_idx <= max_num_resources);
+
+        self.resources[slot_idx].raw = raw;
+        self.resources[slot_idx].state = state;
+        self.resources[slot_idx].format = format;
+    }
 };
