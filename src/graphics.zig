@@ -213,6 +213,29 @@ pub const DxContext = struct {
         vhr(dx.frame_fence.SetEventOnCompletion(value, dx.frame_fence_event));
         os.WaitForSingleObject(dx.frame_fence_event, os.INFINITE) catch unreachable;
     }
+
+    pub fn allocateCpuDescriptors(
+        dx: *DxContext,
+        heap_type: d3d12.DESCRIPTOR_HEAP_TYPE,
+        num_descriptors: u32,
+    ) d3d12.CPU_DESCRIPTOR_HANDLE {
+        return switch (heap_type) {
+            d3d12.DESCRIPTOR_HEAP_TYPE.CBV_SRV_UAV => dx.cbv_srv_uav_cpu_heap.
+                allocateDescriptors(num_descriptors).
+                cpu_handle,
+            d3d12.DESCRIPTOR_HEAP_TYPE.SAMPLER => unreachable,
+            d3d12.DESCRIPTOR_HEAP_TYPE.RTV => dx.rtv_heap.allocateDescriptors(num_descriptors).cpu_handle,
+            d3d12.DESCRIPTOR_HEAP_TYPE.DSV => dx.dsv_heap.allocateDescriptors(num_descriptors).cpu_handle,
+        };
+    }
+
+    pub fn allocateGpuDescriptors(
+        dx: *DxContext,
+        num_descriptors: u32,
+    ) struct { cpu_handle: d3d12.CPU_DESCRIPTOR_HANDLE, gpu_handle: d3d12.GPU_DESCRIPTOR_HANDLE } {
+        const d = dx.cbv_srv_uav_gpu_heaps[dx.frame_index].allocateDescriptors(num_descriptors);
+        return .{ .cpu_handle = d.cpu_handle, .gpu_handle = d.gpu_handle };
+    }
 };
 
 const DescriptorHeap = struct {

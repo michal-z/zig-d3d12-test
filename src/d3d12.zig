@@ -130,7 +130,6 @@ pub const DESCRIPTOR_HEAP_TYPE = extern enum {
     SAMPLER = 1,
     RTV = 2,
     DSV = 3,
-    NUM_TYPES = 4,
 };
 
 pub const DESCRIPTOR_HEAP_FLAGS = extern enum {

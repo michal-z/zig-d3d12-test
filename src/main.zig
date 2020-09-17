@@ -119,6 +119,8 @@ pub fn main() !void {
     var dx = gr.DxContext.init(window.?);
     defer dx.deinit();
 
+    const d = dx.allocateGpuDescriptors(1);
+
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
         if (os.user32.PeekMessageA(&message, null, 0, 0, os.user32.PM_REMOVE)) {
