@@ -41,6 +41,7 @@ pub const DxContext = struct {
     frame_fence_event: os.HANDLE,
     frame_counter: u64 = 0,
     frame_index: u32 = 0,
+    back_buffer_index: u32 = 0,
     resource_pool: ResourcePool,
 
     pub fn init(window: os.HWND) DxContext {
@@ -229,9 +230,30 @@ pub const DxContext = struct {
         dx.* = undefined;
     }
 
-    pub fn present(dx: *DxContext) void {
+    pub fn beginFrame(dx: DxContext) void {
+        const cmdalloc = dx.cmdallocs[dx.frame_index];
+        vhr(cmdalloc.Reset());
+        vhr(dx.cmdlist.Reset(cmdalloc, null));
+        dx.cmdlist.SetDescriptorHeaps(1, &dx.cbv_srv_uav_gpu_heaps[dx.frame_index].heap);
+    }
+
+    pub fn endFrame(dx: *DxContext) void {
+        vhr(dx.cmdlist.Close());
+        dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
+
         dx.frame_counter += 1;
         vhr(dx.swapchain.Present(0, 0));
+        vhr(dx.cmdqueue.Signal(dx.frame_fence, dx.frame_counter));
+
+        const gpu_frame_counter = dx.frame_fence.GetCompletedValue();
+        if ((dx.frame_counter - gpu_frame_counter) >= num_frames) {
+            vhr(dx.frame_fence.SetEventOnCompletion(gpu_frame_counter + 1, dx.frame_fence_event));
+            os.WaitForSingleObject(dx.frame_fence_event, os.INFINITE) catch unreachable;
+        }
+
+        dx.frame_index = (dx.frame_index + 1) % num_frames;
+        dx.back_buffer_index = dx.swapchain.GetCurrentBackBufferIndex();
+        dx.cbv_srv_uav_gpu_heaps[dx.frame_index].size = 0;
     }
 
     pub fn waitForGpu(dx: DxContext) void {
@@ -262,6 +284,42 @@ pub const DxContext = struct {
 
     pub fn getDxResource(dx: DxContext, handle: ResourceHandle) *d3d12.IResource {
         return dx.resource_pool.getResource(handle).*.raw.?;
+    }
+
+    pub fn getBackBuffer(dx: DxContext) struct {
+        resource_handle: ResourceHandle,
+        cpu_handle: d3d12.CPU_DESCRIPTOR_HANDLE,
+    } {
+        return .{
+            .resource_handle = dx.swapbuffers[dx.back_buffer_index],
+            .cpu_handle = d3d12.CPU_DESCRIPTOR_HANDLE{
+                .ptr = dx.rtv_heap.cpu_start.ptr + dx.back_buffer_index * dx.rtv_heap.descriptor_size,
+            },
+        };
+    }
+
+    pub fn encodeTransitionBarrier(
+        dx: DxContext,
+        handle: ResourceHandle,
+        state_after: d3d12.RESOURCE_STATES,
+    ) void {
+        var resource = dx.resource_pool.getResource(handle);
+
+        if (state_after != resource.state) {
+            dx.cmdlist.ResourceBarrier(1, &d3d12.RESOURCE_BARRIER{
+                .Type = d3d12.RESOURCE_BARRIER_TYPE.TRANSITION,
+                .Flags = d3d12.RESOURCE_BARRIER_FLAGS.NONE,
+                .u = .{
+                    .Transition = d3d12.RESOURCE_TRANSITION_BARRIER{
+                        .pResource = resource.raw.?,
+                        .Subresource = d3d12.RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                        .StateBefore = resource.state,
+                        .StateAfter = state_after,
+                    },
+                },
+            });
+            resource.state = state_after;
+        }
     }
 };
 

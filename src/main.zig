@@ -130,8 +130,18 @@ pub fn main() !void {
                 break;
         } else {
             const stats = updateFrameStats(window, window_name);
-            dx.present();
-            dx.waitForGpu();
+            dx.beginFrame();
+            const back_buffer = dx.getBackBuffer();
+            dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.RENDER_TARGET);
+            dx.cmdlist.OMSetRenderTargets(1, &back_buffer.cpu_handle, os.TRUE, null);
+            dx.cmdlist.ClearRenderTargetView(
+                back_buffer.cpu_handle,
+                &[4]f32{ 0.2, 0.4, 0.8, 1.0 },
+                0,
+                null,
+            );
+            dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.PRESENT);
+            dx.endFrame();
         }
     }
 }
