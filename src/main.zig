@@ -16,6 +16,25 @@ const DemoState = struct {
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
 
+        const srgb_rt = dx.createCommittedResource(
+            d3d12.HEAP_TYPE.DEFAULT,
+            d3d12.HEAP_FLAGS.NONE,
+            &d3d12.RESOURCE_DESC{
+                .Dimension = d3d12.RESOURCE_DIMENSION.TEXTURE2D,
+                .Alignment = 0,
+                .Width = window_width,
+                .Height = window_height,
+                .DepthOrArraySize = 1,
+                .MipLevels = 1,
+                .Format = dxgi.FORMAT.R8G8B8A8_UNORM_SRGB,
+                .SampleDesc = .{ .Count = 8, .Quality = 0 },
+                .Layout = d3d12.TEXTURE_LAYOUT.UNKNOWN,
+                .Flags = d3d12.RESOURCE_FLAGS.ALLOW_RENDER_TARGET,
+            },
+            d3d12.RESOURCE_STATES.RENDER_TARGET,
+            null,
+        );
+
         return DemoState{
             .dx = dx,
             .window = window,

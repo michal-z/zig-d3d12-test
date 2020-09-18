@@ -321,6 +321,33 @@ pub const DxContext = struct {
             resource.state = state_after;
         }
     }
+
+    pub fn createCommittedResource(
+        dx: *DxContext,
+        heap_type: d3d12.HEAP_TYPE,
+        heap_flags: d3d12.HEAP_FLAGS,
+        desc: *const d3d12.RESOURCE_DESC,
+        initial_state: d3d12.RESOURCE_STATES,
+        clear_value: ?*const d3d12.CLEAR_VALUE,
+    ) ResourceHandle {
+        var raw: *d3d12.IResource = undefined;
+        vhr(dx.device.CreateCommittedResource(
+            &d3d12.HEAP_PROPERTIES{
+                .Type = heap_type,
+                .CPUPageProperty = d3d12.CPU_PAGE_PROPERTY.UNKNOWN,
+                .MemoryPoolPreference = d3d12.MEMORY_POOL.UNKNOWN,
+                .CreationNodeMask = 0,
+                .VisibleNodeMask = 0,
+            },
+            heap_flags,
+            desc,
+            initial_state,
+            clear_value,
+            &d3d12.IID_IResource,
+            @ptrCast(**c_void, &raw),
+        ));
+        return dx.resource_pool.addResource(raw, initial_state, desc.Format);
+    }
 };
 
 const DescriptorHeap = struct {

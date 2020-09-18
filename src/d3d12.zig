@@ -2573,7 +2573,7 @@ pub const IDevice = extern struct {
             HEAP_FLAGS,
             *const RESOURCE_DESC,
             RESOURCE_STATES,
-            *const CLEAR_VALUE,
+            ?*const CLEAR_VALUE,
             *const os.GUID,
             **c_void,
         ) callconv(.Stdcall) HRESULT,
@@ -2847,7 +2847,7 @@ pub const IDevice = extern struct {
                 heap_flags: HEAP_FLAGS,
                 desc: *const RESOURCE_DESC,
                 state: RESOURCE_STATES,
-                clear_value: *const CLEAR_VALUE,
+                clear_value: ?*const CLEAR_VALUE,
                 guid: *const os.GUID,
                 resource: **c_void,
             ) HRESULT {
