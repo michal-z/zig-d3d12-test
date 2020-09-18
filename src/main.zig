@@ -12,11 +12,13 @@ const window_height = 1080;
 const DemoState = struct {
     dx: gr.DxContext,
     window: os.HWND,
+    srgb_texture: gr.ResourceHandle,
+    srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
 
-        const srgb_rt = dx.createCommittedResource(
+        const srgb_texture = dx.createCommittedResource(
             d3d12.HEAP_TYPE.DEFAULT,
             d3d12.HEAP_FLAGS.NONE,
             &d3d12.RESOURCE_DESC{
@@ -34,10 +36,13 @@ const DemoState = struct {
             d3d12.RESOURCE_STATES.RENDER_TARGET,
             null,
         );
+        const srgb_texture_rtv = dx.allocateCpuDescriptors(d3d12.DESCRIPTOR_HEAP_TYPE.RTV, 1);
 
         return DemoState{
             .dx = dx,
             .window = window,
+            .srgb_texture = srgb_texture,
+            .srgb_texture_rtv = srgb_texture_rtv,
         };
     }
 

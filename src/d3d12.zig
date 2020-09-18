@@ -1982,7 +1982,7 @@ pub const IGraphicsCommandList = extern struct {
                 self: *T,
                 dst_resource: *IResource,
                 dst_subresource: u32,
-                src_resource: *ID3D12Resource,
+                src_resource: *IResource,
                 src_subresource: u32,
                 format: dxgi.FORMAT,
             ) void {
