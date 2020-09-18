@@ -28,10 +28,11 @@ pub inline fn releaseCom(obj: anytype) void {
 
 pub const DxContext = struct {
     device: *d3d12.IDevice,
+    cmdlist: *d3d12.IGraphicsCommandList,
     cmdqueue: *d3d12.ICommandQueue,
     cmdallocs: [num_frames]*d3d12.ICommandAllocator,
     swapchain: *dxgi.ISwapChain3,
-    swapbuffers: [num_swapbuffers]*d3d12.IResource,
+    swapbuffers: [num_swapbuffers]ResourceHandle,
     rtv_heap: DescriptorHeap,
     dsv_heap: DescriptorHeap,
     cbv_srv_uav_cpu_heap: DescriptorHeap,
@@ -169,21 +170,42 @@ pub const DxContext = struct {
 
         var resource_pool = ResourcePool.init();
 
-        var swapbuffers: [num_swapbuffers]*d3d12.IResource = undefined;
+        // First 'num_swapbuffers' slots in 'rtv_heap' contain swapbuffer descriptors.
+        var swapbuffers: [num_swapbuffers]ResourceHandle = undefined;
         {
             var handle = rtv_heap.allocateDescriptors(num_swapbuffers).cpu_handle;
 
             for (swapbuffers) |*swapbuffer, i| {
+                var buffer: *d3d12.IResource = undefined;
                 vhr(swapchain.GetBuffer(
                     @intCast(u32, i),
                     &d3d12.IID_IResource,
-                    @ptrCast(**c_void, &swapbuffer.*),
+                    @ptrCast(**c_void, &buffer),
                 ));
+                swapbuffer.* = resource_pool.addResource(
+                    buffer,
+                    d3d12.RESOURCE_STATES.PRESENT,
+                    dxgi.FORMAT.R8G8B8A8_UNORM,
+                );
+                device.CreateRenderTargetView(buffer, null, handle);
+                handle.ptr += rtv_heap.descriptor_size;
             }
         }
 
+        var cmdlist: *d3d12.IGraphicsCommandList = undefined;
+        vhr(device.CreateCommandList(
+            0,
+            d3d12.COMMAND_LIST_TYPE.DIRECT,
+            cmdallocs[0],
+            null,
+            &d3d12.IID_IGraphicsCommandList,
+            @ptrCast(**c_void, &cmdlist),
+        ));
+        vhr(cmdlist.Close());
+
         return DxContext{
             .device = device,
+            .cmdlist = cmdlist,
             .cmdqueue = cmdqueue,
             .cmdallocs = cmdallocs,
             .swapchain = swapchain,
@@ -236,6 +258,10 @@ pub const DxContext = struct {
 
     pub fn allocateGpuDescriptors(dx: *DxContext, num_descriptors: u32) Descriptor {
         return dx.cbv_srv_uav_gpu_heaps[dx.frame_index].allocateDescriptors(num_descriptors);
+    }
+
+    pub fn getDxResource(dx: DxContext, handle: ResourceHandle) *d3d12.IResource {
+        return dx.resource_pool.getResource(handle).*.raw.?;
     }
 };
 
@@ -368,8 +394,25 @@ const ResourcePool = struct {
         }
         assert(slot_idx <= max_num_resources);
 
-        self.resources[slot_idx].raw = raw;
-        self.resources[slot_idx].state = state;
-        self.resources[slot_idx].format = format;
+        self.resources[slot_idx] = Resource{
+            .raw = raw,
+            .state = state,
+            .format = format,
+        };
+
+        return ResourceHandle{
+            .index = @intCast(u16, slot_idx),
+            .generation = blk: {
+                self.generations[slot_idx] += 1;
+                break :blk self.generations[slot_idx];
+            },
+        };
+    }
+
+    pub fn getResource(self: ResourcePool, handle: ResourceHandle) *Resource {
+        assert(handle.index > 0 and handle.index <= max_num_resources);
+        assert(handle.generation > 0);
+        assert(handle.generation == self.generations[handle.index]);
+        return &self.resources[handle.index];
     }
 };

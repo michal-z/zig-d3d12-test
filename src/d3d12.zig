@@ -435,9 +435,32 @@ pub const INDEX_BUFFER_STRIP_CUT_VALUE = extern enum {
     _0xFFFFFFFF = 2,
 };
 
+pub const VERTEX_BUFFER_VIEW = extern struct {
+    BufferLocation: GPU_VIRTUAL_ADDRESS,
+    SizeInBytes: u32,
+    StrideInBytes: u32,
+};
+
+pub const INDEX_BUFFER_VIEW = extern struct {
+    BufferLocation: GPU_VIRTUAL_ADDRESS,
+    SizeInBytes: u32,
+    Format: dxgi.FORMAT,
+};
+
+pub const STREAM_OUTPUT_BUFFER_VIEW = extern struct {
+    BufferLocation: GPU_VIRTUAL_ADDRESS,
+    SizeInBytes: u64,
+    BufferFilledSizeLocation: GPU_VIRTUAL_ADDRESS,
+};
+
 pub const CACHED_PIPELINE_STATE = extern struct {
     pCachedBlob: *const c_void,
     CachedBlobSizeInBytes: u64,
+};
+
+pub const CLEAR_FLAGS = extern enum {
+    CLEAR_FLAG_DEPTH = 0x1,
+    CLEAR_FLAG_STENCIL = 0x2,
 };
 
 pub const PIPELINE_STATE_FLAGS = extern enum {
@@ -920,6 +943,44 @@ pub const RESOURCE_STATES = extern enum {
     PREDICATION = 0x200,
 };
 
+pub const RESOURCE_BARRIER_TYPE = extern enum {
+    TRANSITION = 0,
+    ALIASING = 1,
+    UAV = 2,
+};
+
+pub const RESOURCE_TRANSITION_BARRIER = extern struct {
+    pResource: *IResource,
+    Subresource: u32,
+    StateBefore: RESOURCE_STATES,
+    StateAfter: RESOURCE_STATES,
+};
+
+pub const RESOURCE_ALIASING_BARRIER = extern struct {
+    pResourceBefore: *IResource,
+    pResourceAfter: *IResource,
+};
+
+pub const RESOURCE_UAV_BARRIER = extern struct {
+    pResource: *IResource,
+};
+
+pub const RESOURCE_BARRIER_FLAGS = extern enum {
+    NONE = 0,
+    BEGIN_ONLY = 0x1,
+    END_ONLY = 0x2,
+};
+
+pub const RESOURCE_BARRIER = extern struct {
+    Type: RESOURCE_BARRIER_TYPE,
+    Flags: RESOURCE_BARRIER_FLAGS,
+    u: extern union {
+        Transition: RESOURCE_TRANSITION_BARRIER,
+        Aliasing: RESOURCE_ALIASING_BARRIER,
+        UAV: RESOURCE_UAV_BARRIER,
+    },
+};
+
 pub const PLACED_SUBRESOURCE_FOOTPRINT = extern struct {
     Offset: u64,
     Footprint: SUBRESOURCE_FOOTPRINT,
@@ -932,7 +993,7 @@ pub const TEXTURE_COPY_TYPE = extern enum {
 
 pub const TEXTURE_COPY_LOCATION = extern struct {
     pResource: *IResource,
-    Type: D3D12_TEXTURE_COPY_TYPE,
+    Type: TEXTURE_COPY_TYPE,
     u: extern union {
         PlacedFootprint: PLACED_SUBRESOURCE_FOOTPRINT,
         SubresourceIndex: u32,
@@ -950,6 +1011,22 @@ pub const QUERY_HEAP_DESC = extern struct {
     Type: QUERY_HEAP_TYPE,
     Count: u32,
     NodeMask: u32,
+};
+
+pub const QUERY_TYPE = extern enum {
+    OCCLUSION = 0,
+    BINARY_OCCLUSION = 1,
+    TIMESTAMP = 2,
+    PIPELINE_STATISTICS = 3,
+    SO_STATISTICS_STREAM0 = 4,
+    SO_STATISTICS_STREAM1 = 5,
+    SO_STATISTICS_STREAM2 = 6,
+    SO_STATISTICS_STREAM3 = 7,
+};
+
+pub const PREDICATION_OP = extern enum {
+    EQUAL_ZERO = 0,
+    NOT_EQUAL_ZERO = 1,
 };
 
 pub const INDIRECT_ARGUMENT_TYPE = extern enum {
@@ -1063,6 +1140,15 @@ pub const COMPUTE_PIPELINE_STATE_DESC = extern struct {
     NodeMask: u32,
     CachedPSO: CACHED_PIPELINE_STATE,
     Flags: PIPELINE_STATE_FLAGS,
+};
+
+pub const VIEWPORT = extern struct {
+    TopLeftX: f32,
+    TopLeftY: f32,
+    Width: f32,
+    Height: f32,
+    MinDepth: f32,
+    MaxDepth: f32,
 };
 
 const HRESULT = os.HRESULT;
@@ -1204,6 +1290,54 @@ pub const IDeviceChild = extern struct {
 };
 
 pub const IRootSignature = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12Object
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const os.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
+        // ID3D12DeviceChild
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+};
+
+pub const IQueryHeap = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12Object
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const os.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        SetName: fn (*Self, ?os.LPCWSTR) callconv(.Stdcall) HRESULT,
+        // ID3D12DeviceChild
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceChild.Methods(Self);
+};
+
+pub const ICommandSignature = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
@@ -1620,12 +1754,12 @@ pub const IGraphicsCommandList = extern struct {
         CopyBufferRegion: fn (*Self, *IResource, u64, *IResource, u64, u64) callconv(.Stdcall) void,
         CopyTextureRegion: fn (
             *Self,
-            *const D3D12_TEXTURE_COPY_LOCATION,
+            *const TEXTURE_COPY_LOCATION,
             u32,
             u32,
             u32,
-            *const D3D12_TEXTURE_COPY_LOCATION,
-            *const D3D12_BOX,
+            *const TEXTURE_COPY_LOCATION,
+            *const BOX,
         ) callconv(.Stdcall) void,
         CopyResource: fn (*Self, *IResource, *IResource) callconv(.Stdcall) void,
         CopyTiles: fn (
@@ -1660,8 +1794,8 @@ pub const IGraphicsCommandList = extern struct {
         SetGraphicsRootDescriptorTable: fn (*Self, u32, GPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
         SetComputeRoot32BitConstant: fn (*Self, u32, u32, u32) callconv(.Stdcall) void,
         SetGraphicsRoot32BitConstant: fn (*Self, u32, u32, u32) callconv(.Stdcall) void,
-        SetComputeRoot32BitConstants: fn (*Self, u32, u32, [*]const c_void, u32) callconv(.Stdcall) void,
-        SetGraphicsRoot32BitConstants: fn (*Self, u32, u32, [*]const c_void, u32) callconv(.Stdcall) void,
+        SetComputeRoot32BitConstants: fn (*Self, u32, u32, *const c_void, u32) callconv(.Stdcall) void,
+        SetGraphicsRoot32BitConstants: fn (*Self, u32, u32, *const c_void, u32) callconv(.Stdcall) void,
         SetComputeRootConstantBufferView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
         SetGraphicsRootConstantBufferView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
         SetComputeRootShaderResourceView: fn (*Self, u32, GPU_VIRTUAL_ADDRESS) callconv(.Stdcall) void,
@@ -1685,7 +1819,7 @@ pub const IGraphicsCommandList = extern struct {
             f32,
             u8,
             u32,
-            [*]const D3D12_RECT,
+            [*]const RECT,
         ) callconv(.Stdcall) void,
         ClearRenderTargetView: fn (
             *Self,
@@ -1809,12 +1943,12 @@ pub const IGraphicsCommandList = extern struct {
             }
             pub inline fn CopyTextureRegion(
                 self: *T,
-                dst: *const D3D12_TEXTURE_COPY_LOCATION,
+                dst: *const TEXTURE_COPY_LOCATION,
                 dst_x: u32,
                 dst_y: u32,
                 dst_z: u32,
-                src: *const D3D12_TEXTURE_COPY_LOCATION,
-                src_box: *const D3D12_BOX,
+                src: *const TEXTURE_COPY_LOCATION,
+                src_box: *const BOX,
             ) void {
                 self.vtbl.CopyTextureRegion(self, dst, dst_x, dst_y, dst_z, src, src_box);
             }
@@ -1825,7 +1959,7 @@ pub const IGraphicsCommandList = extern struct {
                 self: *T,
                 tiled_resource: *IResource,
                 tile_region_start_coordinate: *const TILED_RESOURCE_COORDINATE,
-                tile_region_size: *const D3D12_TILE_REGION_SIZE,
+                tile_region_size: *const TILE_REGION_SIZE,
                 buffer: *IResource,
                 buffer_start_offset_in_bytes: u64,
                 flags: TILE_COPY_FLAGS,
@@ -1878,7 +2012,7 @@ pub const IGraphicsCommandList = extern struct {
             pub inline fn ResourceBarrier(
                 self: *T,
                 num: u32,
-                barriers: [*]const D3D12_RESOURCE_BARRIER,
+                barriers: [*]const RESOURCE_BARRIER,
             ) void {
                 self.vtbl.ResourceBarrier(self, num, barriers);
             }
@@ -1918,7 +2052,7 @@ pub const IGraphicsCommandList = extern struct {
                 self: *T,
                 root_index: u32,
                 num: u32,
-                data: [*]const c_void,
+                data: *const c_void,
                 offset: u32,
             ) void {
                 self.vtbl.SetComputeRoot32BitConstants(self, root_index, num, data, offset);
@@ -1927,7 +2061,7 @@ pub const IGraphicsCommandList = extern struct {
                 self: *T,
                 root_index: u32,
                 num: u32,
-                data: [*]const c_void,
+                data: *const c_void,
                 offset: u32,
             ) void {
                 self.vtbl.SetGraphicsRoot32BitConstants(self, root_index, num, data, offset);
@@ -2015,7 +2149,7 @@ pub const IGraphicsCommandList = extern struct {
                 depth: f32,
                 stencil: u8,
                 num_rects: u32,
-                rects: ?[*]const D3D12_RECT,
+                rects: ?[*]const RECT,
             ) void {
                 self.vtbl.ClearDepthStencilView(
                     self,
@@ -2348,7 +2482,7 @@ pub const IDevice = extern struct {
             u32,
             COMMAND_LIST_TYPE,
             *ICommandAllocator,
-            *IPipelineState,
+            ?*IPipelineState,
             *const os.GUID,
             **c_void,
         ) callconv(.Stdcall) HRESULT,
@@ -2375,21 +2509,21 @@ pub const IDevice = extern struct {
         ) callconv(.Stdcall) void,
         CreateShaderResourceView: fn (
             *Self,
-            *IResource,
-            *const SHADER_RESOURCE_VIEW_DESC,
+            ?*IResource,
+            ?*const SHADER_RESOURCE_VIEW_DESC,
             CPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) void,
         CreateUnorderedAccessView: fn (
             *Self,
-            *IResource,
-            *IResource,
-            *const UNORDERED_ACCESS_VIEW_DESC,
+            ?*IResource,
+            ?*IResource,
+            ?*const UNORDERED_ACCESS_VIEW_DESC,
             CPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) void,
         CreateRenderTargetView: fn (
             *Self,
-            *IResource,
-            *const RENDER_TARGET_VIEW_DESC,
+            ?*IResource,
+            ?*const RENDER_TARGET_VIEW_DESC,
             CPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) void,
         CreateDepthStencilView: fn (
@@ -2555,7 +2689,7 @@ pub const IDevice = extern struct {
                 node_mask: u32,
                 cmdlist_type: COMMAND_LIST_TYPE,
                 cmdalloc: *ICommandAllocator,
-                initial_state: *IPipelineState,
+                initial_state: ?*IPipelineState,
                 guid: *const os.GUID,
                 cmdlist: **c_void,
             ) HRESULT {
@@ -2610,17 +2744,17 @@ pub const IDevice = extern struct {
             }
             pub inline fn CreateShaderResourceView(
                 self: *T,
-                resource: *IResource,
-                desc: *const SHADER_RESOURCE_VIEW_DESC,
+                resource: ?*IResource,
+                desc: ?*const SHADER_RESOURCE_VIEW_DESC,
                 dst_descriptor: CPU_DESCRIPTOR_HANDLE,
             ) void {
                 self.vtbl.CreateShaderResourceView(self, resource, desc, dst_descriptor);
             }
             pub inline fn CreateUnorderedAccessView(
                 self: *T,
-                resource: *IResource,
-                counter_resource: *IResource,
-                desc: *const UNORDERED_ACCESS_VIEW_DESC,
+                resource: ?*IResource,
+                counter_resource: ?*IResource,
+                desc: ?*const UNORDERED_ACCESS_VIEW_DESC,
                 dst_descriptor: CPU_DESCRIPTOR_HANDLE,
             ) void {
                 self.vtbl.CreateUnorderedAccessView(
@@ -2633,8 +2767,8 @@ pub const IDevice = extern struct {
             }
             pub inline fn CreateRenderTargetView(
                 self: *T,
-                resource: *IResource,
-                desc: *const RENDER_TARGET_VIEW_DESC,
+                resource: ?*IResource,
+                desc: ?*const RENDER_TARGET_VIEW_DESC,
                 dst_descriptor: CPU_DESCRIPTOR_HANDLE,
             ) void {
                 self.vtbl.CreateRenderTargetView(self, resource, desc, dst_descriptor);

@@ -120,6 +120,7 @@ pub fn main() !void {
     defer dx.deinit();
 
     const d = dx.allocateGpuDescriptors(1);
+    const r = dx.getDxResource(dx.swapbuffers[0]);
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
