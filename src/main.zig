@@ -9,6 +9,43 @@ const window_name = "zig d3d12 test";
 const window_width = 1920;
 const window_height = 1080;
 
+const DemoState = struct {
+    dx: gr.DxContext,
+    window: os.HWND,
+
+    fn init(window: os.HWND) DemoState {
+        var dx = gr.DxContext.init(window);
+
+        return DemoState{
+            .dx = dx,
+            .window = window,
+        };
+    }
+
+    fn deinit(self: *DemoState) void {
+        self.dx.deinit();
+        self.* = undefined;
+    }
+
+    fn update(self: *DemoState) void {
+        const stats = updateFrameStats(self.window, window_name);
+        var dx = &self.dx;
+
+        dx.beginFrame();
+        const back_buffer = dx.getBackBuffer();
+        dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.RENDER_TARGET);
+        dx.cmdlist.OMSetRenderTargets(1, &back_buffer.cpu_handle, os.TRUE, null);
+        dx.cmdlist.ClearRenderTargetView(
+            back_buffer.cpu_handle,
+            &[4]f32{ 0.2, 0.4, 0.8, 1.0 },
+            0,
+            null,
+        );
+        dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.PRESENT);
+        dx.endFrame();
+    }
+};
+
 fn updateFrameStats(window: ?os.HWND, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
     const state = struct {
         var timer: std.time.Timer = undefined;
@@ -116,11 +153,8 @@ pub fn main() !void {
         null,
     );
 
-    var dx = gr.DxContext.init(window.?);
-    defer dx.deinit();
-
-    const d = dx.allocateGpuDescriptors(1);
-    const r = dx.getDxResource(dx.swapbuffers[0]);
+    var demo_state = DemoState.init(window.?);
+    defer demo_state.deinit();
 
     while (true) {
         var message = std.mem.zeroes(os.user32.MSG);
@@ -129,19 +163,7 @@ pub fn main() !void {
             if (message.message == os.user32.WM_QUIT)
                 break;
         } else {
-            const stats = updateFrameStats(window, window_name);
-            dx.beginFrame();
-            const back_buffer = dx.getBackBuffer();
-            dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.RENDER_TARGET);
-            dx.cmdlist.OMSetRenderTargets(1, &back_buffer.cpu_handle, os.TRUE, null);
-            dx.cmdlist.ClearRenderTargetView(
-                back_buffer.cpu_handle,
-                &[4]f32{ 0.2, 0.4, 0.8, 1.0 },
-                0,
-                null,
-            );
-            dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.PRESENT);
-            dx.endFrame();
+            demo_state.update();
         }
     }
 }
