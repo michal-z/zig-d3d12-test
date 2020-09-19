@@ -43,6 +43,8 @@ pub const DxContext = struct {
     frame_index: u32 = 0,
     back_buffer_index: u32 = 0,
     resource_pool: ResourcePool,
+    num_resource_barriers: u32 = 0,
+    buffered_resource_barriers: []d3d12.RESOURCE_BARRIER,
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
@@ -218,6 +220,10 @@ pub const DxContext = struct {
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
             .resource_pool = resource_pool,
+            .buffered_resource_barriers = std.heap.page_allocator.alloc( // TODO: Use gpa?
+                d3d12.RESOURCE_BARRIER,
+                32,
+            ) catch unreachable,
         };
     }
 
@@ -282,7 +288,7 @@ pub const DxContext = struct {
         return dx.cbv_srv_uav_gpu_heaps[dx.frame_index].allocateDescriptors(num_descriptors);
     }
 
-    pub fn getDxResource(dx: DxContext, handle: ResourceHandle) *d3d12.IResource {
+    pub fn getRawResource(dx: DxContext, handle: ResourceHandle) *d3d12.IResource {
         return dx.resource_pool.getResource(handle).*.raw.?;
     }
 
@@ -298,15 +304,18 @@ pub const DxContext = struct {
         };
     }
 
-    pub fn encodeTransitionBarrier(
-        dx: DxContext,
+    pub fn addTransitionBarrier(
+        dx: *DxContext,
         handle: ResourceHandle,
         state_after: d3d12.RESOURCE_STATES,
     ) void {
         var resource = dx.resource_pool.getResource(handle);
 
         if (state_after != resource.state) {
-            dx.cmdlist.ResourceBarrier(1, &d3d12.RESOURCE_BARRIER{
+            if (dx.num_resource_barriers >= dx.buffered_resource_barriers.len) {
+                flushResourceBarriers(dx);
+            }
+            dx.buffered_resource_barriers[dx.num_resource_barriers] = d3d12.RESOURCE_BARRIER{
                 .Type = d3d12.RESOURCE_BARRIER_TYPE.TRANSITION,
                 .Flags = d3d12.RESOURCE_BARRIER_FLAGS.NONE,
                 .u = .{
@@ -317,8 +326,16 @@ pub const DxContext = struct {
                         .StateAfter = state_after,
                     },
                 },
-            });
+            };
+            dx.num_resource_barriers += 1;
             resource.state = state_after;
+        }
+    }
+
+    pub fn flushResourceBarriers(dx: *DxContext) void {
+        if (dx.num_resource_barriers > 0) {
+            dx.cmdlist.ResourceBarrier(dx.num_resource_barriers, dx.buffered_resource_barriers.ptr);
+            dx.num_resource_barriers = 0;
         }
     }
 

@@ -34,9 +34,13 @@ const DemoState = struct {
                 .Flags = d3d12.RESOURCE_FLAGS.ALLOW_RENDER_TARGET,
             },
             d3d12.RESOURCE_STATES.RENDER_TARGET,
-            null,
+            &d3d12.CLEAR_VALUE{
+                .Format = dxgi.FORMAT.R8G8B8A8_UNORM_SRGB,
+                .u = .{ .Color = [4]f32{ 0.2, 0.4, 0.8, 1.0 } },
+            },
         );
         const srgb_texture_rtv = dx.allocateCpuDescriptors(d3d12.DESCRIPTOR_HEAP_TYPE.RTV, 1);
+        dx.device.CreateRenderTargetView(dx.getRawResource(srgb_texture), null, srgb_texture_rtv);
 
         return DemoState{
             .dx = dx,
@@ -57,15 +61,29 @@ const DemoState = struct {
 
         dx.beginFrame();
         const back_buffer = dx.getBackBuffer();
-        dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.RENDER_TARGET);
-        dx.cmdlist.OMSetRenderTargets(1, &back_buffer.cpu_handle, os.TRUE, null);
+        dx.addTransitionBarrier(self.srgb_texture, d3d12.RESOURCE_STATES.RENDER_TARGET);
+        dx.flushResourceBarriers();
+        dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, null);
         dx.cmdlist.ClearRenderTargetView(
-            back_buffer.cpu_handle,
+            self.srgb_texture_rtv,
             &[4]f32{ 0.2, 0.4, 0.8, 1.0 },
             0,
             null,
         );
-        dx.encodeTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.PRESENT);
+        dx.addTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.RESOLVE_DEST);
+        dx.addTransitionBarrier(self.srgb_texture, d3d12.RESOURCE_STATES.RESOLVE_SOURCE);
+        dx.flushResourceBarriers();
+
+        dx.cmdlist.ResolveSubresource(
+            dx.getRawResource(back_buffer.resource_handle),
+            0,
+            dx.getRawResource(self.srgb_texture),
+            0,
+            dxgi.FORMAT.R8G8B8A8_UNORM,
+        );
+
+        dx.addTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.PRESENT);
+        dx.flushResourceBarriers();
         dx.endFrame();
     }
 };
