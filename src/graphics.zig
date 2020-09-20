@@ -229,10 +229,22 @@ pub const DxContext = struct {
 
     pub fn deinit(dx: *DxContext) void {
         waitForGpu(dx.*);
-        releaseCom(&dx.swapchain);
-        releaseCom(&dx.cmdqueue);
-        releaseCom(&dx.device);
         dx.resource_pool.deinit();
+        releaseCom(&dx.rtv_heap.heap);
+        releaseCom(&dx.dsv_heap.heap);
+        releaseCom(&dx.cbv_srv_uav_cpu_heap.heap);
+        for (dx.cbv_srv_uav_gpu_heaps) |*dh| {
+            releaseCom(&dh.*.heap);
+        }
+        for (dx.cmdallocs) |*cmdalloc| {
+            releaseCom(&cmdalloc.*);
+        }
+        os.CloseHandle(dx.frame_fence_event);
+        releaseCom(&dx.cmdqueue);
+        releaseCom(&dx.cmdlist);
+        releaseCom(&dx.frame_fence);
+        releaseCom(&dx.swapchain);
+        releaseCom(&dx.device);
         dx.* = undefined;
     }
 
@@ -365,6 +377,19 @@ pub const DxContext = struct {
         ));
         return dx.resource_pool.addResource(raw, initial_state, desc.Format);
     }
+
+    pub fn destroyResource(dx: DxContext, handle: ResourceHandle) void {
+        var resource = dx.resource_pool.getResource(handle);
+
+        const refcount = resource.raw.?.Release();
+        if (refcount == 0) {
+            resource.* = Resource{
+                .raw = null,
+                .state = d3d12.RESOURCE_STATES.COMMON,
+                .format = dxgi.FORMAT.UNKNOWN,
+            };
+        }
+    }
 };
 
 const DescriptorHeap = struct {
@@ -478,6 +503,13 @@ const ResourcePool = struct {
     }
 
     fn deinit(self: *ResourcePool) void {
+        for (self.resources) |*resource, i| {
+            if (resource.*.raw) |raw| {
+                if (raw.Release() != 0 and i >= num_swapbuffers) {
+                    assert(false);
+                }
+            }
+        }
         std.heap.page_allocator.free(self.resources);
         std.heap.page_allocator.free(self.generations);
         self.* = undefined;
@@ -511,7 +543,7 @@ const ResourcePool = struct {
         };
     }
 
-    pub fn getResource(self: ResourcePool, handle: ResourceHandle) *Resource {
+    fn getResource(self: ResourcePool, handle: ResourceHandle) *Resource {
         assert(handle.index > 0 and handle.index <= max_num_resources);
         assert(handle.generation > 0);
         assert(handle.generation == self.generations[handle.index]);
