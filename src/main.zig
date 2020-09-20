@@ -42,6 +42,9 @@ const DemoState = struct {
         const srgb_texture_rtv = dx.allocateCpuDescriptors(d3d12.DESCRIPTOR_HEAP_TYPE.RTV, 1);
         dx.device.CreateRenderTargetView(dx.getRawResource(srgb_texture), null, srgb_texture_rtv);
 
+        std.log.info("VS size is: {}", .{@embedFile("../shaders/test.vs.cso").len});
+        std.log.info("PS size is: {}", .{@embedFile("../shaders/test.ps.cso").len});
+
         return DemoState{
             .dx = dx,
             .window = window,
