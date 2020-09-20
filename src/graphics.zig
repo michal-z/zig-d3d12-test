@@ -378,7 +378,7 @@ pub const DxContext = struct {
         return dx.resource_pool.addResource(raw, initial_state, desc.Format);
     }
 
-    pub fn destroyResource(dx: DxContext, handle: ResourceHandle) void {
+    pub fn releaseResource(dx: DxContext, handle: ResourceHandle) void {
         var resource = dx.resource_pool.getResource(handle);
 
         const refcount = resource.raw.?.Release();
