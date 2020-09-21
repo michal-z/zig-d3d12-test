@@ -14,6 +14,7 @@ const DemoState = struct {
     window: os.HWND,
     srgb_texture: gr.ResourceHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    test_compute_pso: gr.PipelineHandle,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
@@ -42,18 +43,29 @@ const DemoState = struct {
         const srgb_texture_rtv = dx.allocateCpuDescriptors(d3d12.DESCRIPTOR_HEAP_TYPE.RTV, 1);
         dx.device.CreateRenderTargetView(dx.getRawResource(srgb_texture), null, srgb_texture_rtv);
 
-        std.log.info("VS size is: {}", .{@embedFile("../shaders/test.vs.cso").len});
-        std.log.info("PS size is: {}", .{@embedFile("../shaders/test.ps.cso").len});
+        const test_compute_pso = dx.createComputePipeline(d3d12.COMPUTE_PIPELINE_STATE_DESC{
+            .pRootSignature = null,
+            .CS = blk: {
+                const file = @embedFile("../shaders/test.cs.cso");
+                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
+            },
+            .NodeMask = 0,
+            .CachedPSO = .{ .pCachedBlob = null, .CachedBlobSizeInBytes = 0 },
+            .Flags = d3d12.PIPELINE_STATE_FLAGS.NONE,
+        });
 
         return DemoState{
             .dx = dx,
             .window = window,
             .srgb_texture = srgb_texture,
             .srgb_texture_rtv = srgb_texture_rtv,
+            .test_compute_pso = test_compute_pso,
         };
     }
 
     fn deinit(self: *DemoState) void {
+        self.dx.releaseResource(self.srgb_texture);
+        self.dx.releasePipeline(self.test_compute_pso);
         self.dx.deinit();
         self.* = undefined;
     }

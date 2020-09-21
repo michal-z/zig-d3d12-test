@@ -13,6 +13,7 @@ const num_cbv_srv_uav_cpu_descriptors = 16 * 1024;
 const num_cbv_srv_uav_gpu_descriptors = 4 * 1024;
 
 const max_num_resources = 256;
+const max_num_pipelines = 128;
 
 pub inline fn vhr(hr: os.HRESULT) void {
     if (hr != 0) {
@@ -43,6 +44,7 @@ pub const DxContext = struct {
     frame_index: u32 = 0,
     back_buffer_index: u32 = 0,
     resource_pool: ResourcePool,
+    pipeline_pool: PipelinePool,
     num_resource_barriers: u32 = 0,
     buffered_resource_barriers: []d3d12.RESOURCE_BARRIER,
 
@@ -172,6 +174,7 @@ pub const DxContext = struct {
         }
 
         var resource_pool = ResourcePool.init();
+        var pipeline_pool = PipelinePool.init();
 
         // First 'num_swapbuffers' slots in 'rtv_heap' contain swapbuffer descriptors.
         var swapbuffers: [num_swapbuffers]ResourceHandle = undefined;
@@ -220,6 +223,7 @@ pub const DxContext = struct {
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
             .resource_pool = resource_pool,
+            .pipeline_pool = pipeline_pool,
             .buffered_resource_barriers = std.heap.page_allocator.alloc( // TODO: Use gpa?
                 d3d12.RESOURCE_BARRIER,
                 32,
@@ -230,6 +234,7 @@ pub const DxContext = struct {
     pub fn deinit(dx: *DxContext) void {
         waitForGpu(dx.*);
         dx.resource_pool.deinit();
+        dx.pipeline_pool.deinit();
         releaseCom(&dx.rtv_heap.heap);
         releaseCom(&dx.dsv_heap.heap);
         releaseCom(&dx.cbv_srv_uav_cpu_heap.heap);
@@ -390,6 +395,45 @@ pub const DxContext = struct {
             };
         }
     }
+
+    pub fn createComputePipeline(
+        dx: *DxContext,
+        pso_desc: d3d12.COMPUTE_PIPELINE_STATE_DESC,
+    ) PipelineHandle {
+        var root_signature: *d3d12.IRootSignature = undefined;
+        vhr(dx.device.CreateRootSignature(
+            0,
+            pso_desc.CS.pShaderBytecode,
+            pso_desc.CS.BytecodeLength,
+            &d3d12.IID_IRootSignature,
+            @ptrCast(**c_void, &root_signature),
+        ));
+
+        var pso: *d3d12.IPipelineState = undefined;
+        vhr(dx.device.CreateComputePipelineState(
+            &pso_desc,
+            &d3d12.IID_IPipelineState,
+            @ptrCast(**c_void, &pso),
+        ));
+
+        return dx.pipeline_pool.addPipeline(pso, root_signature);
+    }
+
+    pub fn releasePipeline(dx: DxContext, handle: PipelineHandle) void {
+        var pipeline = dx.pipeline_pool.getPipeline(handle);
+
+        const refcount = pipeline.pso.?.Release();
+        if (pipeline.root_signature.?.Release() != refcount) {
+            assert(false);
+        }
+
+        if (refcount == 0) {
+            pipeline.* = Pipeline{
+                .pso = null,
+                .root_signature = null,
+            };
+        }
+    }
 };
 
 const DescriptorHeap = struct {
@@ -458,6 +502,87 @@ const Descriptor = packed struct {
     gpu_handle: d3d12.GPU_DESCRIPTOR_HANDLE,
 };
 
+pub const PipelineHandle = packed struct {
+    index: u16,
+    generation: u16,
+};
+
+const Pipeline = struct {
+    pso: ?*d3d12.IPipelineState,
+    root_signature: ?*d3d12.IRootSignature,
+};
+
+const PipelinePool = struct {
+    pipelines: []Pipeline,
+    generations: []u16,
+
+    fn init() PipelinePool {
+        return PipelinePool{
+            .pipelines = blk: {
+                var pipelines = std.heap.page_allocator.alloc(
+                    Pipeline,
+                    max_num_pipelines + 1,
+                ) catch unreachable;
+                for (pipelines) |*pipeline| {
+                    pipeline.* = Pipeline{ .pso = null, .root_signature = null };
+                }
+                break :blk pipelines;
+            },
+            .generations = blk: {
+                var generations = std.heap.page_allocator.alloc(
+                    u16,
+                    max_num_pipelines + 1,
+                ) catch unreachable;
+                for (generations) |*generation| {
+                    generation.* = 0;
+                }
+                break :blk generations;
+            },
+        };
+    }
+
+    fn deinit(self: *PipelinePool) void {
+        for (self.pipelines) |pipeline| {
+            // Verify that all pipelines has been released by a user.
+            assert(pipeline.pso == null);
+            assert(pipeline.root_signature == null);
+        }
+        std.heap.page_allocator.free(self.pipelines);
+        std.heap.page_allocator.free(self.generations);
+        self.* = undefined;
+    }
+
+    fn addPipeline(
+        self: *PipelinePool,
+        pso: *d3d12.IPipelineState,
+        root_signature: *d3d12.IRootSignature,
+    ) PipelineHandle {
+        var slot_idx: u32 = 1;
+        while (slot_idx <= max_num_pipelines) : (slot_idx += 1) {
+            if (self.pipelines[slot_idx].pso == null)
+                break;
+        }
+        assert(slot_idx <= max_num_pipelines);
+
+        self.pipelines[slot_idx] = Pipeline{ .pso = pso, .root_signature = root_signature };
+
+        return PipelineHandle{
+            .index = @intCast(u16, slot_idx),
+            .generation = blk: {
+                self.generations[slot_idx] += 1;
+                break :blk self.generations[slot_idx];
+            },
+        };
+    }
+
+    fn getPipeline(self: PipelinePool, handle: PipelineHandle) *Pipeline {
+        assert(handle.index > 0 and handle.index <= max_num_pipelines);
+        assert(handle.generation > 0);
+        assert(handle.generation == self.generations[handle.index]);
+        return &self.pipelines[handle.index];
+    }
+};
+
 pub const ResourceHandle = packed struct {
     index: u16,
     generation: u16,
@@ -503,11 +628,13 @@ const ResourcePool = struct {
     }
 
     fn deinit(self: *ResourcePool) void {
-        for (self.resources) |*resource, i| {
-            if (resource.*.raw) |raw| {
-                if (raw.Release() != 0 and i >= num_swapbuffers) {
-                    assert(false);
-                }
+        for (self.resources) |resource, i| {
+            if (i > 0 and i <= num_swapbuffers) {
+                // Release internally created swapbuffers.
+                _ = resource.raw.?.Release();
+            } else if (i > num_swapbuffers) {
+                // Verify that all resource has been released by a user.
+                assert(resource.raw == null);
             }
         }
         std.heap.page_allocator.free(self.resources);

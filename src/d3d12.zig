@@ -454,7 +454,7 @@ pub const STREAM_OUTPUT_BUFFER_VIEW = extern struct {
 };
 
 pub const CACHED_PIPELINE_STATE = extern struct {
-    pCachedBlob: *const c_void,
+    pCachedBlob: ?*const c_void,
     CachedBlobSizeInBytes: u64,
 };
 
@@ -1135,7 +1135,7 @@ pub const GRAPHICS_PIPELINE_STATE_DESC = extern struct {
 };
 
 pub const COMPUTE_PIPELINE_STATE_DESC = extern struct {
-    pRootSignature: *IRootSignature,
+    pRootSignature: ?*IRootSignature,
     CS: SHADER_BYTECODE,
     NodeMask: u32,
     CachedPSO: CACHED_PIPELINE_STATE,
