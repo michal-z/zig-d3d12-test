@@ -3,11 +3,6 @@ const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 
 pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
-pub const DEFAULT_DEPTH_BIAS = 0;
-pub const DEFAULT_DEPTH_BIAS_CLAMP = 0.0;
-pub const DEFAULT_SLOPE_SCALED_DEPTH_BIAS = 0.0;
-pub const DEFAULT_STENCIL_READ_MASK = 0xff;
-pub const DEFAULT_STENCIL_WRITE_MASK = 0xff;
 
 pub const GPU_VIRTUAL_ADDRESS = u64;
 
@@ -51,20 +46,19 @@ pub const HEAP_PROPERTIES = extern struct {
     VisibleNodeMask: u32,
 };
 
-pub const HEAP_FLAGS = extern enum {
-    NONE = 0,
-    SHARED = 0x1,
-    DENY_BUFFERS = 0x4,
-    ALLOW_DISPLAY = 0x8,
-    SHARED_CROSS_ADAPTER = 0x20,
-    DENY_RT_DS_TEXTURES = 0x40,
-    DENY_NON_RT_DS_TEXTURES = 0x80,
-    HARDWARE_PROTECTED = 0x100,
-    ALLOW_ALL_BUFFERS_AND_TEXTURES = 0,
-    ALLOW_ONLY_BUFFERS = 0xc0,
-    ALLOW_ONLY_NON_RT_DS_TEXTURES = 0x44,
-    ALLOW_ONLY_RT_DS_TEXTURES = 0x84,
-};
+pub const HEAP_FLAGS = u32;
+pub const NONE: u32 = 0;
+pub const SHARED: u32 = 0x1;
+pub const DENY_BUFFERS: u32 = 0x4;
+pub const ALLOW_DISPLAY: u32 = 0x8;
+pub const SHARED_CROSS_ADAPTER: u32 = 0x20;
+pub const DENY_RT_DS_TEXTURES: u32 = 0x40;
+pub const DENY_NON_RT_DS_TEXTURES: u32 = 0x80;
+pub const HARDWARE_PROTECTED: u32 = 0x100;
+pub const ALLOW_ALL_BUFFERS_AND_TEXTURES: u32 = 0;
+pub const ALLOW_ONLY_BUFFERS: u32 = 0xc0;
+pub const ALLOW_ONLY_NON_RT_DS_TEXTURES: u32 = 0x44;
+pub const ALLOW_ONLY_RT_DS_TEXTURES: u32 = 0x84;
 
 pub const HEAP_DESC = extern struct {
     SizeInBytes: u64,
@@ -93,15 +87,14 @@ pub const TEXTURE_LAYOUT = extern enum {
     _64KB_STANDARD_SWIZZLE = 3,
 };
 
-pub const RESOURCE_FLAGS = extern enum {
-    NONE = 0,
-    ALLOW_RENDER_TARGET = 0x1,
-    ALLOW_DEPTH_STENCIL = 0x2,
-    ALLOW_UNORDERED_ACCESS = 0x4,
-    DENY_SHADER_RESOURCE = 0x8,
-    ALLOW_CROSS_ADAPTER = 0x10,
-    ALLOW_SIMULTANEOUS_ACCESS = 0x20,
-};
+pub const RESOURCE_FLAGS = u32;
+pub const RESOURCE_FLAGS_NONE: u32 = 0;
+pub const RESOURCE_FLAGS_ALLOW_RENDER_TARGET: u32 = 0x1;
+pub const RESOURCE_FLAGS_ALLOW_DEPTH_STENCIL: u32 = 0x2;
+pub const RESOURCE_FLAGS_ALLOW_UNORDERED_ACCESS: u32 = 0x4;
+pub const RESOURCE_FLAGS_DENY_SHADER_RESOURCE: u32 = 0x8;
+pub const RESOURCE_FLAGS_ALLOW_CROSS_ADAPTER: u32 = 0x10;
+pub const RESOURCE_FLAGS_ALLOW_SIMULTANEOUS_ACCESS: u32 = 0x20;
 
 pub const RESOURCE_DESC = extern struct {
     Dimension: RESOURCE_DIMENSION,
@@ -246,8 +239,8 @@ pub const TILE_COPY_FLAGS = extern enum {
 };
 
 pub const SHADER_BYTECODE = extern struct {
-    pShaderBytecode: *const c_void,
-    BytecodeLength: u64,
+    pShaderBytecode: ?*const c_void = null,
+    BytecodeLength: u64 = 0,
 };
 
 pub const SO_DECLARATION_ENTRY = extern struct {
@@ -260,11 +253,11 @@ pub const SO_DECLARATION_ENTRY = extern struct {
 };
 
 pub const STREAM_OUTPUT_DESC = extern struct {
-    pSODeclaration: *const SO_DECLARATION_ENTRY,
-    NumEntries: u32,
-    pBufferStrides: [*]const u32,
-    NumStrides: u32,
-    RasterizedStream: u32,
+    pSODeclaration: [*c]const SO_DECLARATION_ENTRY = null,
+    NumEntries: u32 = 0,
+    pBufferStrides: [*c]const u32 = null,
+    NumStrides: u32 = 0,
+    RasterizedStream: u32 = 0,
 };
 
 pub const BLEND = extern enum {
@@ -300,7 +293,7 @@ pub const COLOR_WRITE_ENABLE = extern enum {
     GREEN = 2,
     BLUE = 4,
     ALPHA = 8,
-    ALL = RED | GREEN | BLUE | ALPHA,
+    ALL = 1 | 2 | 4 | 8,
 };
 
 pub const LOGIC_OP = extern enum {
@@ -323,36 +316,36 @@ pub const LOGIC_OP = extern enum {
 };
 
 pub const RENDER_TARGET_BLEND_DESC = extern struct {
-    BlendEnable: os.BOOL,
-    LogicOpEnable: os.BOOL,
-    SrcBlend: BLEND,
-    DestBlend: BLEND,
-    BlendOp: BLEND_OP,
-    SrcBlendAlpha: BLEND,
-    DestBlendAlpha: BLEND,
-    BlendOpAlpha: BLEND_OP,
-    LogicOp: LOGIC_OP,
-    RenderTargetWriteMask: u8,
+    BlendEnable: os.BOOL = os.FALSE,
+    LogicOpEnable: os.BOOL = os.FALSE,
+    SrcBlend: BLEND = .ONE,
+    DestBlend: BLEND = .ZERO,
+    BlendOp: BLEND_OP = .ADD,
+    SrcBlendAlpha: BLEND = .ONE,
+    DestBlendAlpha: BLEND = .ZERO,
+    BlendOpAlpha: BLEND_OP = .ADD,
+    LogicOp: LOGIC_OP = .NOOP,
+    RenderTargetWriteMask: u8 = @enumToInt(COLOR_WRITE_ENABLE.ALL),
 };
 
 pub const BLEND_DESC = extern struct {
-    AlphaToCoverageEnable: os.BOOL,
-    IndependentBlendEnable: os.BOOL,
-    RenderTarget: [8]RENDER_TARGET_BLEND_DESC,
+    AlphaToCoverageEnable: os.BOOL = os.FALSE,
+    IndependentBlendEnable: os.BOOL = os.FALSE,
+    RenderTarget: [8]RENDER_TARGET_BLEND_DESC = [_]RENDER_TARGET_BLEND_DESC{.{}} ** 8,
 };
 
 pub const RASTERIZER_DESC = extern struct {
-    FillMode: FILL_MODE,
-    CullMode: CULL_MODE,
-    FrontCounterClockwise: os.BOOL,
-    DepthBias: i32,
-    DepthBiasClamp: f32,
-    SlopeScaledDepthBias: f32,
-    DepthClipEnable: os.BOOL,
-    MultisampleEnable: os.BOOL,
-    AntialiasedLineEnable: os.BOOL,
-    ForcedSampleCount: u32,
-    ConservativeRaster: CONSERVATIVE_RASTERIZATION_MODE,
+    FillMode: FILL_MODE = .SOLID,
+    CullMode: CULL_MODE = .BACK,
+    FrontCounterClockwise: os.BOOL = os.FALSE,
+    DepthBias: i32 = 0,
+    DepthBiasClamp: f32 = 0.0,
+    SlopeScaledDepthBias: f32 = 0.0,
+    DepthClipEnable: os.BOOL = os.TRUE,
+    MultisampleEnable: os.BOOL = os.FALSE,
+    AntialiasedLineEnable: os.BOOL = os.FALSE,
+    ForcedSampleCount: u32 = 0,
+    ConservativeRaster: CONSERVATIVE_RASTERIZATION_MODE = .OFF,
 };
 
 pub const FILL_MODE = extern enum {
@@ -377,7 +370,8 @@ pub const COMPARISON_FUNC = extern enum {
 };
 
 pub const DEPTH_WRITE_MASK = extern enum {
-    ZERO = 0, ALL = 1
+    ZERO = 0,
+    ALL = 1,
 };
 
 pub const STENCIL_OP = extern enum {
@@ -392,26 +386,26 @@ pub const STENCIL_OP = extern enum {
 };
 
 pub const DEPTH_STENCILOP_DESC = extern struct {
-    StencilFailOp: STENCIL_OP,
-    StencilDepthFailOp: STENCIL_OP,
-    StencilPassOp: STENCIL_OP,
-    StencilFunc: COMPARISON_FUNC,
+    StencilFailOp: STENCIL_OP = .KEEP,
+    StencilDepthFailOp: STENCIL_OP = .KEEP,
+    StencilPassOp: STENCIL_OP = .KEEP,
+    StencilFunc: COMPARISON_FUNC = .ALWAYS,
 };
 
 pub const DEPTH_STENCIL_DESC = extern struct {
-    DepthEnable: os.BOOL,
-    DepthWriteMask: DEPTH_WRITE_MASK,
-    DepthFunc: COMPARISON_FUNC,
-    StencilEnable: os.BOOL,
-    StencilReadMask: u8,
-    StencilWriteMask: u8,
-    FrontFace: DEPTH_STENCILOP_DESC,
-    BackFace: DEPTH_STENCILOP_DESC,
+    DepthEnable: os.BOOL = os.TRUE,
+    DepthWriteMask: DEPTH_WRITE_MASK = .ALL,
+    DepthFunc: COMPARISON_FUNC = .LESS,
+    StencilEnable: os.BOOL = os.FALSE,
+    StencilReadMask: u8 = 0xff,
+    StencilWriteMask: u8 = 0xff,
+    FrontFace: DEPTH_STENCILOP_DESC = .{},
+    BackFace: DEPTH_STENCILOP_DESC = .{},
 };
 
 pub const INPUT_LAYOUT_DESC = extern struct {
-    pInputElementDescs: [*]const INPUT_ELEMENT_DESC,
-    NumElements: u32,
+    pInputElementDescs: [*c]const INPUT_ELEMENT_DESC = null,
+    NumElements: u32 = 0,
 };
 
 pub const INPUT_CLASSIFICATION = extern enum {
@@ -454,8 +448,8 @@ pub const STREAM_OUTPUT_BUFFER_VIEW = extern struct {
 };
 
 pub const CACHED_PIPELINE_STATE = extern struct {
-    pCachedBlob: ?*const c_void,
-    CachedBlobSizeInBytes: u64,
+    pCachedBlob: ?*const c_void = null,
+    CachedBlobSizeInBytes: u64 = 0,
 };
 
 pub const CLEAR_FLAGS = extern enum {
@@ -1111,35 +1105,35 @@ pub const RESOURCE_ALLOCATION_INFO = extern struct {
 };
 
 pub const GRAPHICS_PIPELINE_STATE_DESC = extern struct {
-    pRootSignature: *IRootSignature,
-    VS: SHADER_BYTECODE,
-    PS: SHADER_BYTECODE,
-    DS: SHADER_BYTECODE,
-    HS: SHADER_BYTECODE,
-    GS: SHADER_BYTECODE,
-    StreamOutput: STREAM_OUTPUT_DESC,
-    BlendState: BLEND_DESC,
-    SampleMask: u32,
-    RasterizerState: RASTERIZER_DESC,
-    DepthStencilState: DEPTH_STENCIL_DESC,
-    InputLayout: INPUT_LAYOUT_DESC,
-    IBStripCutValue: INDEX_BUFFER_STRIP_CUT_VALUE,
+    pRootSignature: ?*IRootSignature = null,
+    VS: SHADER_BYTECODE = .{},
+    PS: SHADER_BYTECODE = .{},
+    DS: SHADER_BYTECODE = .{},
+    HS: SHADER_BYTECODE = .{},
+    GS: SHADER_BYTECODE = .{},
+    StreamOutput: STREAM_OUTPUT_DESC = .{},
+    BlendState: BLEND_DESC = .{},
+    SampleMask: u32 = 0xffff_ffff,
+    RasterizerState: RASTERIZER_DESC = .{},
+    DepthStencilState: DEPTH_STENCIL_DESC = .{},
+    InputLayout: INPUT_LAYOUT_DESC = .{},
+    IBStripCutValue: INDEX_BUFFER_STRIP_CUT_VALUE = .DISABLED,
     PrimitiveTopologyType: PRIMITIVE_TOPOLOGY_TYPE,
     NumRenderTargets: u32,
     RTVFormats: [8]dxgi.FORMAT,
-    DSVFormat: dxgi.FORMAT,
-    SampleDesc: dxgi.SAMPLE_DESC,
-    NodeMask: u32,
-    CachedPSO: CACHED_PIPELINE_STATE,
-    Flags: PIPELINE_STATE_FLAGS,
+    DSVFormat: dxgi.FORMAT = .UNKNOWN,
+    SampleDesc: dxgi.SAMPLE_DESC = .{},
+    NodeMask: u32 = 0,
+    CachedPSO: CACHED_PIPELINE_STATE = .{},
+    Flags: PIPELINE_STATE_FLAGS = .NONE,
 };
 
 pub const COMPUTE_PIPELINE_STATE_DESC = extern struct {
-    pRootSignature: ?*IRootSignature,
+    pRootSignature: ?*IRootSignature = null,
     CS: SHADER_BYTECODE,
-    NodeMask: u32,
-    CachedPSO: CACHED_PIPELINE_STATE,
-    Flags: PIPELINE_STATE_FLAGS,
+    NodeMask: u32 = 0,
+    CachedPSO: CACHED_PIPELINE_STATE = .{},
+    Flags: PIPELINE_STATE_FLAGS = .NONE,
 };
 
 pub const VIEWPORT = extern struct {

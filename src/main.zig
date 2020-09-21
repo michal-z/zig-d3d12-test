@@ -20,38 +20,47 @@ const DemoState = struct {
         var dx = gr.DxContext.init(window);
 
         const srgb_texture = dx.createCommittedResource(
-            d3d12.HEAP_TYPE.DEFAULT,
-            d3d12.HEAP_FLAGS.NONE,
-            &d3d12.RESOURCE_DESC{
-                .Dimension = d3d12.RESOURCE_DIMENSION.TEXTURE2D,
-                .Alignment = 0,
-                .Width = window_width,
-                .Height = window_height,
-                .DepthOrArraySize = 1,
-                .MipLevels = 1,
-                .Format = dxgi.FORMAT.R8G8B8A8_UNORM_SRGB,
-                .SampleDesc = .{ .Count = 8, .Quality = 0 },
-                .Layout = d3d12.TEXTURE_LAYOUT.UNKNOWN,
-                .Flags = d3d12.RESOURCE_FLAGS.ALLOW_RENDER_TARGET,
+            .DEFAULT,
+            d3d12.RESOURCE_FLAGS_NONE,
+            &blk: {
+                var desc = gr.resource_desc.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
+                desc.Flags = d3d12.RESOURCE_FLAGS_ALLOW_RENDER_TARGET;
+                desc.SampleDesc.Count = 8;
+                break :blk desc;
             },
-            d3d12.RESOURCE_STATES.RENDER_TARGET,
+            .RENDER_TARGET,
             &d3d12.CLEAR_VALUE{
-                .Format = dxgi.FORMAT.R8G8B8A8_UNORM_SRGB,
+                .Format = .R8G8B8A8_UNORM_SRGB,
                 .u = .{ .Color = [4]f32{ 0.2, 0.4, 0.8, 1.0 } },
             },
         );
-        const srgb_texture_rtv = dx.allocateCpuDescriptors(d3d12.DESCRIPTOR_HEAP_TYPE.RTV, 1);
+        const srgb_texture_rtv = dx.allocateCpuDescriptors(.RTV, 1);
         dx.device.CreateRenderTargetView(dx.getRawResource(srgb_texture), null, srgb_texture_rtv);
 
+        var pso_desc = d3d12.GRAPHICS_PIPELINE_STATE_DESC{
+            .PrimitiveTopologyType = .TRIANGLE,
+            .NumRenderTargets = 1,
+            .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM} ** 8,
+            .DepthStencilState = blk: {
+                var desc = d3d12.DEPTH_STENCIL_DESC{};
+                desc.DepthEnable = os.FALSE;
+                break :blk desc;
+            },
+            .VS = blk: {
+                const file = @embedFile("../shaders/test.vs.cso");
+                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
+            },
+            .PS = blk: {
+                const file = @embedFile("../shaders/test.ps.cso");
+                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
+            },
+        };
+
         const test_compute_pso = dx.createComputePipeline(d3d12.COMPUTE_PIPELINE_STATE_DESC{
-            .pRootSignature = null,
             .CS = blk: {
                 const file = @embedFile("../shaders/test.cs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
             },
-            .NodeMask = 0,
-            .CachedPSO = .{ .pCachedBlob = null, .CachedBlobSizeInBytes = 0 },
-            .Flags = d3d12.PIPELINE_STATE_FLAGS.NONE,
         });
 
         return DemoState{
@@ -76,7 +85,7 @@ const DemoState = struct {
 
         dx.beginFrame();
         const back_buffer = dx.getBackBuffer();
-        dx.addTransitionBarrier(self.srgb_texture, d3d12.RESOURCE_STATES.RENDER_TARGET);
+        dx.addTransitionBarrier(self.srgb_texture, .RENDER_TARGET);
         dx.flushResourceBarriers();
         dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, null);
         dx.cmdlist.ClearRenderTargetView(
@@ -85,8 +94,8 @@ const DemoState = struct {
             0,
             null,
         );
-        dx.addTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.RESOLVE_DEST);
-        dx.addTransitionBarrier(self.srgb_texture, d3d12.RESOURCE_STATES.RESOLVE_SOURCE);
+        dx.addTransitionBarrier(back_buffer.resource_handle, .RESOLVE_DEST);
+        dx.addTransitionBarrier(self.srgb_texture, .RESOLVE_SOURCE);
         dx.flushResourceBarriers();
 
         dx.cmdlist.ResolveSubresource(
@@ -94,10 +103,10 @@ const DemoState = struct {
             0,
             dx.getRawResource(self.srgb_texture),
             0,
-            dxgi.FORMAT.R8G8B8A8_UNORM,
+            .R8G8B8A8_UNORM,
         );
 
-        dx.addTransitionBarrier(back_buffer.resource_handle, d3d12.RESOURCE_STATES.PRESENT);
+        dx.addTransitionBarrier(back_buffer.resource_handle, .PRESENT);
         dx.flushResourceBarriers();
         dx.endFrame();
     }

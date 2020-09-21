@@ -2,8 +2,8 @@ const std = @import("std");
 const os = @import("windows.zig");
 
 pub const SAMPLE_DESC = extern struct {
-    Count: u32,
-    Quality: u32,
+    Count: u32 = 1,
+    Quality: u32 = 0,
 };
 
 pub const FORMAT = extern enum {

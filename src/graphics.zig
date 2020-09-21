@@ -80,9 +80,9 @@ pub const DxContext = struct {
         var cmdqueue: *d3d12.ICommandQueue = undefined;
         vhr(device.CreateCommandQueue(
             &d3d12.COMMAND_QUEUE_DESC{
-                .Type = d3d12.COMMAND_LIST_TYPE.DIRECT,
+                .Type = .DIRECT,
                 .Priority = @enumToInt(d3d12.COMMAND_QUEUE_PRIORITY.NORMAL),
-                .Flags = d3d12.COMMAND_QUEUE_FLAGS.NONE,
+                .Flags = .NONE,
                 .NodeMask = 0,
             },
             &d3d12.IID_ICommandQueue,
@@ -100,9 +100,9 @@ pub const DxContext = struct {
                         .Numerator = 0,
                         .Denominator = 0,
                     },
-                    .Format = dxgi.FORMAT.R8G8B8A8_UNORM,
-                    .ScanlineOrdering = dxgi.MODE_SCANLINE_ORDER.UNSPECIFIED,
-                    .Scaling = dxgi.MODE_SCALING.UNSPECIFIED,
+                    .Format = .R8G8B8A8_UNORM,
+                    .ScanlineOrdering = .UNSPECIFIED,
+                    .Scaling = .UNSPECIFIED,
                 },
                 .SampleDesc = dxgi.SAMPLE_DESC{
                     .Count = 1,
@@ -112,7 +112,7 @@ pub const DxContext = struct {
                 .BufferCount = num_swapbuffers,
                 .OutputWindow = window,
                 .Windowed = os.TRUE,
-                .SwapEffect = dxgi.SWAP_EFFECT.FLIP_DISCARD,
+                .SwapEffect = .FLIP_DISCARD,
                 .Flags = 0,
             },
             &temp_swapchain,
@@ -123,12 +123,7 @@ pub const DxContext = struct {
         releaseCom(&factory);
 
         var frame_fence: *d3d12.IFence = undefined;
-        vhr(device.CreateFence(
-            0,
-            d3d12.FENCE_FLAGS.NONE,
-            &d3d12.IID_IFence,
-            @ptrCast(**c_void, &frame_fence),
-        ));
+        vhr(device.CreateFence(0, .NONE, &d3d12.IID_IFence, @ptrCast(**c_void, &frame_fence)));
         const frame_fence_event = os.CreateEventEx(
             null,
             "frame_fence_event",
@@ -139,37 +134,27 @@ pub const DxContext = struct {
         var cmdallocs: [num_frames]*d3d12.ICommandAllocator = undefined;
         for (cmdallocs) |*cmdalloc| {
             vhr(device.CreateCommandAllocator(
-                d3d12.COMMAND_LIST_TYPE.DIRECT,
+                .DIRECT,
                 &d3d12.IID_ICommandAllocator,
                 @ptrCast(**c_void, &cmdalloc.*),
             ));
         }
 
-        var rtv_heap = DescriptorHeap.init(
-            device,
-            num_rtv_descriptors,
-            d3d12.DESCRIPTOR_HEAP_TYPE.RTV,
-            d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
-        );
-        var dsv_heap = DescriptorHeap.init(
-            device,
-            num_dsv_descriptors,
-            d3d12.DESCRIPTOR_HEAP_TYPE.DSV,
-            d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
-        );
+        var rtv_heap = DescriptorHeap.init(device, num_rtv_descriptors, .RTV, .NONE);
+        var dsv_heap = DescriptorHeap.init(device, num_dsv_descriptors, .DSV, .NONE);
         var cbv_srv_uav_cpu_heap = DescriptorHeap.init(
             device,
             num_cbv_srv_uav_cpu_descriptors,
-            d3d12.DESCRIPTOR_HEAP_TYPE.CBV_SRV_UAV,
-            d3d12.DESCRIPTOR_HEAP_FLAGS.NONE,
+            .CBV_SRV_UAV,
+            .NONE,
         );
         var cbv_srv_uav_gpu_heaps: [num_frames]DescriptorHeap = undefined;
         for (cbv_srv_uav_gpu_heaps) |*heap| {
             heap.* = DescriptorHeap.init(
                 device,
                 num_cbv_srv_uav_gpu_descriptors,
-                d3d12.DESCRIPTOR_HEAP_TYPE.CBV_SRV_UAV,
-                d3d12.DESCRIPTOR_HEAP_FLAGS.SHADER_VISIBLE,
+                .CBV_SRV_UAV,
+                .SHADER_VISIBLE,
             );
         }
 
@@ -188,11 +173,7 @@ pub const DxContext = struct {
                     &d3d12.IID_IResource,
                     @ptrCast(**c_void, &buffer),
                 ));
-                swapbuffer.* = resource_pool.addResource(
-                    buffer,
-                    d3d12.RESOURCE_STATES.PRESENT,
-                    dxgi.FORMAT.R8G8B8A8_UNORM,
-                );
+                swapbuffer.* = resource_pool.addResource(buffer, .PRESENT, .R8G8B8A8_UNORM);
                 device.CreateRenderTargetView(buffer, null, handle);
                 handle.ptr += rtv_heap.descriptor_size;
             }
@@ -201,7 +182,7 @@ pub const DxContext = struct {
         var cmdlist: *d3d12.IGraphicsCommandList = undefined;
         vhr(device.CreateCommandList(
             0,
-            d3d12.COMMAND_LIST_TYPE.DIRECT,
+            .DIRECT,
             cmdallocs[0],
             null,
             &d3d12.IID_IGraphicsCommandList,
@@ -292,12 +273,10 @@ pub const DxContext = struct {
         num_descriptors: u32,
     ) d3d12.CPU_DESCRIPTOR_HANDLE {
         return switch (heap_type) {
-            d3d12.DESCRIPTOR_HEAP_TYPE.CBV_SRV_UAV => dx.cbv_srv_uav_cpu_heap.
-                allocateDescriptors(num_descriptors).
-                cpu_handle,
-            d3d12.DESCRIPTOR_HEAP_TYPE.SAMPLER => unreachable,
-            d3d12.DESCRIPTOR_HEAP_TYPE.RTV => dx.rtv_heap.allocateDescriptors(num_descriptors).cpu_handle,
-            d3d12.DESCRIPTOR_HEAP_TYPE.DSV => dx.dsv_heap.allocateDescriptors(num_descriptors).cpu_handle,
+            .CBV_SRV_UAV => dx.cbv_srv_uav_cpu_heap.allocateDescriptors(num_descriptors).cpu_handle,
+            .SAMPLER => unreachable,
+            .RTV => dx.rtv_heap.allocateDescriptors(num_descriptors).cpu_handle,
+            .DSV => dx.dsv_heap.allocateDescriptors(num_descriptors).cpu_handle,
         };
     }
 
@@ -333,8 +312,8 @@ pub const DxContext = struct {
                 flushResourceBarriers(dx);
             }
             dx.buffered_resource_barriers[dx.num_resource_barriers] = d3d12.RESOURCE_BARRIER{
-                .Type = d3d12.RESOURCE_BARRIER_TYPE.TRANSITION,
-                .Flags = d3d12.RESOURCE_BARRIER_FLAGS.NONE,
+                .Type = .TRANSITION,
+                .Flags = .NONE,
                 .u = .{
                     .Transition = d3d12.RESOURCE_TRANSITION_BARRIER{
                         .pResource = resource.raw.?,
@@ -368,8 +347,8 @@ pub const DxContext = struct {
         vhr(dx.device.CreateCommittedResource(
             &d3d12.HEAP_PROPERTIES{
                 .Type = heap_type,
-                .CPUPageProperty = d3d12.CPU_PAGE_PROPERTY.UNKNOWN,
-                .MemoryPoolPreference = d3d12.MEMORY_POOL.UNKNOWN,
+                .CPUPageProperty = .UNKNOWN,
+                .MemoryPoolPreference = .UNKNOWN,
                 .CreationNodeMask = 0,
                 .VisibleNodeMask = 0,
             },
@@ -388,11 +367,7 @@ pub const DxContext = struct {
 
         const refcount = resource.raw.?.Release();
         if (refcount == 0) {
-            resource.* = Resource{
-                .raw = null,
-                .state = d3d12.RESOURCE_STATES.COMMON,
-                .format = dxgi.FORMAT.UNKNOWN,
-            };
+            resource.* = Resource{ .raw = null, .state = .COMMON, .format = .UNKNOWN };
         }
     }
 
@@ -403,7 +378,7 @@ pub const DxContext = struct {
         var root_signature: *d3d12.IRootSignature = undefined;
         vhr(dx.device.CreateRootSignature(
             0,
-            pso_desc.CS.pShaderBytecode,
+            pso_desc.CS.pShaderBytecode.?,
             pso_desc.CS.BytecodeLength,
             &d3d12.IID_IRootSignature,
             @ptrCast(**c_void, &root_signature),
@@ -428,10 +403,7 @@ pub const DxContext = struct {
         }
 
         if (refcount == 0) {
-            pipeline.* = Pipeline{
-                .pso = null,
-                .root_signature = null,
-            };
+            pipeline.* = Pipeline{ .pso = null, .root_signature = null };
         }
     }
 };
@@ -468,7 +440,7 @@ const DescriptorHeap = struct {
             .heap = heap,
             .cpu_start = heap.GetCPUDescriptorHandleForHeapStart(),
             .gpu_start = blk: {
-                if (flags == d3d12.DESCRIPTOR_HEAP_FLAGS.SHADER_VISIBLE)
+                if (flags == .SHADER_VISIBLE)
                     break :blk heap.GetGPUDescriptorHandleForHeapStart();
                 break :blk d3d12.GPU_DESCRIPTOR_HANDLE{ .ptr = 0 };
             },
@@ -606,11 +578,7 @@ const ResourcePool = struct {
                     max_num_resources + 1,
                 ) catch unreachable;
                 for (resources) |*res| {
-                    res.* = Resource{
-                        .raw = null,
-                        .state = d3d12.RESOURCE_STATES.COMMON,
-                        .format = dxgi.FORMAT.UNKNOWN,
-                    };
+                    res.* = Resource{ .raw = null, .state = .COMMON, .format = .UNKNOWN };
                 }
                 break :blk resources;
             },
@@ -655,11 +623,7 @@ const ResourcePool = struct {
         }
         assert(slot_idx <= max_num_resources);
 
-        self.resources[slot_idx] = Resource{
-            .raw = raw,
-            .state = state,
-            .format = format,
-        };
+        self.resources[slot_idx] = Resource{ .raw = raw, .state = state, .format = format };
 
         return ResourceHandle{
             .index = @intCast(u16, slot_idx),
@@ -675,5 +639,37 @@ const ResourcePool = struct {
         assert(handle.generation > 0);
         assert(handle.generation == self.generations[handle.index]);
         return &self.resources[handle.index];
+    }
+};
+
+pub const resource_desc = struct {
+    pub fn buffer(width: u64) d3d12.RESOURCE_DESC {
+        return d3d12.RESOURCE_DESC{
+            .Dimension = .BUFFER,
+            .Alignment = 0,
+            .Width = width,
+            .Height = 1,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = .UNKNOWN,
+            .SampleDesc = .{ .Count = 1, .Quality = 0 },
+            .Layout = .ROW_MAJOR,
+            .Flags = d3d12.RESOURCE_FLAGS_NONE,
+        };
+    }
+
+    pub fn tex2d(format: dxgi.FORMAT, width: u64, height: u32) d3d12.RESOURCE_DESC {
+        return d3d12.RESOURCE_DESC{
+            .Dimension = .TEXTURE2D,
+            .Alignment = 0,
+            .Width = width,
+            .Height = height,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = format,
+            .SampleDesc = .{ .Count = 1, .Quality = 0 },
+            .Layout = .UNKNOWN,
+            .Flags = d3d12.RESOURCE_FLAGS_NONE,
+        };
     }
 };
