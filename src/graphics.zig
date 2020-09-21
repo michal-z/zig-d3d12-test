@@ -371,6 +371,29 @@ pub const DxContext = struct {
         }
     }
 
+    pub fn createGraphicsPipeline(
+        dx: *DxContext,
+        pso_desc: d3d12.GRAPHICS_PIPELINE_STATE_DESC,
+    ) PipelineHandle {
+        var root_signature: *d3d12.IRootSignature = undefined;
+        vhr(dx.device.CreateRootSignature(
+            0,
+            pso_desc.VS.pShaderBytecode.?,
+            pso_desc.VS.BytecodeLength,
+            &d3d12.IID_IRootSignature,
+            @ptrCast(**c_void, &root_signature),
+        ));
+
+        var pso: *d3d12.IPipelineState = undefined;
+        vhr(dx.device.CreateGraphicsPipelineState(
+            &pso_desc,
+            &d3d12.IID_IPipelineState,
+            @ptrCast(**c_void, &pso),
+        ));
+
+        return dx.pipeline_pool.addPipeline(pso, root_signature);
+    }
+
     pub fn createComputePipeline(
         dx: *DxContext,
         pso_desc: d3d12.COMPUTE_PIPELINE_STATE_DESC,
