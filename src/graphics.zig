@@ -45,6 +45,7 @@ pub const DxContext = struct {
     back_buffer_index: u32 = 0,
     resource_pool: ResourcePool,
     pipeline_pool: PipelinePool,
+    pipeline_map: std.AutoHashMap(u32, PipelineHandle),
     num_resource_barriers: u32 = 0,
     buffered_resource_barriers: []d3d12.RESOURCE_BARRIER,
 
@@ -205,6 +206,7 @@ pub const DxContext = struct {
             .frame_fence_event = frame_fence_event,
             .resource_pool = resource_pool,
             .pipeline_pool = pipeline_pool,
+            .pipeline_map = std.AutoHashMap(u32, PipelineHandle).init(std.heap.page_allocator),
             .buffered_resource_barriers = std.heap.page_allocator.alloc( // TODO: Use gpa?
                 d3d12.RESOURCE_BARRIER,
                 32,
@@ -216,6 +218,7 @@ pub const DxContext = struct {
         waitForGpu(dx.*);
         dx.resource_pool.deinit();
         dx.pipeline_pool.deinit();
+        dx.pipeline_map.deinit();
         releaseCom(&dx.rtv_heap.heap);
         releaseCom(&dx.dsv_heap.heap);
         releaseCom(&dx.cbv_srv_uav_cpu_heap.heap);
@@ -375,6 +378,39 @@ pub const DxContext = struct {
         dx: *DxContext,
         pso_desc: d3d12.GRAPHICS_PIPELINE_STATE_DESC,
     ) PipelineHandle {
+        const hash = compute_hash: {
+            var hasher = std.hash.Adler32.init();
+            hasher.update(blk: {
+                const ptr = @ptrCast([*]const u8, pso_desc.VS.pShaderBytecode.?);
+                break :blk ptr[0..pso_desc.VS.BytecodeLength];
+            });
+            hasher.update(blk: {
+                const ptr = @ptrCast([*]const u8, pso_desc.PS.pShaderBytecode.?);
+                break :blk ptr[0..pso_desc.PS.BytecodeLength];
+            });
+            hasher.update(std.mem.asBytes(&pso_desc.BlendState));
+            hasher.update(std.mem.asBytes(&pso_desc.SampleMask));
+            hasher.update(std.mem.asBytes(&pso_desc.RasterizerState));
+            hasher.update(std.mem.asBytes(&pso_desc.DepthStencilState));
+            hasher.update(std.mem.asBytes(&pso_desc.IBStripCutValue));
+            hasher.update(std.mem.asBytes(&pso_desc.PrimitiveTopologyType));
+            hasher.update(std.mem.asBytes(&pso_desc.NumRenderTargets));
+            hasher.update(std.mem.asBytes(&pso_desc.RTVFormats));
+            hasher.update(std.mem.asBytes(&pso_desc.DSVFormat));
+            hasher.update(std.mem.asBytes(&pso_desc.SampleDesc));
+            // TODO: pso_desc.InputLayout?
+            break :compute_hash hasher.final();
+        };
+
+        if (dx.pipeline_map.contains(hash)) {
+            const handle = dx.pipeline_map.getEntry(hash).?.value;
+            var pipeline = dx.pipeline_pool.getPipeline(handle);
+            const refcount = pipeline.pso.?.AddRef();
+            _ = pipeline.root_signature.?.AddRef();
+            std.log.info("[graphics] Graphics pipeline hit detected (refcount = {}).", .{refcount});
+            return handle;
+        }
+
         var root_signature: *d3d12.IRootSignature = undefined;
         vhr(dx.device.CreateRootSignature(
             0,
@@ -391,13 +427,33 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &pso),
         ));
 
-        return dx.pipeline_pool.addPipeline(pso, root_signature);
+        const handle = dx.pipeline_pool.addPipeline(pso, root_signature);
+        dx.pipeline_map.put(hash, handle) catch unreachable;
+        return handle;
     }
 
     pub fn createComputePipeline(
         dx: *DxContext,
         pso_desc: d3d12.COMPUTE_PIPELINE_STATE_DESC,
     ) PipelineHandle {
+        const hash = compute_hash: {
+            var hasher = std.hash.Adler32.init();
+            hasher.update(blk: {
+                const ptr = @ptrCast([*]const u8, pso_desc.CS.pShaderBytecode.?);
+                break :blk ptr[0..pso_desc.CS.BytecodeLength];
+            });
+            break :compute_hash hasher.final();
+        };
+
+        if (dx.pipeline_map.contains(hash)) {
+            const handle = dx.pipeline_map.getEntry(hash).?.value;
+            var pipeline = dx.pipeline_pool.getPipeline(handle);
+            const refcount = pipeline.pso.?.AddRef();
+            _ = pipeline.root_signature.?.AddRef();
+            std.log.info("[graphics] Compute pipeline hit detected (refcount = {}).", .{refcount});
+            return handle;
+        }
+
         var root_signature: *d3d12.IRootSignature = undefined;
         vhr(dx.device.CreateRootSignature(
             0,
@@ -414,10 +470,12 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &pso),
         ));
 
-        return dx.pipeline_pool.addPipeline(pso, root_signature);
+        const handle = dx.pipeline_pool.addPipeline(pso, root_signature);
+        dx.pipeline_map.put(hash, handle) catch unreachable;
+        return handle;
     }
 
-    pub fn releasePipeline(dx: DxContext, handle: PipelineHandle) void {
+    pub fn releasePipeline(dx: *DxContext, handle: PipelineHandle) void {
         var pipeline = dx.pipeline_pool.getPipeline(handle);
 
         const refcount = pipeline.pso.?.Release();
@@ -426,6 +484,16 @@ pub const DxContext = struct {
         }
 
         if (refcount == 0) {
+            const hash_to_delete = blk: {
+                var it = dx.pipeline_map.iterator();
+                while (it.next()) |kv| {
+                    if (kv.value.index == handle.index and kv.value.generation == handle.generation) {
+                        break :blk kv.key;
+                    }
+                }
+                unreachable;
+            };
+            _ = dx.pipeline_map.remove(hash_to_delete);
             pipeline.* = Pipeline{ .pso = null, .root_signature = null };
         }
     }
