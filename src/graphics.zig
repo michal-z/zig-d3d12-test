@@ -218,6 +218,7 @@ pub const DxContext = struct {
         waitForGpu(dx.*);
         dx.resource_pool.deinit();
         dx.pipeline_pool.deinit();
+        assert(dx.pipeline_map.count() == 0);
         dx.pipeline_map.deinit();
         releaseCom(&dx.rtv_heap.heap);
         releaseCom(&dx.dsv_heap.heap);
@@ -692,7 +693,7 @@ const ResourcePool = struct {
                 // Release internally created swapbuffers.
                 _ = resource.raw.?.Release();
             } else if (i > num_swapbuffers) {
-                // Verify that all resource has been released by a user.
+                // Verify that all resources has been released by a user.
                 assert(resource.raw == null);
             }
         }
