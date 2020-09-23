@@ -431,7 +431,9 @@ pub const DxContext = struct {
             hasher.update(std.mem.asBytes(&pso_desc.RTVFormats));
             hasher.update(std.mem.asBytes(&pso_desc.DSVFormat));
             hasher.update(std.mem.asBytes(&pso_desc.SampleDesc));
-            // TODO: pso_desc.InputLayout?
+            // We don't support fixed vertex fetch.
+            assert(pso_desc.InputLayout.pInputElementDescs == null);
+            assert(pso_desc.InputLayout.NumElements == 0);
             break :compute_hash hasher.final();
         };
 
