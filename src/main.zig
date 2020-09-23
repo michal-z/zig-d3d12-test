@@ -21,10 +21,10 @@ const DemoState = struct {
 
         const srgb_texture = dx.createCommittedResource(
             .DEFAULT,
-            d3d12.RESOURCE_FLAGS_NONE,
+            d3d12.HEAP_FLAG_NONE,
             &blk: {
                 var desc = gr.resource_desc.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
-                desc.Flags = d3d12.RESOURCE_FLAGS_ALLOW_RENDER_TARGET;
+                desc.Flags = d3d12.RESOURCE_FLAG_ALLOW_RENDER_TARGET;
                 desc.SampleDesc.Count = 8;
                 break :blk desc;
             },

@@ -40,25 +40,25 @@ pub const MEMORY_POOL = extern enum {
 
 pub const HEAP_PROPERTIES = extern struct {
     Type: HEAP_TYPE,
-    CPUPageProperty: CPU_PAGE_PROPERTY,
-    MemoryPoolPreference: MEMORY_POOL,
-    CreationNodeMask: u32,
-    VisibleNodeMask: u32,
+    CPUPageProperty: CPU_PAGE_PROPERTY = .UNKNOWN,
+    MemoryPoolPreference: MEMORY_POOL = .UNKNOWN,
+    CreationNodeMask: u32 = 0,
+    VisibleNodeMask: u32 = 0,
 };
 
 pub const HEAP_FLAGS = u32;
-pub const NONE: u32 = 0;
-pub const SHARED: u32 = 0x1;
-pub const DENY_BUFFERS: u32 = 0x4;
-pub const ALLOW_DISPLAY: u32 = 0x8;
-pub const SHARED_CROSS_ADAPTER: u32 = 0x20;
-pub const DENY_RT_DS_TEXTURES: u32 = 0x40;
-pub const DENY_NON_RT_DS_TEXTURES: u32 = 0x80;
-pub const HARDWARE_PROTECTED: u32 = 0x100;
-pub const ALLOW_ALL_BUFFERS_AND_TEXTURES: u32 = 0;
-pub const ALLOW_ONLY_BUFFERS: u32 = 0xc0;
-pub const ALLOW_ONLY_NON_RT_DS_TEXTURES: u32 = 0x44;
-pub const ALLOW_ONLY_RT_DS_TEXTURES: u32 = 0x84;
+pub const HEAP_FLAG_NONE: u32 = 0;
+pub const HEAP_FLAG_SHARED: u32 = 0x1;
+pub const HEAP_FLAG_DENY_BUFFERS: u32 = 0x4;
+pub const HEAP_FLAG_ALLOW_DISPLAY: u32 = 0x8;
+pub const HEAP_FLAG_SHARED_CROSS_ADAPTER: u32 = 0x20;
+pub const HEAP_FLAG_DENY_RT_DS_TEXTURES: u32 = 0x40;
+pub const HEAP_FLAG_DENY_NON_RT_DS_TEXTURES: u32 = 0x80;
+pub const HEAP_FLAG_HARDWARE_PROTECTED: u32 = 0x100;
+pub const HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES: u32 = 0;
+pub const HEAP_FLAG_ALLOW_ONLY_BUFFERS: u32 = 0xc0;
+pub const HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES: u32 = 0x44;
+pub const HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES: u32 = 0x84;
 
 pub const HEAP_DESC = extern struct {
     SizeInBytes: u64,
@@ -88,13 +88,13 @@ pub const TEXTURE_LAYOUT = extern enum {
 };
 
 pub const RESOURCE_FLAGS = u32;
-pub const RESOURCE_FLAGS_NONE: u32 = 0;
-pub const RESOURCE_FLAGS_ALLOW_RENDER_TARGET: u32 = 0x1;
-pub const RESOURCE_FLAGS_ALLOW_DEPTH_STENCIL: u32 = 0x2;
-pub const RESOURCE_FLAGS_ALLOW_UNORDERED_ACCESS: u32 = 0x4;
-pub const RESOURCE_FLAGS_DENY_SHADER_RESOURCE: u32 = 0x8;
-pub const RESOURCE_FLAGS_ALLOW_CROSS_ADAPTER: u32 = 0x10;
-pub const RESOURCE_FLAGS_ALLOW_SIMULTANEOUS_ACCESS: u32 = 0x20;
+pub const RESOURCE_FLAG_NONE: u32 = 0;
+pub const RESOURCE_FLAG_ALLOW_RENDER_TARGET: u32 = 0x1;
+pub const RESOURCE_FLAG_ALLOW_DEPTH_STENCIL: u32 = 0x2;
+pub const RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS: u32 = 0x4;
+pub const RESOURCE_FLAG_DENY_SHADER_RESOURCE: u32 = 0x8;
+pub const RESOURCE_FLAG_ALLOW_CROSS_ADAPTER: u32 = 0x10;
+pub const RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS: u32 = 0x20;
 
 pub const RESOURCE_DESC = extern struct {
     Dimension: RESOURCE_DIMENSION,
@@ -1468,8 +1468,14 @@ pub const IResource = extern struct {
             pub inline fn Unmap(self: *Self, subresource: u32, written_range: *const RANGE) void {
                 self.vtbl.Unmap(self, subresource, written_range);
             }
-            pub inline fn GetDesc(self: *Self, desc: *RESOURCE_DESC) *RESOURCE_DESC {}
-            pub inline fn GetGPUVirtualAddress(self: *Self) GPU_VIRTUAL_ADDRESS {}
+            pub inline fn GetDesc(self: *Self) RESOURCE_DESC {
+                var desc: RESOURCE_DESC = undefined;
+                _ = self.vtbl.GetDesc(self, &desc);
+                return desc;
+            }
+            pub inline fn GetGPUVirtualAddress(self: *Self) GPU_VIRTUAL_ADDRESS {
+                return self.vtbl.GetGPUVirtualAddress(self);
+            }
             pub inline fn WriteToSubresource(
                 self: *Self,
                 dst_subresource: u32,

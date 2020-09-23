@@ -15,6 +15,8 @@ const num_cbv_srv_uav_gpu_descriptors = 4 * 1024;
 const max_num_resources = 256;
 const max_num_pipelines = 128;
 
+const upload_heaps_capacity = 8 * 1024 * 1024;
+
 pub inline fn vhr(hr: os.HRESULT) void {
     if (hr != 0) {
         std.debug.panic("D3D12 function failed.", .{});
@@ -38,6 +40,7 @@ pub const DxContext = struct {
     dsv_heap: DescriptorHeap,
     cbv_srv_uav_cpu_heap: DescriptorHeap,
     cbv_srv_uav_gpu_heaps: [num_frames]DescriptorHeap,
+    upload_memory_heaps: [num_frames]GpuMemoryHeap,
     frame_fence: *d3d12.IFence,
     frame_fence_event: os.HANDLE,
     frame_counter: u64 = 0,
@@ -161,6 +164,10 @@ pub const DxContext = struct {
                 .SHADER_VISIBLE,
             );
         }
+        var upload_memory_heaps: [num_frames]GpuMemoryHeap = undefined;
+        for (upload_memory_heaps) |*heap| {
+            heap.* = GpuMemoryHeap.init(device, upload_heaps_capacity, .UPLOAD);
+        }
 
         var resource_pool = ResourcePool.init();
         var pipeline_pool = PipelinePool.init();
@@ -205,6 +212,7 @@ pub const DxContext = struct {
             .dsv_heap = dsv_heap,
             .cbv_srv_uav_cpu_heap = cbv_srv_uav_cpu_heap,
             .cbv_srv_uav_gpu_heaps = cbv_srv_uav_gpu_heaps,
+            .upload_memory_heaps = upload_memory_heaps,
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
             .resource_pool = resource_pool,
@@ -230,8 +238,11 @@ pub const DxContext = struct {
         releaseCom(&dx.rtv_heap.heap);
         releaseCom(&dx.dsv_heap.heap);
         releaseCom(&dx.cbv_srv_uav_cpu_heap.heap);
-        for (dx.cbv_srv_uav_gpu_heaps) |*dh| {
-            releaseCom(&dh.*.heap);
+        for (dx.cbv_srv_uav_gpu_heaps) |*heap| {
+            releaseCom(&heap.*.heap);
+        }
+        for (dx.upload_memory_heaps) |*heap| {
+            releaseCom(&heap.*.heap);
         }
         for (dx.cmdallocs) |*cmdalloc| {
             releaseCom(&cmdalloc.*);
@@ -376,13 +387,7 @@ pub const DxContext = struct {
     ) ResourceHandle {
         var raw: *d3d12.IResource = undefined;
         vhr(dx.device.CreateCommittedResource(
-            &d3d12.HEAP_PROPERTIES{
-                .Type = heap_type,
-                .CPUPageProperty = .UNKNOWN,
-                .MemoryPoolPreference = .UNKNOWN,
-                .CreationNodeMask = 0,
-                .VisibleNodeMask = 0,
-            },
+            &d3d12.HEAP_PROPERTIES{ .Type = heap_type },
             heap_flags,
             desc,
             initial_state,
@@ -772,6 +777,43 @@ const ResourcePool = struct {
     }
 };
 
+const GpuMemoryHeap = struct {
+    heap: *d3d12.IResource,
+    cpu_start: [*]u8,
+    gpu_start: d3d12.GPU_VIRTUAL_ADDRESS,
+    size: u32,
+    capacity: u32,
+
+    fn init(device: *d3d12.IDevice, capacity: u32, heap_type: d3d12.HEAP_TYPE) GpuMemoryHeap {
+        var heap: *d3d12.IResource = undefined;
+        vhr(device.CreateCommittedResource(
+            &d3d12.HEAP_PROPERTIES{ .Type = heap_type },
+            d3d12.HEAP_FLAG_NONE,
+            &resource_desc.buffer(capacity),
+            .GENERIC_READ,
+            null,
+            &d3d12.IID_IResource,
+            @ptrCast(**c_void, &heap),
+        ));
+
+        var cpu_start: [*]u8 = undefined;
+        vhr(heap.Map(0, &d3d12.RANGE{ .Begin = 0, .End = 0 }, @ptrCast(**c_void, &cpu_start)));
+
+        return GpuMemoryHeap{
+            .heap = heap,
+            .cpu_start = cpu_start,
+            .gpu_start = heap.GetGPUVirtualAddress(),
+            .size = 0,
+            .capacity = capacity,
+        };
+    }
+
+    fn deinit(self: *GpuMemoryHeap) void {
+        releaseCom(&self.heap);
+        self.* = undefined;
+    }
+};
+
 pub const resource_desc = struct {
     pub fn buffer(width: u64) d3d12.RESOURCE_DESC {
         return d3d12.RESOURCE_DESC{
@@ -784,7 +826,7 @@ pub const resource_desc = struct {
             .Format = .UNKNOWN,
             .SampleDesc = .{ .Count = 1, .Quality = 0 },
             .Layout = .ROW_MAJOR,
-            .Flags = d3d12.RESOURCE_FLAGS_NONE,
+            .Flags = d3d12.RESOURCE_FLAG_NONE,
         };
     }
 
@@ -799,7 +841,7 @@ pub const resource_desc = struct {
             .Format = format,
             .SampleDesc = .{ .Count = 1, .Quality = 0 },
             .Layout = .UNKNOWN,
-            .Flags = d3d12.RESOURCE_FLAGS_NONE,
+            .Flags = d3d12.RESOURCE_FLAG_NONE,
         };
     }
 };
