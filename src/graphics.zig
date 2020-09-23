@@ -230,7 +230,7 @@ pub const DxContext = struct {
     }
 
     pub fn deinit(dx: *DxContext) void {
-        waitForGpu(dx.*);
+        waitForGpu(dx);
         dx.resource_pool.deinit();
         dx.pipeline.pool.deinit();
         assert(dx.pipeline.map.count() == 0);
@@ -280,14 +280,20 @@ pub const DxContext = struct {
 
         dx.frame_index = (dx.frame_index + 1) % num_frames;
         dx.back_buffer_index = dx.swapchain.GetCurrentBackBufferIndex();
+
         dx.cbv_srv_uav_gpu_heaps[dx.frame_index].size = 0;
+        dx.upload_memory_heaps[dx.frame_index].size = 0;
     }
 
-    pub fn waitForGpu(dx: DxContext) void {
-        const value = dx.frame_counter + 1;
-        vhr(dx.cmdqueue.Signal(dx.frame_fence, value));
-        vhr(dx.frame_fence.SetEventOnCompletion(value, dx.frame_fence_event));
+    pub fn waitForGpu(dx: *DxContext) void {
+        dx.frame_counter += 1;
+
+        vhr(dx.cmdqueue.Signal(dx.frame_fence, dx.frame_counter));
+        vhr(dx.frame_fence.SetEventOnCompletion(dx.frame_counter, dx.frame_fence_event));
         os.WaitForSingleObject(dx.frame_fence_event, os.INFINITE) catch unreachable;
+
+        dx.cbv_srv_uav_gpu_heaps[dx.frame_index].size = 0;
+        dx.upload_memory_heaps[dx.frame_index].size = 0;
     }
 
     pub fn allocateCpuDescriptors(
@@ -413,14 +419,12 @@ pub const DxContext = struct {
     ) PipelineHandle {
         const hash = compute_hash: {
             var hasher = std.hash.Adler32.init();
-            hasher.update(blk: {
-                const ptr = @ptrCast([*]const u8, pso_desc.VS.pShaderBytecode.?);
-                break :blk ptr[0..pso_desc.VS.BytecodeLength];
-            });
-            hasher.update(blk: {
-                const ptr = @ptrCast([*]const u8, pso_desc.PS.pShaderBytecode.?);
-                break :blk ptr[0..pso_desc.PS.BytecodeLength];
-            });
+            hasher.update(
+                @ptrCast([*]const u8, pso_desc.VS.pShaderBytecode.?)[0..pso_desc.VS.BytecodeLength],
+            );
+            hasher.update(
+                @ptrCast([*]const u8, pso_desc.PS.pShaderBytecode.?)[0..pso_desc.PS.BytecodeLength],
+            );
             hasher.update(std.mem.asBytes(&pso_desc.BlendState));
             hasher.update(std.mem.asBytes(&pso_desc.SampleMask));
             hasher.update(std.mem.asBytes(&pso_desc.RasterizerState));
@@ -473,10 +477,9 @@ pub const DxContext = struct {
     ) PipelineHandle {
         const hash = compute_hash: {
             var hasher = std.hash.Adler32.init();
-            hasher.update(blk: {
-                const ptr = @ptrCast([*]const u8, pso_desc.CS.pShaderBytecode.?);
-                break :blk ptr[0..pso_desc.CS.BytecodeLength];
-            });
+            hasher.update(
+                @ptrCast([*]const u8, pso_desc.CS.pShaderBytecode.?)[0..pso_desc.CS.BytecodeLength],
+            );
             break :compute_hash hasher.final();
         };
 
@@ -522,7 +525,9 @@ pub const DxContext = struct {
             const hash_to_delete = blk: {
                 var it = dx.pipeline.map.iterator();
                 while (it.next()) |kv| {
-                    if (kv.value.index == handle.index and kv.value.generation == handle.generation) {
+                    if (kv.value.index == handle.index and
+                        kv.value.generation == handle.generation)
+                    {
                         break :blk kv.key;
                     }
                 }
@@ -531,6 +536,37 @@ pub const DxContext = struct {
             _ = dx.pipeline.map.remove(hash_to_delete);
             pipeline.* = Pipeline{ .pso = null, .root_signature = null, .ptype = null };
         }
+    }
+
+    pub fn allocateUploadMemory(
+        dx: *DxContext,
+        size: u32,
+    ) struct { cpu_slice: []u8, gpu_addr: d3d12.GPU_VIRTUAL_ADDRESS } {
+        var memory = dx.upload_memory_heaps[dx.frame_index].allocate(size);
+
+        if (memory.cpu_slice == null and memory.gpu_addr == null) {
+            vhr(dx.cmdlist.Close());
+            dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
+            dx.waitForGpu();
+            dx.beginFrame();
+            std.log.info("[graphics] Upload memory exhausted - waiting for a GPU...", .{});
+        }
+
+        memory = dx.upload_memory_heaps[dx.frame_index].allocate(size);
+        return .{ .cpu_slice = memory.cpu_slice.?, .gpu_addr = memory.gpu_addr.? };
+    }
+
+    pub fn allocateUploadBufferRegion(
+        dx: *DxContext,
+        size: u32,
+    ) struct { cpu_slice: []u8, buffer: *d3d12.IResource, buffer_offset: u64 } {
+        const aligned_size = (size + 255) & 0xffff_ff00;
+        const memory = dx.allocateUploadMemory(aligned_size);
+        return .{
+            .cpu_slice = memory.cpu_slice,
+            .buffer = dx.upload_memory_heaps[dx.frame_index].heap,
+            .buffer_offset = dx.upload_memory_heaps[dx.frame_index].size - aligned_size,
+        };
     }
 };
 
@@ -781,7 +817,7 @@ const ResourcePool = struct {
 
 const GpuMemoryHeap = struct {
     heap: *d3d12.IResource,
-    cpu_start: [*]u8,
+    cpu_slice: []u8,
     gpu_start: d3d12.GPU_VIRTUAL_ADDRESS,
     size: u32,
     capacity: u32,
@@ -803,7 +839,7 @@ const GpuMemoryHeap = struct {
 
         return GpuMemoryHeap{
             .heap = heap,
-            .cpu_start = cpu_start,
+            .cpu_slice = cpu_start[0..capacity],
             .gpu_start = heap.GetGPUVirtualAddress(),
             .size = 0,
             .capacity = capacity,
@@ -813,6 +849,23 @@ const GpuMemoryHeap = struct {
     fn deinit(self: *GpuMemoryHeap) void {
         releaseCom(&self.heap);
         self.* = undefined;
+    }
+
+    fn allocate(
+        self: *GpuMemoryHeap,
+        size: u32,
+    ) struct { cpu_slice: ?[]u8, gpu_addr: ?d3d12.GPU_VIRTUAL_ADDRESS } {
+        assert(size > 0);
+
+        const aligned_size = (size + 255) & 0xffff_ff00;
+        if ((self.size + aligned_size) >= self.capacity) {
+            return .{ .cpu_slice = null, .gpu_addr = null };
+        }
+        const cpu_slice = (self.cpu_slice.ptr + self.size)[0..size];
+        const gpu_addr = self.gpu_start + self.size;
+
+        self.size += aligned_size;
+        return .{ .cpu_slice = cpu_slice, .gpu_addr = gpu_addr };
     }
 };
 
