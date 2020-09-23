@@ -1,7 +1,7 @@
-#define ROOT_SIGNATURE_ ""
-#define ROOT_SIGNATURE [RootSignature(ROOT_SIGNATURE_)]
+#define root_signature ""
 
-ROOT_SIGNATURE void vsMain(
+[RootSignature(root_signature)]
+void vsMain(
     in uint vid : SV_VertexID,
     out float4 out_position : SV_Position)
 {
@@ -9,9 +9,10 @@ ROOT_SIGNATURE void vsMain(
     out_position = float4(positions[vid], 0.0f, 1.0f);
 }
 
-ROOT_SIGNATURE void psMain(
+[RootSignature(root_signature)]
+void psMain(
     in float4 in_position : SV_Position,
     out float4 out_color : SV_Target0)
 {
-    out_color = float4(0.0f, 0.5f, 0.0f, 1.0f);
+    out_color = float4(1.0f, 0.5f, 0.0f, 1.0f);
 }

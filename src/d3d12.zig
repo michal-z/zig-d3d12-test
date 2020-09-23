@@ -325,7 +325,7 @@ pub const RENDER_TARGET_BLEND_DESC = extern struct {
     DestBlendAlpha: BLEND = .ZERO,
     BlendOpAlpha: BLEND_OP = .ADD,
     LogicOp: LOGIC_OP = .NOOP,
-    RenderTargetWriteMask: u8 = @enumToInt(COLOR_WRITE_ENABLE.ALL),
+    RenderTargetWriteMask: u8 = 0x0f,
 };
 
 pub const BLEND_DESC = extern struct {
@@ -1774,8 +1774,8 @@ pub const IGraphicsCommandList = extern struct {
             dxgi.FORMAT,
         ) callconv(.Stdcall) void,
         IASetPrimitiveTopology: fn (*Self, PRIMITIVE_TOPOLOGY) callconv(.Stdcall) void,
-        RSSetViewports: fn (*Self, u32, [*]const VIEWPORT) callconv(.Stdcall) void,
-        RSSetScissorRects: fn (*Self, u32, [*]const RECT) callconv(.Stdcall) void,
+        RSSetViewports: fn (*Self, u32, [*c]const VIEWPORT) callconv(.Stdcall) void,
+        RSSetScissorRects: fn (*Self, u32, [*c]const RECT) callconv(.Stdcall) void,
         OMSetBlendFactor: fn (*Self, *const [4]f32) callconv(.Stdcall) void,
         OMSetStencilRef: fn (*Self, u32) callconv(.Stdcall) void,
         SetPipelineState: fn (*Self, *IPipelineState) callconv(.Stdcall) void,
@@ -1992,10 +1992,10 @@ pub const IGraphicsCommandList = extern struct {
             pub inline fn IASetPrimitiveTopology(self: *T, topology: PRIMITIVE_TOPOLOGY) void {
                 self.vtbl.IASetPrimitiveTopology(self, topology);
             }
-            pub inline fn RSSetViewports(self: *T, num: u32, viewports: [*]const VIEWPORT) void {
+            pub inline fn RSSetViewports(self: *T, num: u32, viewports: [*c]const VIEWPORT) void {
                 self.vtbl.RSSetViewports(self, num, viewports);
             }
-            pub inline fn RSSetScissorRects(self: *T, num: u32, rects: [*]const RECT) void {
+            pub inline fn RSSetScissorRects(self: *T, num: u32, rects: [*c]const RECT) void {
                 self.vtbl.RSSetScissorRects(self, num, rects);
             }
             pub inline fn OMSetBlendFactor(self: *T, blend_factor: *const [4]f32) void {

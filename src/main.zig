@@ -14,9 +14,7 @@ const DemoState = struct {
     window: os.HWND,
     srgb_texture: gr.ResourceHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
-    test_graphics_pso0: gr.PipelineHandle,
-    test_graphics_pso1: gr.PipelineHandle,
-    test_compute_pso: gr.PipelineHandle,
+    pso: gr.PipelineHandle,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
@@ -39,10 +37,10 @@ const DemoState = struct {
         const srgb_texture_rtv = dx.allocateCpuDescriptors(.RTV, 1);
         dx.device.CreateRenderTargetView(dx.getRawResource(srgb_texture), null, srgb_texture_rtv);
 
-        const test_graphics_pso0 = dx.createGraphicsPipeline(d3d12.GRAPHICS_PIPELINE_STATE_DESC{
+        const pso = dx.createGraphicsPipeline(d3d12.GRAPHICS_PIPELINE_STATE_DESC{
             .PrimitiveTopologyType = .TRIANGLE,
             .NumRenderTargets = 1,
-            .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
+            .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
             .DepthStencilState = blk: {
                 var desc = d3d12.DEPTH_STENCIL_DESC{};
                 desc.DepthEnable = os.FALSE;
@@ -56,31 +54,7 @@ const DemoState = struct {
                 const file = @embedFile("../shaders/test.ps.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
             },
-        });
-        const test_graphics_pso1 = dx.createGraphicsPipeline(d3d12.GRAPHICS_PIPELINE_STATE_DESC{
-            .PrimitiveTopologyType = .TRIANGLE,
-            .NumRenderTargets = 1,
-            .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
-            .DepthStencilState = blk: {
-                var desc = d3d12.DEPTH_STENCIL_DESC{};
-                desc.DepthEnable = os.FALSE;
-                break :blk desc;
-            },
-            .VS = blk: {
-                const file = @embedFile("../shaders/test.vs.cso");
-                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
-            },
-            .PS = blk: {
-                const file = @embedFile("../shaders/test.ps.cso");
-                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
-            },
-        });
-
-        const test_compute_pso = dx.createComputePipeline(d3d12.COMPUTE_PIPELINE_STATE_DESC{
-            .CS = blk: {
-                const file = @embedFile("../shaders/test.cs.cso");
-                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
-            },
+            .SampleDesc = .{ .Count = 8, .Quality = 0 },
         });
 
         return DemoState{
@@ -88,17 +62,13 @@ const DemoState = struct {
             .window = window,
             .srgb_texture = srgb_texture,
             .srgb_texture_rtv = srgb_texture_rtv,
-            .test_graphics_pso0 = test_graphics_pso0,
-            .test_graphics_pso1 = test_graphics_pso1,
-            .test_compute_pso = test_compute_pso,
+            .pso = pso,
         };
     }
 
     fn deinit(self: *DemoState) void {
         self.dx.releaseResource(self.srgb_texture);
-        self.dx.releasePipeline(self.test_graphics_pso0);
-        self.dx.releasePipeline(self.test_graphics_pso1);
-        self.dx.releasePipeline(self.test_compute_pso);
+        self.dx.releasePipeline(self.pso);
         self.dx.deinit();
         self.* = undefined;
     }
@@ -108,7 +78,6 @@ const DemoState = struct {
         var dx = &self.dx;
 
         dx.beginFrame();
-        const back_buffer = dx.getBackBuffer();
         dx.addTransitionBarrier(self.srgb_texture, .RENDER_TARGET);
         dx.flushResourceBarriers();
         dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, null);
@@ -118,7 +87,25 @@ const DemoState = struct {
             0,
             null,
         );
-        dx.setPipelineState(self.test_graphics_pso0);
+        dx.cmdlist.RSSetViewports(1, &d3d12.VIEWPORT{
+            .TopLeftX = 0.0,
+            .TopLeftY = 0.0,
+            .Width = @intToFloat(f32, window_width),
+            .Height = @intToFloat(f32, window_height),
+            .MinDepth = 0.0,
+            .MaxDepth = 1.0,
+        });
+        dx.cmdlist.RSSetScissorRects(1, &d3d12.RECT{
+            .left = 0,
+            .top = 0,
+            .right = window_width,
+            .bottom = window_height,
+        });
+        dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
+        dx.setPipelineState(self.pso);
+        dx.cmdlist.DrawInstanced(3, 1, 0, 0);
+
+        const back_buffer = dx.getBackBuffer();
         dx.addTransitionBarrier(back_buffer.resource_handle, .RESOLVE_DEST);
         dx.addTransitionBarrier(self.srgb_texture, .RESOLVE_SOURCE);
         dx.flushResourceBarriers();
@@ -130,7 +117,6 @@ const DemoState = struct {
             0,
             .R8G8B8A8_UNORM,
         );
-
         dx.addTransitionBarrier(back_buffer.resource_handle, .PRESENT);
         dx.flushResourceBarriers();
         dx.endFrame();
