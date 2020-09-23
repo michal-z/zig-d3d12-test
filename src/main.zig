@@ -118,6 +118,7 @@ const DemoState = struct {
             0,
             null,
         );
+        dx.setPipelineState(self.test_graphics_pso0);
         dx.addTransitionBarrier(back_buffer.resource_handle, .RESOLVE_DEST);
         dx.addTransitionBarrier(self.srgb_texture, .RESOLVE_SOURCE);
         dx.flushResourceBarriers();

@@ -44,8 +44,11 @@ pub const DxContext = struct {
     frame_index: u32 = 0,
     back_buffer_index: u32 = 0,
     resource_pool: ResourcePool,
-    pipeline_pool: PipelinePool,
-    pipeline_map: std.AutoHashMap(u32, PipelineHandle),
+    pipeline: struct {
+        pool: PipelinePool,
+        map: std.AutoHashMap(u32, PipelineHandle),
+        current: PipelineHandle,
+    },
     num_resource_barriers: u32 = 0,
     buffered_resource_barriers: []d3d12.RESOURCE_BARRIER,
 
@@ -205,8 +208,12 @@ pub const DxContext = struct {
             .frame_fence = frame_fence,
             .frame_fence_event = frame_fence_event,
             .resource_pool = resource_pool,
-            .pipeline_pool = pipeline_pool,
-            .pipeline_map = std.AutoHashMap(u32, PipelineHandle).init(std.heap.page_allocator),
+            .pipeline = .{
+                .pool = pipeline_pool,
+                // TODO: Use gpa?
+                .map = std.AutoHashMap(u32, PipelineHandle).init(std.heap.page_allocator),
+                .current = PipelineHandle{ .index = 0, .generation = 0 },
+            },
             .buffered_resource_barriers = std.heap.page_allocator.alloc( // TODO: Use gpa?
                 d3d12.RESOURCE_BARRIER,
                 32,
@@ -217,9 +224,9 @@ pub const DxContext = struct {
     pub fn deinit(dx: *DxContext) void {
         waitForGpu(dx.*);
         dx.resource_pool.deinit();
-        dx.pipeline_pool.deinit();
-        assert(dx.pipeline_map.count() == 0);
-        dx.pipeline_map.deinit();
+        dx.pipeline.pool.deinit();
+        assert(dx.pipeline.map.count() == 0);
+        dx.pipeline.map.deinit();
         releaseCom(&dx.rtv_heap.heap);
         releaseCom(&dx.dsv_heap.heap);
         releaseCom(&dx.cbv_srv_uav_cpu_heap.heap);
@@ -238,11 +245,12 @@ pub const DxContext = struct {
         dx.* = undefined;
     }
 
-    pub fn beginFrame(dx: DxContext) void {
+    pub fn beginFrame(dx: *DxContext) void {
         const cmdalloc = dx.cmdallocs[dx.frame_index];
         vhr(cmdalloc.Reset());
         vhr(dx.cmdlist.Reset(cmdalloc, null));
         dx.cmdlist.SetDescriptorHeaps(1, &dx.cbv_srv_uav_gpu_heaps[dx.frame_index].heap);
+        dx.pipeline.current = .{ .index = 0, .generation = 0 };
     }
 
     pub fn endFrame(dx: *DxContext) void {
@@ -339,6 +347,25 @@ pub const DxContext = struct {
         }
     }
 
+    pub fn setPipelineState(dx: *DxContext, pipeline_handle: PipelineHandle) void {
+        // TODO: Do we need to unset pipeline state (null, null)?
+        const pipeline = dx.pipeline.pool.getPipeline(pipeline_handle);
+
+        if (pipeline_handle.index == dx.pipeline.current.index and
+            pipeline_handle.generation == dx.pipeline.current.generation)
+        {
+            return;
+        }
+
+        dx.cmdlist.SetPipelineState(pipeline.pso.?);
+        switch (pipeline.ptype.?) {
+            .Graphics => dx.cmdlist.SetGraphicsRootSignature(pipeline.root_signature.?),
+            .Compute => dx.cmdlist.SetComputeRootSignature(pipeline.root_signature.?),
+        }
+
+        dx.pipeline.current = pipeline_handle;
+    }
+
     pub fn createCommittedResource(
         dx: *DxContext,
         heap_type: d3d12.HEAP_TYPE,
@@ -403,9 +430,9 @@ pub const DxContext = struct {
             break :compute_hash hasher.final();
         };
 
-        if (dx.pipeline_map.contains(hash)) {
-            const handle = dx.pipeline_map.getEntry(hash).?.value;
-            var pipeline = dx.pipeline_pool.getPipeline(handle);
+        if (dx.pipeline.map.contains(hash)) {
+            const handle = dx.pipeline.map.getEntry(hash).?.value;
+            var pipeline = dx.pipeline.pool.getPipeline(handle);
             const refcount = pipeline.pso.?.AddRef();
             _ = pipeline.root_signature.?.AddRef();
             std.log.info("[graphics] Graphics pipeline hit detected (refcount = {}).", .{refcount});
@@ -428,8 +455,8 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &pso),
         ));
 
-        const handle = dx.pipeline_pool.addPipeline(pso, root_signature);
-        dx.pipeline_map.put(hash, handle) catch unreachable;
+        const handle = dx.pipeline.pool.addPipeline(pso, root_signature, .Graphics);
+        dx.pipeline.map.put(hash, handle) catch unreachable;
         return handle;
     }
 
@@ -446,9 +473,9 @@ pub const DxContext = struct {
             break :compute_hash hasher.final();
         };
 
-        if (dx.pipeline_map.contains(hash)) {
-            const handle = dx.pipeline_map.getEntry(hash).?.value;
-            var pipeline = dx.pipeline_pool.getPipeline(handle);
+        if (dx.pipeline.map.contains(hash)) {
+            const handle = dx.pipeline.map.getEntry(hash).?.value;
+            var pipeline = dx.pipeline.pool.getPipeline(handle);
             const refcount = pipeline.pso.?.AddRef();
             _ = pipeline.root_signature.?.AddRef();
             std.log.info("[graphics] Compute pipeline hit detected (refcount = {}).", .{refcount});
@@ -471,13 +498,13 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &pso),
         ));
 
-        const handle = dx.pipeline_pool.addPipeline(pso, root_signature);
-        dx.pipeline_map.put(hash, handle) catch unreachable;
+        const handle = dx.pipeline.pool.addPipeline(pso, root_signature, .Compute);
+        dx.pipeline.map.put(hash, handle) catch unreachable;
         return handle;
     }
 
     pub fn releasePipeline(dx: *DxContext, handle: PipelineHandle) void {
-        var pipeline = dx.pipeline_pool.getPipeline(handle);
+        var pipeline = dx.pipeline.pool.getPipeline(handle);
 
         const refcount = pipeline.pso.?.Release();
         if (pipeline.root_signature.?.Release() != refcount) {
@@ -486,7 +513,7 @@ pub const DxContext = struct {
 
         if (refcount == 0) {
             const hash_to_delete = blk: {
-                var it = dx.pipeline_map.iterator();
+                var it = dx.pipeline.map.iterator();
                 while (it.next()) |kv| {
                     if (kv.value.index == handle.index and kv.value.generation == handle.generation) {
                         break :blk kv.key;
@@ -494,8 +521,8 @@ pub const DxContext = struct {
                 }
                 unreachable;
             };
-            _ = dx.pipeline_map.remove(hash_to_delete);
-            pipeline.* = Pipeline{ .pso = null, .root_signature = null };
+            _ = dx.pipeline.map.remove(hash_to_delete);
+            pipeline.* = Pipeline{ .pso = null, .root_signature = null, .ptype = null };
         }
     }
 };
@@ -571,9 +598,15 @@ pub const PipelineHandle = packed struct {
     generation: u16,
 };
 
+const PipelineType = enum {
+    Graphics,
+    Compute,
+};
+
 const Pipeline = struct {
     pso: ?*d3d12.IPipelineState,
     root_signature: ?*d3d12.IRootSignature,
+    ptype: ?PipelineType,
 };
 
 const PipelinePool = struct {
@@ -588,7 +621,7 @@ const PipelinePool = struct {
                     max_num_pipelines + 1,
                 ) catch unreachable;
                 for (pipelines) |*pipeline| {
-                    pipeline.* = Pipeline{ .pso = null, .root_signature = null };
+                    pipeline.* = Pipeline{ .pso = null, .root_signature = null, .ptype = null };
                 }
                 break :blk pipelines;
             },
@@ -620,6 +653,7 @@ const PipelinePool = struct {
         self: *PipelinePool,
         pso: *d3d12.IPipelineState,
         root_signature: *d3d12.IRootSignature,
+        ptype: PipelineType,
     ) PipelineHandle {
         var slot_idx: u32 = 1;
         while (slot_idx <= max_num_pipelines) : (slot_idx += 1) {
@@ -628,7 +662,11 @@ const PipelinePool = struct {
         }
         assert(slot_idx <= max_num_pipelines);
 
-        self.pipelines[slot_idx] = Pipeline{ .pso = pso, .root_signature = root_signature };
+        self.pipelines[slot_idx] = Pipeline{
+            .pso = pso,
+            .root_signature = root_signature,
+            .ptype = ptype,
+        };
 
         return PipelineHandle{
             .index = @intCast(u16, slot_idx),
