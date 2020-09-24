@@ -575,10 +575,11 @@ pub const DxContext = struct {
         var memory = dx.upload_memory_heaps[dx.frame_index].allocate(size);
 
         if (memory.cpu_slice == null and memory.gpu_addr == null) {
+            std.log.info("[graphics] Upload memory exhausted - waiting for a GPU...", .{});
+
             dx.closeAndExecuteCommandList();
             dx.waitForGpu();
             dx.beginFrame();
-            std.log.info("[graphics] Upload memory exhausted - waiting for a GPU...", .{});
 
             memory = dx.upload_memory_heaps[dx.frame_index].allocate(size);
         }
@@ -602,6 +603,16 @@ pub const DxContext = struct {
     pub fn closeAndExecuteCommandList(dx: DxContext) void {
         vhr(dx.cmdlist.Close());
         dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
+    }
+
+    pub fn copyDescriptorsToGpuHeap(
+        dx: *DxContext,
+        num: u32,
+        src_base_handle: d3d12.CPU_DESCRIPTOR_HANDLE,
+    ) d3d12.GPU_DESCRIPTOR_HANDLE {
+        const base = dx.allocateGpuDescriptors(num);
+        dx.device.CopyDescriptorsSimple(num, base.cpu_handle, src_base_handle, .CBV_SRV_UAV);
+        return base.gpu_handle;
     }
 };
 
