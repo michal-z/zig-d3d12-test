@@ -468,12 +468,9 @@ pub const DxContext = struct {
         };
 
         if (dx.pipeline.map.contains(hash)) {
+            std.log.info("[graphics] Graphics pipeline hit detected.", .{});
             const handle = dx.pipeline.map.getEntry(hash).?.value;
-            var pipeline = dx.pipeline.pool.getPipeline(handle);
-            const refcount = pipeline.pso.?.AddRef();
-            _ = pipeline.root_signature.?.AddRef();
-            std.log.info("[graphics] Graphics pipeline hit detected (refcount = {}).", .{refcount});
-            return handle;
+            return dx.duplicatePipelineHandle(handle);
         }
 
         var root_signature: *d3d12.IRootSignature = undefined;
@@ -510,12 +507,9 @@ pub const DxContext = struct {
         };
 
         if (dx.pipeline.map.contains(hash)) {
+            std.log.info("[graphics] Compute pipeline hit detected.", .{});
             const handle = dx.pipeline.map.getEntry(hash).?.value;
-            var pipeline = dx.pipeline.pool.getPipeline(handle);
-            const refcount = pipeline.pso.?.AddRef();
-            _ = pipeline.root_signature.?.AddRef();
-            std.log.info("[graphics] Compute pipeline hit detected (refcount = {}).", .{refcount});
-            return handle;
+            return dx.duplicatePipelineHandle(handle);
         }
 
         var root_signature: *d3d12.IRootSignature = undefined;
