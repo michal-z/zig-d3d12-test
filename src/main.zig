@@ -87,20 +87,6 @@ const DemoState = struct {
             0,
             null,
         );
-        dx.cmdlist.RSSetViewports(1, &d3d12.VIEWPORT{
-            .TopLeftX = 0.0,
-            .TopLeftY = 0.0,
-            .Width = @intToFloat(f32, window_width),
-            .Height = @intToFloat(f32, window_height),
-            .MinDepth = 0.0,
-            .MaxDepth = 1.0,
-        });
-        dx.cmdlist.RSSetScissorRects(1, &d3d12.RECT{
-            .left = 0,
-            .top = 0,
-            .right = window_width,
-            .bottom = window_height,
-        });
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
         dx.setPipelineState(self.pso);
         dx.cmdlist.DrawInstanced(3, 1, 0, 0);

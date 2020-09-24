@@ -54,6 +54,8 @@ pub const DxContext = struct {
     },
     num_resource_barriers: u32 = 0,
     buffered_resource_barriers: []d3d12.RESOURCE_BARRIER,
+    viewport_width: u32,
+    viewport_height: u32,
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
@@ -61,8 +63,8 @@ pub const DxContext = struct {
 
         var rect: os.RECT = undefined;
         _ = os.GetClientRect(window, &rect);
-        const window_width = @intCast(u32, rect.right);
-        const window_height = @intCast(u32, rect.bottom);
+        const viewport_width = @intCast(u32, rect.right);
+        const viewport_height = @intCast(u32, rect.bottom);
 
         var factory: *dxgi.IFactory4 = undefined;
         vhr(dxgi.CreateFactory2(
@@ -101,8 +103,8 @@ pub const DxContext = struct {
             @ptrCast(*os.IUnknown, cmdqueue),
             &dxgi.SWAP_CHAIN_DESC{
                 .BufferDesc = dxgi.MODE_DESC{
-                    .Width = window_width,
-                    .Height = window_height,
+                    .Width = viewport_width,
+                    .Height = viewport_height,
                     .RefreshRate = dxgi.RATIONAL{
                         .Numerator = 0,
                         .Denominator = 0,
@@ -226,6 +228,8 @@ pub const DxContext = struct {
                 d3d12.RESOURCE_BARRIER,
                 32,
             ) catch unreachable,
+            .viewport_width = viewport_width,
+            .viewport_height = viewport_height,
         };
     }
 
@@ -261,6 +265,20 @@ pub const DxContext = struct {
         vhr(cmdalloc.Reset());
         vhr(dx.cmdlist.Reset(cmdalloc, null));
         dx.cmdlist.SetDescriptorHeaps(1, &dx.cbv_srv_uav_gpu_heaps[dx.frame_index].heap);
+        dx.cmdlist.RSSetViewports(1, &d3d12.VIEWPORT{
+            .TopLeftX = 0.0,
+            .TopLeftY = 0.0,
+            .Width = @intToFloat(f32, dx.viewport_width),
+            .Height = @intToFloat(f32, dx.viewport_height),
+            .MinDepth = 0.0,
+            .MaxDepth = 1.0,
+        });
+        dx.cmdlist.RSSetScissorRects(1, &d3d12.RECT{
+            .left = 0,
+            .top = 0,
+            .right = @intCast(c_long, dx.viewport_width),
+            .bottom = @intCast(c_long, dx.viewport_height),
+        });
         dx.pipeline.current = .{ .index = 0, .generation = 0 };
     }
 
