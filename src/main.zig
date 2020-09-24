@@ -67,8 +67,8 @@ const DemoState = struct {
     }
 
     fn deinit(self: *DemoState) void {
-        self.dx.releaseResource(self.srgb_texture);
-        self.dx.releasePipeline(self.pso);
+        self.dx.destroyResourceHandle(&self.srgb_texture);
+        self.dx.destroyPipelineHandle(&self.pso);
         self.dx.deinit();
         self.* = undefined;
     }

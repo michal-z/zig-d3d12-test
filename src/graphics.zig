@@ -43,7 +43,7 @@ pub const DxContext = struct {
     upload_memory_heaps: [num_frames]GpuMemoryHeap,
     frame_fence: *d3d12.IFence,
     frame_fence_event: os.HANDLE,
-    frame_counter: u64 = 0,
+    frame_fence_counter: u64 = 0,
     frame_index: u32 = 0,
     back_buffer_index: u32 = 0,
     resource_pool: ResourcePool,
@@ -286,12 +286,12 @@ pub const DxContext = struct {
         vhr(dx.cmdlist.Close());
         dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
 
-        dx.frame_counter += 1;
+        dx.frame_fence_counter += 1;
         vhr(dx.swapchain.Present(0, 0));
-        vhr(dx.cmdqueue.Signal(dx.frame_fence, dx.frame_counter));
+        vhr(dx.cmdqueue.Signal(dx.frame_fence, dx.frame_fence_counter));
 
         const gpu_frame_counter = dx.frame_fence.GetCompletedValue();
-        if ((dx.frame_counter - gpu_frame_counter) >= num_frames) {
+        if ((dx.frame_fence_counter - gpu_frame_counter) >= num_frames) {
             vhr(dx.frame_fence.SetEventOnCompletion(gpu_frame_counter + 1, dx.frame_fence_event));
             os.WaitForSingleObject(dx.frame_fence_event, os.INFINITE) catch unreachable;
         }
@@ -304,10 +304,10 @@ pub const DxContext = struct {
     }
 
     pub fn waitForGpu(dx: *DxContext) void {
-        dx.frame_counter += 1;
+        dx.frame_fence_counter += 1;
 
-        vhr(dx.cmdqueue.Signal(dx.frame_fence, dx.frame_counter));
-        vhr(dx.frame_fence.SetEventOnCompletion(dx.frame_counter, dx.frame_fence_event));
+        vhr(dx.cmdqueue.Signal(dx.frame_fence, dx.frame_fence_counter));
+        vhr(dx.frame_fence.SetEventOnCompletion(dx.frame_fence_counter, dx.frame_fence_event));
         os.WaitForSingleObject(dx.frame_fence_event, os.INFINITE) catch unreachable;
 
         dx.cbv_srv_uav_gpu_heaps[dx.frame_index].size = 0;
@@ -422,13 +422,21 @@ pub const DxContext = struct {
         return dx.resource_pool.addResource(raw, initial_state, desc.Format);
     }
 
-    pub fn releaseResource(dx: DxContext, handle: ResourceHandle) void {
-        var resource = dx.resource_pool.getResource(handle);
+    pub fn duplicateResourceHandle(dx: DxContext, handle: ResourceHandle) ResourceHandle {
+        const resource = dx.resource_pool.getResource(handle);
+        _ = resource.raw.?.AddRef();
+        return handle;
+    }
+
+    pub fn destroyResourceHandle(dx: DxContext, handle: *ResourceHandle) void {
+        var resource = dx.resource_pool.getResource(handle.*);
 
         const refcount = resource.raw.?.Release();
         if (refcount == 0) {
             resource.* = Resource{ .raw = null, .state = .COMMON, .format = .UNKNOWN };
         }
+
+        handle.* = .{ .index = 0, .generation = 0 };
     }
 
     pub fn createGraphicsPipeline(
@@ -531,8 +539,17 @@ pub const DxContext = struct {
         return handle;
     }
 
-    pub fn releasePipeline(dx: *DxContext, handle: PipelineHandle) void {
-        var pipeline = dx.pipeline.pool.getPipeline(handle);
+    pub fn duplicatePipelineHandle(dx: DxContext, handle: PipelineHandle) PipelineHandle {
+        const pipeline = dx.pipeline.pool.getPipeline(handle);
+        const refcount = pipeline.pso.?.AddRef();
+        if (pipeline.root_signature.?.AddRef() != refcount) {
+            assert(false);
+        }
+        return handle;
+    }
+
+    pub fn destroyPipelineHandle(dx: *DxContext, handle: *PipelineHandle) void {
+        var pipeline = dx.pipeline.pool.getPipeline(handle.*);
 
         const refcount = pipeline.pso.?.Release();
         if (pipeline.root_signature.?.Release() != refcount) {
@@ -554,6 +571,8 @@ pub const DxContext = struct {
             _ = dx.pipeline.map.remove(hash_to_delete);
             pipeline.* = Pipeline{ .pso = null, .root_signature = null, .ptype = null };
         }
+
+        handle.* = .{ .index = 0, .generation = 0 };
     }
 
     pub fn allocateUploadMemory(
