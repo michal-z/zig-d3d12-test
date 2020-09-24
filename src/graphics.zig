@@ -421,21 +421,20 @@ pub const DxContext = struct {
         return dx.resource_pool.addResource(raw, initial_state, desc.Format);
     }
 
-    pub fn duplicateResourceHandle(dx: DxContext, handle: ResourceHandle) ResourceHandle {
+    pub fn resourceAddRef(dx: DxContext, handle: ResourceHandle) u32 {
         const resource = dx.resource_pool.getResource(handle);
-        _ = resource.raw.?.AddRef();
-        return handle;
+        return resource.raw.?.AddRef();
     }
 
-    pub fn destroyResourceHandle(dx: DxContext, handle: *ResourceHandle) void {
-        var resource = dx.resource_pool.getResource(handle.*);
+    pub fn resourceRelease(dx: DxContext, handle: ResourceHandle) u32 {
+        var resource = dx.resource_pool.getResource(handle);
 
         const refcount = resource.raw.?.Release();
         if (refcount == 0) {
             resource.* = Resource{ .raw = null, .state = .COMMON, .format = .UNKNOWN };
         }
 
-        handle.* = .{ .index = 0, .generation = 0 };
+        return refcount;
     }
 
     pub fn createGraphicsPipeline(
@@ -469,7 +468,8 @@ pub const DxContext = struct {
         if (dx.pipeline.map.contains(hash)) {
             std.log.info("[graphics] Graphics pipeline hit detected.", .{});
             const handle = dx.pipeline.map.getEntry(hash).?.value;
-            return dx.duplicatePipelineHandle(handle);
+            _ = dx.pipelineAddRef(handle);
+            return handle;
         }
 
         var root_signature: *d3d12.IRootSignature = undefined;
@@ -532,17 +532,17 @@ pub const DxContext = struct {
         return handle;
     }
 
-    pub fn duplicatePipelineHandle(dx: DxContext, handle: PipelineHandle) PipelineHandle {
+    pub fn pipelineAddRef(dx: DxContext, handle: PipelineHandle) u32 {
         const pipeline = dx.pipeline.pool.getPipeline(handle);
         const refcount = pipeline.pso.?.AddRef();
         if (pipeline.root_signature.?.AddRef() != refcount) {
             assert(false);
         }
-        return handle;
+        return refcount;
     }
 
-    pub fn destroyPipelineHandle(dx: *DxContext, handle: *PipelineHandle) void {
-        var pipeline = dx.pipeline.pool.getPipeline(handle.*);
+    pub fn pipelineRelease(dx: *DxContext, handle: PipelineHandle) u32 {
+        var pipeline = dx.pipeline.pool.getPipeline(handle);
 
         const refcount = pipeline.pso.?.Release();
         if (pipeline.root_signature.?.Release() != refcount) {
@@ -565,7 +565,7 @@ pub const DxContext = struct {
             pipeline.* = Pipeline{ .pso = null, .root_signature = null, .ptype = null };
         }
 
-        handle.* = .{ .index = 0, .generation = 0 };
+        return refcount;
     }
 
     pub fn allocateUploadMemory(
