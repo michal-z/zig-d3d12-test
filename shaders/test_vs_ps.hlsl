@@ -1,12 +1,17 @@
-#define root_signature ""
+#define root_signature "SRV(t0)"
+
+struct Vertex {
+    float2 position;
+};
+StructuredBuffer<Vertex> srv_vertex_buffer : register(t0);
 
 [RootSignature(root_signature)]
 void vsMain(
     in uint vid : SV_VertexID,
     out float4 out_position : SV_Position)
 {
-    float2 positions[3] = { float2(-1.0f, -1.0f), float2(0.0f, 1.0f), float2(1.0f, -1.0f) };
-    out_position = float4(positions[vid], 0.0f, 1.0f);
+    float2 position = srv_vertex_buffer[vid].position;
+    out_position = float4(position, 0.0f, 1.0f);
 }
 
 [RootSignature(root_signature)]

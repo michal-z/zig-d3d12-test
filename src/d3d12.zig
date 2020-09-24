@@ -518,9 +518,9 @@ pub const SHADER_COMPONENT_MAPPING = extern enum {
 
 pub inline fn ENCODE_SHADER_4_COMPONENT_MAPPING(src0: u32, src1: u32, src2: u32, src3: u32) u32 {
     return (src0 & 0x7) |
-        ((Src1 & 0x7) << 3) |
+        ((src1 & 0x7) << 3) |
         ((src2 & 0x7) << (3 * 2)) |
-        ((Src3 & 0x7) << (3 * 3)) |
+        ((src3 & 0x7) << (3 * 3)) |
         (1 << (3 * 4));
 }
 pub const DEFAULT_SHADER_4_COMPONENT_MAPPING = ENCODE_SHADER_4_COMPONENT_MAPPING(0, 1, 2, 3);
@@ -534,7 +534,7 @@ pub const BUFFER_SRV = extern struct {
     FirstElement: u64,
     NumElements: u32,
     StructureByteStride: u32,
-    Flags: BUFFER_SRV_FLAGS,
+    Flags: BUFFER_SRV_FLAGS = .NONE,
 };
 
 pub const TEX1D_SRV = extern struct {
@@ -611,9 +611,9 @@ pub const SRV_DIMENSION = extern enum {
 };
 
 pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
-    Format: dxgi.FORMAT,
+    Format: dxgi.FORMAT = dxgi.FORMAT.UNKNOWN,
     ViewDimension: SRV_DIMENSION,
-    Shader4ComponentMapping: u32,
+    Shader4ComponentMapping: u32 = DEFAULT_SHADER_4_COMPONENT_MAPPING,
     u: extern union {
         Buffer: BUFFER_SRV,
         Texture1D: TEX1D_SRV,

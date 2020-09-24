@@ -14,6 +14,8 @@ const DemoState = struct {
     window: os.HWND,
     srgb_texture: gr.ResourceHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    geometry_buffer: gr.ResourceHandle,
+    geometry_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     pso: gr.PipelineHandle,
 
     fn init(window: os.HWND) DemoState {
@@ -57,16 +59,76 @@ const DemoState = struct {
             .SampleDesc = .{ .Count = 8, .Quality = 0 },
         });
 
+        dx.beginFrame();
+
+        const geometry_buffer = dx.createCommittedResource(
+            .DEFAULT,
+            d3d12.HEAP_FLAG_NONE,
+            &gr.resource_desc.buffer(1024),
+            .COPY_DEST,
+            null,
+        );
+        const geometry_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+
+        {
+            const upload = dx.allocateUploadBufferRegion(4 * @sizeOf(f32));
+            var slice = std.mem.bytesAsSlice(f32, upload.cpu_slice);
+            slice[0] = -0.5;
+            slice[1] = -0.5;
+            slice[2] = 0.0;
+            slice[3] = 1.0;
+            dx.cmdlist.CopyBufferRegion(
+                dx.getRawResource(geometry_buffer),
+                0,
+                upload.buffer,
+                upload.buffer_offset,
+                upload.cpu_slice.len,
+            );
+        }
+        {
+            const upload = dx.allocateUploadBufferRegion(2 * @sizeOf(f32));
+            var slice = std.mem.bytesAsSlice(f32, upload.cpu_slice);
+            slice[0] = 1.0;
+            slice[1] = -1.0;
+            dx.cmdlist.CopyBufferRegion(
+                dx.getRawResource(geometry_buffer),
+                16,
+                upload.buffer,
+                upload.buffer_offset,
+                upload.cpu_slice.len,
+            );
+        }
+        dx.device.CreateShaderResourceView(
+            dx.getRawResource(geometry_buffer),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC{
+                .ViewDimension = .BUFFER,
+                .u = .{
+                    .Buffer = d3d12.BUFFER_SRV{
+                        .FirstElement = 0,
+                        .NumElements = 3,
+                        .StructureByteStride = 8,
+                    },
+                },
+            },
+            geometry_buffer_srv,
+        );
+
+        dx.closeAndExecuteCommandList();
+        dx.waitForGpu();
+
         return DemoState{
             .dx = dx,
             .window = window,
             .srgb_texture = srgb_texture,
             .srgb_texture_rtv = srgb_texture_rtv,
+            .geometry_buffer = geometry_buffer,
+            .geometry_buffer_srv = geometry_buffer_srv,
             .pso = pso,
         };
     }
 
     fn deinit(self: *DemoState) void {
+        self.dx.destroyResourceHandle(&self.geometry_buffer);
         self.dx.destroyResourceHandle(&self.srgb_texture);
         self.dx.destroyPipelineHandle(&self.pso);
         self.dx.deinit();
@@ -89,6 +151,10 @@ const DemoState = struct {
         );
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
         dx.setPipelineState(self.pso);
+        dx.cmdlist.SetGraphicsRootShaderResourceView(
+            0,
+            dx.getRawResource(self.geometry_buffer).GetGPUVirtualAddress(),
+        );
         dx.cmdlist.DrawInstanced(3, 1, 0, 0);
 
         const back_buffer = dx.getBackBuffer();

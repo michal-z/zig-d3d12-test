@@ -283,8 +283,7 @@ pub const DxContext = struct {
     }
 
     pub fn endFrame(dx: *DxContext) void {
-        vhr(dx.cmdlist.Close());
-        dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
+        dx.closeAndExecuteCommandList();
 
         dx.frame_fence_counter += 1;
         vhr(dx.swapchain.Present(0, 0));
@@ -576,14 +575,14 @@ pub const DxContext = struct {
         var memory = dx.upload_memory_heaps[dx.frame_index].allocate(size);
 
         if (memory.cpu_slice == null and memory.gpu_addr == null) {
-            vhr(dx.cmdlist.Close());
-            dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
+            dx.closeAndExecuteCommandList();
             dx.waitForGpu();
             dx.beginFrame();
             std.log.info("[graphics] Upload memory exhausted - waiting for a GPU...", .{});
+
+            memory = dx.upload_memory_heaps[dx.frame_index].allocate(size);
         }
 
-        memory = dx.upload_memory_heaps[dx.frame_index].allocate(size);
         return .{ .cpu_slice = memory.cpu_slice.?, .gpu_addr = memory.gpu_addr.? };
     }
 
@@ -591,13 +590,18 @@ pub const DxContext = struct {
         dx: *DxContext,
         size: u32,
     ) struct { cpu_slice: []u8, buffer: *d3d12.IResource, buffer_offset: u64 } {
+        const memory = dx.allocateUploadMemory(size);
         const aligned_size = (size + 255) & 0xffff_ff00;
-        const memory = dx.allocateUploadMemory(aligned_size);
         return .{
             .cpu_slice = memory.cpu_slice,
             .buffer = dx.upload_memory_heaps[dx.frame_index].heap,
             .buffer_offset = dx.upload_memory_heaps[dx.frame_index].size - aligned_size,
         };
+    }
+
+    pub fn closeAndExecuteCommandList(dx: DxContext) void {
+        vhr(dx.cmdlist.Close());
+        dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
     }
 };
 
