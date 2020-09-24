@@ -128,9 +128,9 @@ const DemoState = struct {
     }
 
     fn deinit(self: *DemoState) void {
-        _ = self.dx.resourceRelease(self.geometry_buffer);
-        _ = self.dx.resourceRelease(self.srgb_texture);
-        _ = self.dx.pipelineRelease(self.pso);
+        _ = self.dx.releaseResource(self.geometry_buffer);
+        _ = self.dx.releaseResource(self.srgb_texture);
+        _ = self.dx.releasePipeline(self.pso);
         self.dx.deinit();
         self.* = undefined;
     }

@@ -421,12 +421,12 @@ pub const DxContext = struct {
         return dx.resource_pool.addResource(raw, initial_state, desc.Format);
     }
 
-    pub fn resourceAddRef(dx: DxContext, handle: ResourceHandle) u32 {
+    pub fn addResourceRef(dx: DxContext, handle: ResourceHandle) u32 {
         const resource = dx.resource_pool.getResource(handle);
         return resource.raw.?.AddRef();
     }
 
-    pub fn resourceRelease(dx: DxContext, handle: ResourceHandle) u32 {
+    pub fn releaseResource(dx: DxContext, handle: ResourceHandle) u32 {
         var resource = dx.resource_pool.getResource(handle);
 
         const refcount = resource.raw.?.Release();
@@ -468,7 +468,7 @@ pub const DxContext = struct {
         if (dx.pipeline.map.contains(hash)) {
             std.log.info("[graphics] Graphics pipeline hit detected.", .{});
             const handle = dx.pipeline.map.getEntry(hash).?.value;
-            _ = dx.pipelineAddRef(handle);
+            _ = dx.addPipelineRef(handle);
             return handle;
         }
 
@@ -508,7 +508,8 @@ pub const DxContext = struct {
         if (dx.pipeline.map.contains(hash)) {
             std.log.info("[graphics] Compute pipeline hit detected.", .{});
             const handle = dx.pipeline.map.getEntry(hash).?.value;
-            return dx.duplicatePipelineHandle(handle);
+            _ = addPipelineRef(handle);
+            return handle;
         }
 
         var root_signature: *d3d12.IRootSignature = undefined;
@@ -532,7 +533,7 @@ pub const DxContext = struct {
         return handle;
     }
 
-    pub fn pipelineAddRef(dx: DxContext, handle: PipelineHandle) u32 {
+    pub fn addPipelineRef(dx: DxContext, handle: PipelineHandle) u32 {
         const pipeline = dx.pipeline.pool.getPipeline(handle);
         const refcount = pipeline.pso.?.AddRef();
         if (pipeline.root_signature.?.AddRef() != refcount) {
@@ -541,7 +542,7 @@ pub const DxContext = struct {
         return refcount;
     }
 
-    pub fn pipelineRelease(dx: *DxContext, handle: PipelineHandle) u32 {
+    pub fn releasePipeline(dx: *DxContext, handle: PipelineHandle) u32 {
         var pipeline = dx.pipeline.pool.getPipeline(handle);
 
         const refcount = pipeline.pso.?.Release();
