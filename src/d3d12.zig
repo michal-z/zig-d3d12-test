@@ -914,25 +914,51 @@ pub const FENCE_FLAGS = extern enum {
     SHARED_CROSS_ADAPTER = 0x2,
 };
 
-pub const RESOURCE_STATES = extern enum {
-    COMMON = 0,
-    VERTEX_AND_CONSTANT_BUFFER = 0x1,
-    INDEX_BUFFER = 0x2,
-    RENDER_TARGET = 0x4,
-    UNORDERED_ACCESS = 0x8,
-    DEPTH_WRITE = 0x10,
-    DEPTH_READ = 0x20,
-    NON_PIXEL_SHADER_RESOURCE = 0x40,
-    PIXEL_SHADER_RESOURCE = 0x80,
-    STREAM_OUT = 0x100,
-    INDIRECT_ARGUMENT = 0x200,
-    COPY_DEST = 0x400,
-    COPY_SOURCE = 0x800,
-    RESOLVE_DEST = 0x1000,
-    RESOLVE_SOURCE = 0x2000,
-    GENERIC_READ = (((((0x1 | 0x2) | 0x40) | 0x80) | 0x200) | 0x800),
-    PRESENT = 0,
-    PREDICATION = 0x200,
+pub const RESOURCE_STATES = packed struct {
+    VERTEX_AND_CONSTANT_BUFFER: bool = false,
+    INDEX_BUFFER: bool = false,
+    RENDER_TARGET: bool = false,
+    UNORDERED_ACCESS: bool = false,
+    DEPTH_WRITE: bool = false,
+    DEPTH_READ: bool = false,
+    NON_PIXEL_SHADER_RESOURCE: bool = false,
+    PIXEL_SHADER_RESOURCE: bool = false,
+    STREAM_OUT: bool = false,
+    INDIRECT_ARGUMENT_AND_PREDICATION: bool = false,
+    COPY_DEST: bool = false,
+    COPY_SOURCE: bool = false,
+    RESOLVE_DEST: bool = false,
+    RESOLVE_SOURCE: bool = false,
+    // TODO: Clean this up. u17 causes @sizeOf(RESOURCE_STATES) == 5 with current compiler version.
+    padding0: bool = false,
+    padding1: bool = false,
+    padding2: bool = false,
+    padding3: bool = false,
+    padding4: bool = false,
+    padding5: bool = false,
+    padding6: bool = false,
+    padding7: bool = false,
+    padding8: bool = false,
+    padding9: bool = false,
+    padding10: bool = false,
+    padding11: bool = false,
+    padding12: bool = false,
+    padding13: bool = false,
+    padding14: bool = false,
+    padding15: bool = false,
+    padding16: bool = false,
+    padding17: bool = false,
+
+    pub fn genericRead() RESOURCE_STATES {
+        return RESOURCE_STATES{
+            .VERTEX_AND_CONSTANT_BUFFER = true,
+            .INDEX_BUFFER = true,
+            .NON_PIXEL_SHADER_RESOURCE = true,
+            .PIXEL_SHADER_RESOURCE = true,
+            .INDIRECT_ARGUMENT_AND_PREDICATION = true,
+            .COPY_SOURCE = true,
+        };
+    }
 };
 
 pub const RESOURCE_BARRIER_TYPE = extern enum {

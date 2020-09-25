@@ -32,7 +32,7 @@ const DemoState = struct {
                 desc.SampleDesc.Count = 8;
                 break :blk desc;
             },
-            .RENDER_TARGET,
+            .{ .RENDER_TARGET = true },
             &d3d12.CLEAR_VALUE{
                 .Format = .R8G8B8A8_UNORM_SRGB,
                 .u = .{ .Color = [4]f32{ 0.2, 0.4, 0.8, 1.0 } },
@@ -67,7 +67,7 @@ const DemoState = struct {
             .DEFAULT,
             .{},
             &gr.resource_desc.buffer(1024),
-            .COPY_DEST,
+            .{ .COPY_DEST = true },
             null,
         );
 
@@ -135,6 +135,11 @@ const DemoState = struct {
             index_buffer_srv,
         );
 
+        dx.addTransitionBarrier(
+            geometry_buffer,
+            .{ .VERTEX_AND_CONSTANT_BUFFER = true, .INDEX_BUFFER = true },
+        );
+        dx.flushResourceBarriers();
         dx.closeAndExecuteCommandList();
         dx.waitForGpu();
 
@@ -163,7 +168,7 @@ const DemoState = struct {
         var dx = &self.dx;
 
         dx.beginFrame();
-        dx.addTransitionBarrier(self.srgb_texture, .RENDER_TARGET);
+        dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = true });
         dx.flushResourceBarriers();
         dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, null);
         dx.cmdlist.ClearRenderTargetView(
@@ -186,8 +191,8 @@ const DemoState = struct {
         dx.cmdlist.DrawInstanced(3, 1, 0, 0);
 
         const back_buffer = dx.getBackBuffer();
-        dx.addTransitionBarrier(back_buffer.resource_handle, .RESOLVE_DEST);
-        dx.addTransitionBarrier(self.srgb_texture, .RESOLVE_SOURCE);
+        dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = true });
+        dx.addTransitionBarrier(self.srgb_texture, .{ .RESOLVE_SOURCE = true });
         dx.flushResourceBarriers();
 
         dx.cmdlist.ResolveSubresource(
@@ -197,7 +202,7 @@ const DemoState = struct {
             0,
             .R8G8B8A8_UNORM,
         );
-        dx.addTransitionBarrier(back_buffer.resource_handle, .PRESENT);
+        dx.addTransitionBarrier(back_buffer.resource_handle, .{});
         dx.flushResourceBarriers();
         dx.endFrame();
     }

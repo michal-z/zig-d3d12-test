@@ -186,7 +186,7 @@ pub const DxContext = struct {
                     &d3d12.IID_IResource,
                     @ptrCast(**c_void, &buffer),
                 ));
-                swapbuffer.* = resource_pool.addResource(buffer, .PRESENT, .R8G8B8A8_UNORM);
+                swapbuffer.* = resource_pool.addResource(buffer, .{}, .R8G8B8A8_UNORM);
                 device.CreateRenderTargetView(buffer, null, handle);
                 handle.ptr += rtv_heap.descriptor_size;
             }
@@ -353,7 +353,7 @@ pub const DxContext = struct {
     ) void {
         var resource = dx.resource_pool.getResource(handle);
 
-        if (state_after != resource.state) {
+        if (@bitCast(u32, state_after) != @bitCast(u32, resource.state)) {
             if (dx.num_resource_barriers >= dx.buffered_resource_barriers.len) {
                 flushResourceBarriers(dx);
             }
@@ -431,7 +431,7 @@ pub const DxContext = struct {
 
         const refcount = resource.raw.?.Release();
         if (refcount == 0) {
-            resource.* = Resource{ .raw = null, .state = .COMMON, .format = .UNKNOWN };
+            resource.* = Resource{ .raw = null, .state = .{}, .format = .UNKNOWN };
         }
 
         return refcount;
@@ -798,7 +798,7 @@ const ResourcePool = struct {
                     max_num_resources + 1,
                 ) catch unreachable;
                 for (resources) |*res| {
-                    res.* = Resource{ .raw = null, .state = .COMMON, .format = .UNKNOWN };
+                    res.* = Resource{ .raw = null, .state = .{}, .format = .UNKNOWN };
                 }
                 break :blk resources;
             },
@@ -875,7 +875,7 @@ const GpuMemoryHeap = struct {
             &d3d12.HEAP_PROPERTIES{ .Type = heap_type },
             .{},
             &resource_desc.buffer(capacity),
-            .GENERIC_READ,
+            d3d12.RESOURCE_STATES.genericRead(),
             null,
             &d3d12.IID_IResource,
             @ptrCast(**c_void, &heap),
