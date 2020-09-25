@@ -28,11 +28,11 @@ const DemoState = struct {
             .{},
             &blk: {
                 var desc = gr.resource_desc.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
-                desc.Flags = .{ .ALLOW_RENDER_TARGET = true };
+                desc.Flags = .{ .ALLOW_RENDER_TARGET = 1 };
                 desc.SampleDesc.Count = 8;
                 break :blk desc;
             },
-            .{ .RENDER_TARGET = true },
+            .{ .RENDER_TARGET = 1 },
             &d3d12.CLEAR_VALUE{
                 .Format = .R8G8B8A8_UNORM_SRGB,
                 .u = .{ .Color = [4]f32{ 0.2, 0.4, 0.8, 1.0 } },
@@ -67,7 +67,7 @@ const DemoState = struct {
             .DEFAULT,
             .{},
             &gr.resource_desc.buffer(1024),
-            .{ .COPY_DEST = true },
+            .{ .COPY_DEST = 1 },
             null,
         );
 
@@ -137,7 +137,7 @@ const DemoState = struct {
 
         dx.addTransitionBarrier(
             geometry_buffer,
-            .{ .VERTEX_AND_CONSTANT_BUFFER = true, .INDEX_BUFFER = true },
+            .{ .VERTEX_AND_CONSTANT_BUFFER = 1, .INDEX_BUFFER = 1 },
         );
         dx.flushResourceBarriers();
         dx.closeAndExecuteCommandList();
@@ -168,7 +168,7 @@ const DemoState = struct {
         var dx = &self.dx;
 
         dx.beginFrame();
-        dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = true });
+        dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = 1 });
         dx.flushResourceBarriers();
         dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, null);
         dx.cmdlist.ClearRenderTargetView(
@@ -191,8 +191,8 @@ const DemoState = struct {
         dx.cmdlist.DrawInstanced(3, 1, 0, 0);
 
         const back_buffer = dx.getBackBuffer();
-        dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = true });
-        dx.addTransitionBarrier(self.srgb_texture, .{ .RESOLVE_SOURCE = true });
+        dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = 1 });
+        dx.addTransitionBarrier(self.srgb_texture, .{ .RESOLVE_SOURCE = 1 });
         dx.flushResourceBarriers();
 
         dx.cmdlist.ResolveSubresource(
