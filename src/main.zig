@@ -15,7 +15,8 @@ const DemoState = struct {
     srgb_texture: gr.ResourceHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
     geometry_buffer: gr.ResourceHandle,
-    geometry_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     pso: gr.PipelineHandle,
 
     fn init(window: os.HWND) DemoState {
@@ -37,7 +38,7 @@ const DemoState = struct {
             },
         );
         const srgb_texture_rtv = dx.allocateCpuDescriptors(.RTV, 1);
-        dx.device.CreateRenderTargetView(dx.getRawResource(srgb_texture), null, srgb_texture_rtv);
+        dx.device.CreateRenderTargetView(dx.getResource(srgb_texture), null, srgb_texture_rtv);
 
         const pso = dx.createGraphicsPipeline(d3d12.GRAPHICS_PIPELINE_STATE_DESC{
             .PrimitiveTopologyType = .TRIANGLE,
@@ -68,38 +69,44 @@ const DemoState = struct {
             .COPY_DEST,
             null,
         );
-        const geometry_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
 
+        // Upload vertex data.
         {
-            const upload = dx.allocateUploadBufferRegion(4 * @sizeOf(f32));
+            const upload = dx.allocateUploadBufferRegion(6 * @sizeOf(f32));
             var slice = std.mem.bytesAsSlice(f32, upload.cpu_slice);
             slice[0] = -0.5;
             slice[1] = -0.5;
             slice[2] = 0.0;
             slice[3] = 1.0;
+            slice[4] = 1.0;
+            slice[5] = -1.0;
             dx.cmdlist.CopyBufferRegion(
-                dx.getRawResource(geometry_buffer),
+                dx.getResource(geometry_buffer),
                 0,
                 upload.buffer,
                 upload.buffer_offset,
                 upload.cpu_slice.len,
             );
         }
+        // Upload index data.
         {
-            const upload = dx.allocateUploadBufferRegion(2 * @sizeOf(f32));
-            var slice = std.mem.bytesAsSlice(f32, upload.cpu_slice);
-            slice[0] = 1.0;
-            slice[1] = -1.0;
+            const upload = dx.allocateUploadBufferRegion(3 * @sizeOf(u32));
+            var slice = std.mem.bytesAsSlice(u32, upload.cpu_slice);
+            slice[0] = 0;
+            slice[1] = 1;
+            slice[2] = 2;
             dx.cmdlist.CopyBufferRegion(
-                dx.getRawResource(geometry_buffer),
-                16,
+                dx.getResource(geometry_buffer),
+                24,
                 upload.buffer,
                 upload.buffer_offset,
                 upload.cpu_slice.len,
             );
         }
+
+        const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
-            dx.getRawResource(geometry_buffer),
+            dx.getResource(geometry_buffer),
             &d3d12.SHADER_RESOURCE_VIEW_DESC{
                 .ViewDimension = .BUFFER,
                 .u = .{
@@ -110,7 +117,24 @@ const DemoState = struct {
                     },
                 },
             },
-            geometry_buffer_srv,
+            vertex_buffer_srv,
+        );
+
+        const index_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(geometry_buffer),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC{
+                .Format = .R32_UINT,
+                .ViewDimension = .BUFFER,
+                .u = .{
+                    .Buffer = d3d12.BUFFER_SRV{
+                        .FirstElement = 6,
+                        .NumElements = 3,
+                        .StructureByteStride = 0,
+                    },
+                },
+            },
+            index_buffer_srv,
         );
 
         dx.closeAndExecuteCommandList();
@@ -122,7 +146,8 @@ const DemoState = struct {
             .srgb_texture = srgb_texture,
             .srgb_texture_rtv = srgb_texture_rtv,
             .geometry_buffer = geometry_buffer,
-            .geometry_buffer_srv = geometry_buffer_srv,
+            .vertex_buffer_srv = vertex_buffer_srv,
+            .index_buffer_srv = index_buffer_srv,
             .pso = pso,
         };
     }
@@ -151,9 +176,14 @@ const DemoState = struct {
         );
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
         dx.setPipelineState(self.pso);
-        dx.cmdlist.SetGraphicsRootShaderResourceView(
+
+        dx.cmdlist.SetGraphicsRootDescriptorTable(
             0,
-            dx.getRawResource(self.geometry_buffer).GetGPUVirtualAddress(),
+            blk: {
+                const base = dx.copyDescriptorsToGpuHeap(1, self.vertex_buffer_srv);
+                _ = dx.copyDescriptorsToGpuHeap(1, self.index_buffer_srv);
+                break :blk base;
+            },
         );
         dx.cmdlist.DrawInstanced(3, 1, 0, 0);
 
@@ -163,9 +193,9 @@ const DemoState = struct {
         dx.flushResourceBarriers();
 
         dx.cmdlist.ResolveSubresource(
-            dx.getRawResource(back_buffer.resource_handle),
+            dx.getResource(back_buffer.resource_handle),
             0,
-            dx.getRawResource(self.srgb_texture),
+            dx.getResource(self.srgb_texture),
             0,
             .R8G8B8A8_UNORM,
         );

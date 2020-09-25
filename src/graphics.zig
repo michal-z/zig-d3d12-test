@@ -330,7 +330,7 @@ pub const DxContext = struct {
         return dx.cbv_srv_uav_gpu_heaps[dx.frame_index].allocateDescriptors(num_descriptors);
     }
 
-    pub fn getRawResource(dx: DxContext, handle: ResourceHandle) *d3d12.IResource {
+    pub fn getResource(dx: DxContext, handle: ResourceHandle) *d3d12.IResource {
         return dx.resource_pool.getResource(handle).*.raw.?;
     }
 
