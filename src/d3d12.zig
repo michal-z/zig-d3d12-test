@@ -46,19 +46,16 @@ pub const HEAP_PROPERTIES = extern struct {
     VisibleNodeMask: u32 = 0,
 };
 
-pub const HEAP_FLAGS = u32;
-pub const HEAP_FLAG_NONE: u32 = 0;
-pub const HEAP_FLAG_SHARED: u32 = 0x1;
-pub const HEAP_FLAG_DENY_BUFFERS: u32 = 0x4;
-pub const HEAP_FLAG_ALLOW_DISPLAY: u32 = 0x8;
-pub const HEAP_FLAG_SHARED_CROSS_ADAPTER: u32 = 0x20;
-pub const HEAP_FLAG_DENY_RT_DS_TEXTURES: u32 = 0x40;
-pub const HEAP_FLAG_DENY_NON_RT_DS_TEXTURES: u32 = 0x80;
-pub const HEAP_FLAG_HARDWARE_PROTECTED: u32 = 0x100;
-pub const HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES: u32 = 0;
-pub const HEAP_FLAG_ALLOW_ONLY_BUFFERS: u32 = 0xc0;
-pub const HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES: u32 = 0x44;
-pub const HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES: u32 = 0x84;
+pub const HEAP_FLAGS = packed struct {
+    SHARED: bool = false,
+    DENY_BUFFERS: bool = false,
+    ALLOW_DISPLAY: bool = false,
+    SHARED_CROSS_ADAPTER: bool = false,
+    DENY_RT_DS_TEXTURES: bool = false,
+    DENY_NON_RT_DS_TEXTURES: bool = false,
+    HARDWARE_PROTECTED: bool = false,
+    padding: u25 = 0,
+};
 
 pub const HEAP_DESC = extern struct {
     SizeInBytes: u64,
@@ -87,14 +84,15 @@ pub const TEXTURE_LAYOUT = extern enum {
     _64KB_STANDARD_SWIZZLE = 3,
 };
 
-pub const RESOURCE_FLAGS = u32;
-pub const RESOURCE_FLAG_NONE: u32 = 0;
-pub const RESOURCE_FLAG_ALLOW_RENDER_TARGET: u32 = 0x1;
-pub const RESOURCE_FLAG_ALLOW_DEPTH_STENCIL: u32 = 0x2;
-pub const RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS: u32 = 0x4;
-pub const RESOURCE_FLAG_DENY_SHADER_RESOURCE: u32 = 0x8;
-pub const RESOURCE_FLAG_ALLOW_CROSS_ADAPTER: u32 = 0x10;
-pub const RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS: u32 = 0x20;
+pub const RESOURCE_FLAGS = packed struct {
+    ALLOW_RENDER_TARGET: bool = false,
+    ALLOW_DEPTH_STENCIL: bool = false,
+    ALLOW_UNORDERED_ACCESS: bool = false,
+    DENY_SHADER_RESOURCE: bool = false,
+    ALLOW_CROSS_ADAPTER: bool = false,
+    ALLOW_SIMULTANEOUS_ACCESS: bool = false,
+    padding: u26 = 0,
+};
 
 pub const RESOURCE_DESC = extern struct {
     Dimension: RESOURCE_DIMENSION,

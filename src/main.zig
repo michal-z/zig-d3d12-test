@@ -4,6 +4,7 @@ const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
 const gr = @import("graphics.zig");
+usingnamespace @import("math.zig");
 
 const window_name = "zig d3d12 test";
 const window_width = 1920;
@@ -24,10 +25,10 @@ const DemoState = struct {
 
         const srgb_texture = dx.createCommittedResource(
             .DEFAULT,
-            d3d12.HEAP_FLAG_NONE,
+            .{},
             &blk: {
                 var desc = gr.resource_desc.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
-                desc.Flags = d3d12.RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+                desc.Flags = .{ .ALLOW_RENDER_TARGET = true };
                 desc.SampleDesc.Count = 8;
                 break :blk desc;
             },
@@ -64,7 +65,7 @@ const DemoState = struct {
 
         const geometry_buffer = dx.createCommittedResource(
             .DEFAULT,
-            d3d12.HEAP_FLAG_NONE,
+            .{},
             &gr.resource_desc.buffer(1024),
             .COPY_DEST,
             null,
@@ -72,14 +73,11 @@ const DemoState = struct {
 
         // Upload vertex data.
         {
-            const upload = dx.allocateUploadBufferRegion(6 * @sizeOf(f32));
-            var slice = std.mem.bytesAsSlice(f32, upload.cpu_slice);
-            slice[0] = -0.5;
-            slice[1] = -0.5;
-            slice[2] = 0.0;
-            slice[3] = 1.0;
-            slice[4] = 1.0;
-            slice[5] = -1.0;
+            const upload = dx.allocateUploadBufferRegion(3 * @sizeOf(Vec3));
+            var slice = std.mem.bytesAsSlice(Vec3, upload.cpu_slice);
+            slice[0] = Vec3{ .x = -0.5, .y = -0.5, .z = 0.0 };
+            slice[1] = Vec3{ .x = 0.0, .y = 1.0, .z = 0.0 };
+            slice[2] = Vec3{ .x = 1.0, .y = -1.0, .z = 0.0 };
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(geometry_buffer),
                 0,
@@ -97,7 +95,7 @@ const DemoState = struct {
             slice[2] = 2;
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(geometry_buffer),
-                24,
+                3 * @sizeOf(Vec3),
                 upload.buffer,
                 upload.buffer_offset,
                 upload.cpu_slice.len,
@@ -113,7 +111,7 @@ const DemoState = struct {
                     .Buffer = d3d12.BUFFER_SRV{
                         .FirstElement = 0,
                         .NumElements = 3,
-                        .StructureByteStride = 8,
+                        .StructureByteStride = @sizeOf(Vec3),
                     },
                 },
             },
@@ -128,7 +126,7 @@ const DemoState = struct {
                 .ViewDimension = .BUFFER,
                 .u = .{
                     .Buffer = d3d12.BUFFER_SRV{
-                        .FirstElement = 6,
+                        .FirstElement = 3 * @sizeOf(Vec3) / @sizeOf(u32),
                         .NumElements = 3,
                         .StructureByteStride = 0,
                     },

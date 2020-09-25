@@ -1,7 +1,7 @@
 #define root_signature "DescriptorTable(SRV(t0, numDescriptors = 2))"
 
 struct Vertex {
-    float2 position;
+    float3 position;
 };
 StructuredBuffer<Vertex> srv_vertices : register(t0);
 Buffer<uint> srv_indices : register(t1);
@@ -12,8 +12,8 @@ void vsMain(
     out float4 out_position : SV_Position)
 {
     uint index = srv_indices[vid];
-    float2 position = srv_vertices[index].position;
-    out_position = float4(position, 0.0f, 1.0f);
+    float3 position = srv_vertices[index].position;
+    out_position = float4(position, 1.0f);
 }
 
 [RootSignature(root_signature)]

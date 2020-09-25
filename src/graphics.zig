@@ -873,7 +873,7 @@ const GpuMemoryHeap = struct {
         var heap: *d3d12.IResource = undefined;
         vhr(device.CreateCommittedResource(
             &d3d12.HEAP_PROPERTIES{ .Type = heap_type },
-            d3d12.HEAP_FLAG_NONE,
+            .{},
             &resource_desc.buffer(capacity),
             .GENERIC_READ,
             null,
@@ -928,7 +928,7 @@ pub const resource_desc = struct {
             .Format = .UNKNOWN,
             .SampleDesc = .{ .Count = 1, .Quality = 0 },
             .Layout = .ROW_MAJOR,
-            .Flags = d3d12.RESOURCE_FLAG_NONE,
+            .Flags = .{},
         };
     }
 
@@ -943,7 +943,7 @@ pub const resource_desc = struct {
             .Format = format,
             .SampleDesc = .{ .Count = 1, .Quality = 0 },
             .Layout = .UNKNOWN,
-            .Flags = d3d12.RESOURCE_FLAG_NONE,
+            .Flags = .{},
         };
     }
 };
