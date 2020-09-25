@@ -3,16 +3,16 @@
 struct Vertex {
     float2 position;
 };
-StructuredBuffer<Vertex> srv_vertex_buffer : register(t0);
-Buffer<uint> srv_index_buffer : register(t1);
+StructuredBuffer<Vertex> srv_vertices : register(t0);
+Buffer<uint> srv_indices : register(t1);
 
 [RootSignature(root_signature)]
 void vsMain(
     in uint vid : SV_VertexID,
     out float4 out_position : SV_Position)
 {
-    uint index = srv_index_buffer[vid];
-    float2 position = srv_vertex_buffer[index].position;
+    uint index = srv_indices[vid];
+    float2 position = srv_vertices[index].position;
     out_position = float4(position, 0.0f, 1.0f);
 }
 

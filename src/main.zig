@@ -13,11 +13,11 @@ const DemoState = struct {
     dx: gr.DxContext,
     window: os.HWND,
     srgb_texture: gr.ResourceHandle,
-    srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
     geometry_buffer: gr.ResourceHandle,
+    pso: gr.PipelineHandle,
+    srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
-    pso: gr.PipelineHandle,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
