@@ -15,10 +15,12 @@ const DemoState = struct {
     window: os.HWND,
     srgb_texture: gr.ResourceHandle,
     geometry_buffer: gr.ResourceHandle,
+    transform_buffer: gr.ResourceHandle,
     pso: gr.PipelineHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
@@ -70,14 +72,21 @@ const DemoState = struct {
             .{ .COPY_DEST = 1 },
             null,
         );
+        const transform_buffer = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &gr.resource_desc.buffer(1024),
+            .{ .COPY_DEST = 1 },
+            null,
+        );
 
         // Upload vertex data.
         {
             const upload = dx.allocateUploadBufferRegion(3 * @sizeOf(Vec3));
             var slice = std.mem.bytesAsSlice(Vec3, upload.cpu_slice);
-            slice[0] = Vec3{ .x = -0.5, .y = -0.5, .z = 0.0 };
-            slice[1] = Vec3{ .x = 0.0, .y = 1.0, .z = 0.0 };
-            slice[2] = Vec3{ .x = 1.0, .y = -1.0, .z = 0.0 };
+            slice[0] = vec3(-0.5, -0.5, 0.0);
+            slice[1] = vec3(0.0, 1.0, 0.0);
+            slice[2] = vec3(1.0, -1.0, 0.0);
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(geometry_buffer),
                 0,
@@ -96,6 +105,20 @@ const DemoState = struct {
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(geometry_buffer),
                 3 * @sizeOf(Vec3),
+                upload.buffer,
+                upload.buffer_offset,
+                upload.cpu_slice.len,
+            );
+        }
+        // Upload transform data.
+        {
+            const upload = dx.allocateUploadBufferRegion(1 * @sizeOf(Mat4x4));
+            var slice = std.mem.bytesAsSlice(Mat4x4, upload.cpu_slice);
+            //slice[0] = Mat4x4.translation(0.5, 0.0, 0.0);
+            slice[0] = Mat4x4.identity();
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(transform_buffer),
+                0,
                 upload.buffer,
                 upload.buffer_offset,
                 upload.cpu_slice.len,
@@ -135,6 +158,22 @@ const DemoState = struct {
             index_buffer_srv,
         );
 
+        const transform_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(transform_buffer),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC{
+                .ViewDimension = .BUFFER,
+                .u = .{
+                    .Buffer = d3d12.BUFFER_SRV{
+                        .FirstElement = 0,
+                        .NumElements = 1,
+                        .StructureByteStride = @sizeOf(Mat4x4),
+                    },
+                },
+            },
+            transform_buffer_srv,
+        );
+
         dx.addTransitionBarrier(
             geometry_buffer,
             .{ .VERTEX_AND_CONSTANT_BUFFER = 1, .INDEX_BUFFER = 1 },
@@ -149,14 +188,17 @@ const DemoState = struct {
             .srgb_texture = srgb_texture,
             .srgb_texture_rtv = srgb_texture_rtv,
             .geometry_buffer = geometry_buffer,
+            .transform_buffer = transform_buffer,
             .vertex_buffer_srv = vertex_buffer_srv,
             .index_buffer_srv = index_buffer_srv,
+            .transform_buffer_srv = transform_buffer_srv,
             .pso = pso,
         };
     }
 
     fn deinit(self: *DemoState) void {
         _ = self.dx.releaseResource(self.geometry_buffer);
+        _ = self.dx.releaseResource(self.transform_buffer);
         _ = self.dx.releaseResource(self.srgb_texture);
         _ = self.dx.releasePipeline(self.pso);
         self.dx.deinit();
@@ -185,6 +227,7 @@ const DemoState = struct {
             blk: {
                 const base = dx.copyDescriptorsToGpuHeap(1, self.vertex_buffer_srv);
                 _ = dx.copyDescriptorsToGpuHeap(1, self.index_buffer_srv);
+                _ = dx.copyDescriptorsToGpuHeap(1, self.transform_buffer_srv);
                 break :blk base;
             },
         );
