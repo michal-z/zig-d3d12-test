@@ -84,9 +84,9 @@ const DemoState = struct {
         {
             const upload = dx.allocateUploadBufferRegion(3 * @sizeOf(Vec3));
             var slice = std.mem.bytesAsSlice(Vec3, upload.cpu_slice);
-            slice[0] = vec3(-0.5, -0.5, 0.0);
-            slice[1] = vec3(0.0, 1.0, 0.0);
-            slice[2] = vec3(1.0, -1.0, 0.0);
+            slice[0] = vec3.init(-1.0, -1.0, 0.0);
+            slice[1] = vec3.init(0.0, 1.0, 0.0);
+            slice[2] = vec3.init(1.0, -1.0, 0.0);
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(geometry_buffer),
                 0,
@@ -112,10 +112,19 @@ const DemoState = struct {
         }
         // Upload transform data.
         {
-            const upload = dx.allocateUploadBufferRegion(1 * @sizeOf(Mat4x4));
-            var slice = std.mem.bytesAsSlice(Mat4x4, upload.cpu_slice);
-            //slice[0] = Mat4x4.translation(0.5, 0.0, 0.0);
-            slice[0] = Mat4x4.identity();
+            const upload = dx.allocateUploadBufferRegion(1 * @sizeOf(Mat4));
+            var slice = std.mem.bytesAsSlice(Mat4, upload.cpu_slice);
+            slice[0] = mat4.transpose(
+                mat4.mul(
+                    mat4.initTranslation(0.0, 0.0, 5.0),
+                    mat4.initPerspective(
+                        math.pi / 3.0,
+                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
+                        0.1,
+                        10.0,
+                    ),
+                ),
+            );
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(transform_buffer),
                 0,
@@ -167,7 +176,7 @@ const DemoState = struct {
                     .Buffer = d3d12.BUFFER_SRV{
                         .FirstElement = 0,
                         .NumElements = 1,
-                        .StructureByteStride = @sizeOf(Mat4x4),
+                        .StructureByteStride = @sizeOf(Mat4),
                     },
                 },
             },
