@@ -11,8 +11,20 @@ pub const vec3 = struct {
         return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     }
 
+    pub fn cross(a: Vec3, b: Vec3) Vec3 {
+        return Vec3{
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0],
+        };
+    }
+
     pub fn add(a: Vec3, b: Vec3) Vec3 {
         return Vec3{ a[0] + b[0], a[1] + b[1], a[2] + b[2] };
+    }
+
+    pub fn sub(a: Vec3, b: Vec3) Vec3 {
+        return Vec3{ a[0] - b[0], a[1] - b[1], a[2] - b[2] };
     }
 
     pub fn init(x: f32, y: f32, z: f32) Vec3 {
@@ -21,6 +33,13 @@ pub const vec3 = struct {
 
     pub fn length(a: Vec3) f32 {
         return math.sqrt(dot(a, a));
+    }
+
+    pub fn normalize(a: Vec3) Vec3 {
+        const len = length(a);
+        assert(!math.approxEq(f32, len, 0.0, 0.0001));
+        const rcplen = 1.0 / len;
+        return Vec3{ rcplen * a[0], rcplen * a[1], rcplen * a[2] };
     }
 };
 
@@ -109,6 +128,18 @@ pub const mat4 = struct {
             [_]f32{ 0.0, 1.0, 0.0, 0.0 },
             [_]f32{ 0.0, 0.0, 1.0, 0.0 },
             [_]f32{ x, y, z, 1.0 },
+        };
+    }
+
+    pub fn initLookAt(eye: Vec3, at: Vec3, up: Vec3) Mat4 {
+        const az = vec3.normalize(vec3.sub(at, eye));
+        const ax = vec3.normalize(vec3.cross(up, az));
+        const ay = vec3.normalize(vec3.cross(az, ax));
+        return Mat4{
+            [_]f32{ ax[0], ay[0], az[0], 0.0 },
+            [_]f32{ ax[1], ay[1], az[1], 0.0 },
+            [_]f32{ ax[2], ay[2], az[2], 0.0 },
+            [_]f32{ -vec3.dot(ax, eye), -vec3.dot(ay, eye), -vec3.dot(az, eye), 1.0 },
         };
     }
 };

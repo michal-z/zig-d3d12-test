@@ -210,7 +210,11 @@ const DemoState = struct {
                 mat4.mul(
                     mat4.mul(
                         mat4.initRotationY(@floatCast(f32, stats.time)),
-                        mat4.initTranslation(0.0, 0.0, 4.0),
+                        mat4.initLookAt(
+                            vec3.init(0.0, 0.0, -4.0),
+                            vec3.init(0.0, 0.0, 0.0),
+                            vec3.init(0.0, 1.0, 0.0),
+                        ),
                     ),
                     mat4.initPerspective(
                         math.pi / 3.0,
