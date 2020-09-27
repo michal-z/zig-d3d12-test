@@ -47,8 +47,8 @@ const DemoState = struct {
             .PrimitiveTopologyType = .TRIANGLE,
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
-            .RasterizerState = d3d12.RASTERIZER_DESC{ .CullMode = .NONE },
-            .DepthStencilState = d3d12.DEPTH_STENCIL_DESC{ .DepthEnable = os.FALSE },
+            .RasterizerState = .{ .CullMode = .NONE },
+            .DepthStencilState = .{ .DepthEnable = os.FALSE },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
