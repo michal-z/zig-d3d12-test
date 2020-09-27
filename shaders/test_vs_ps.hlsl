@@ -1,4 +1,5 @@
-#define root_signature "DescriptorTable(SRV(t0, numDescriptors = 3))"
+#define root_signature \
+    "DescriptorTable(SRV(t0, numDescriptors = 3), visibility = SHADER_VISIBILITY_VERTEX)"
 
 struct Vertex {
     float3 position;

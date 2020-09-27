@@ -47,11 +47,8 @@ const DemoState = struct {
             .PrimitiveTopologyType = .TRIANGLE,
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
-            .DepthStencilState = blk: {
-                var desc = d3d12.DEPTH_STENCIL_DESC{};
-                desc.DepthEnable = os.FALSE;
-                break :blk desc;
-            },
+            .RasterizerState = d3d12.RASTERIZER_DESC{ .CullMode = .NONE },
+            .DepthStencilState = d3d12.DEPTH_STENCIL_DESC{ .DepthEnable = os.FALSE },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
@@ -105,29 +102,6 @@ const DemoState = struct {
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(geometry_buffer),
                 3 * @sizeOf(Vec3),
-                upload.buffer,
-                upload.buffer_offset,
-                upload.cpu_slice.len,
-            );
-        }
-        // Upload transform data.
-        {
-            const upload = dx.allocateUploadBufferRegion(1 * @sizeOf(Mat4));
-            var slice = std.mem.bytesAsSlice(Mat4, upload.cpu_slice);
-            slice[0] = mat4.transpose(
-                mat4.mul(
-                    mat4.initTranslation(0.0, 0.0, 5.0),
-                    mat4.initPerspective(
-                        math.pi / 3.0,
-                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
-                        0.1,
-                        10.0,
-                    ),
-                ),
-            );
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(transform_buffer),
-                0,
                 upload.buffer,
                 upload.buffer_offset,
                 upload.cpu_slice.len,
@@ -228,8 +202,37 @@ const DemoState = struct {
             0,
             null,
         );
+        // Upload transform data.
+        {
+            const upload = dx.allocateUploadBufferRegion(1 * @sizeOf(Mat4));
+            var slice = std.mem.bytesAsSlice(Mat4, upload.cpu_slice);
+            slice[0] = mat4.transpose(
+                mat4.mul(
+                    mat4.mul(
+                        mat4.initRotationY(@floatCast(f32, stats.time)),
+                        mat4.initTranslation(0.0, 0.0, 4.0),
+                    ),
+                    mat4.initPerspective(
+                        math.pi / 3.0,
+                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
+                        0.1,
+                        10.0,
+                    ),
+                ),
+            );
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(self.transform_buffer),
+                0,
+                upload.buffer,
+                upload.buffer_offset,
+                upload.cpu_slice.len,
+            );
+        }
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
         dx.setPipelineState(self.pso);
+
+        dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
+        dx.flushResourceBarriers();
 
         dx.cmdlist.SetGraphicsRootDescriptorTable(
             0,
@@ -241,6 +244,7 @@ const DemoState = struct {
             },
         );
         dx.cmdlist.DrawInstanced(3, 1, 0, 0);
+        dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = 1 });
 
         const back_buffer = dx.getBackBuffer();
         dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = 1 });
