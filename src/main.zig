@@ -9,6 +9,7 @@ usingnamespace @import("math.zig");
 const window_name = "zig d3d12 test";
 const window_width = 1920;
 const window_height = 1080;
+const window_num_samples = 8;
 
 const DemoState = struct {
     dx: gr.DxContext,
@@ -31,7 +32,7 @@ const DemoState = struct {
             &blk: {
                 var desc = gr.resource_desc.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
                 desc.Flags = .{ .ALLOW_RENDER_TARGET = 1 };
-                desc.SampleDesc.Count = 8;
+                desc.SampleDesc.Count = window_num_samples;
                 break :blk desc;
             },
             .{ .RENDER_TARGET = 1 },
@@ -57,7 +58,7 @@ const DemoState = struct {
                 const file = @embedFile("../shaders/test.ps.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
             },
-            .SampleDesc = .{ .Count = 8, .Quality = 0 },
+            .SampleDesc = .{ .Count = window_num_samples, .Quality = 0 },
         });
 
         dx.beginFrame();
