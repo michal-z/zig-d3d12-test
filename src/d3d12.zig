@@ -105,6 +105,36 @@ pub const RESOURCE_DESC = extern struct {
     SampleDesc: dxgi.SAMPLE_DESC,
     Layout: TEXTURE_LAYOUT,
     Flags: RESOURCE_FLAGS,
+
+    pub fn buffer(width: u64) RESOURCE_DESC {
+        return RESOURCE_DESC{
+            .Dimension = .BUFFER,
+            .Alignment = 0,
+            .Width = width,
+            .Height = 1,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = .UNKNOWN,
+            .SampleDesc = .{ .Count = 1, .Quality = 0 },
+            .Layout = .ROW_MAJOR,
+            .Flags = .{},
+        };
+    }
+
+    pub fn tex2d(format: dxgi.FORMAT, width: u64, height: u32) RESOURCE_DESC {
+        return RESOURCE_DESC{
+            .Dimension = .TEXTURE2D,
+            .Alignment = 0,
+            .Width = width,
+            .Height = height,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = format,
+            .SampleDesc = .{ .Count = 1, .Quality = 0 },
+            .Layout = .UNKNOWN,
+            .Flags = .{},
+        };
+    }
 };
 
 pub const BOX = extern struct {
@@ -450,9 +480,11 @@ pub const CACHED_PIPELINE_STATE = extern struct {
     CachedBlobSizeInBytes: u64 = 0,
 };
 
-pub const CLEAR_FLAGS = extern enum {
-    CLEAR_FLAG_DEPTH = 0x1,
-    CLEAR_FLAG_STENCIL = 0x2,
+pub const CLEAR_FLAGS = packed struct {
+    DEPTH: u1 = 0,
+    STENCIL: u1 = 0,
+
+    padding: u30 = 0,
 };
 
 pub const PIPELINE_STATE_FLAGS = extern enum {
@@ -906,6 +938,20 @@ pub const CLEAR_VALUE = extern struct {
         Color: [4]f32,
         DepthStencil: DEPTH_STENCIL_VALUE,
     },
+
+    pub fn color(format: dxgi.FORMAT, in_color: [4]f32) CLEAR_VALUE {
+        return CLEAR_VALUE{
+            .Format = format,
+            .u = .{ .Color = in_color },
+        };
+    }
+
+    pub fn depthStencil(format: dxgi.FORMAT, depth: f32, stencil: u8) CLEAR_VALUE {
+        return CLEAR_VALUE{
+            .Format = format,
+            .u = .{ .DepthStencil = .{ .Depth = depth, .Stencil = stencil } },
+        };
+    }
 };
 
 pub const FENCE_FLAGS = extern enum {
@@ -1845,7 +1891,7 @@ pub const IGraphicsCommandList = extern struct {
             f32,
             u8,
             u32,
-            [*]const RECT,
+            [*c]const RECT,
         ) callconv(.Stdcall) void,
         ClearRenderTargetView: fn (
             *Self,
@@ -2179,7 +2225,7 @@ pub const IGraphicsCommandList = extern struct {
                 depth: f32,
                 stencil: u8,
                 num_rects: u32,
-                rects: ?[*]const RECT,
+                rects: [*c]const RECT,
             ) void {
                 self.vtbl.ClearDepthStencilView(
                     self,
@@ -2558,8 +2604,8 @@ pub const IDevice = extern struct {
         ) callconv(.Stdcall) void,
         CreateDepthStencilView: fn (
             *Self,
-            *IResource,
-            *const DEPTH_STENCIL_VIEW_DESC,
+            ?*IResource,
+            ?*const DEPTH_STENCIL_VIEW_DESC,
             CPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) void,
         CreateSampler: fn (*Self, *const SAMPLER_DESC, CPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
@@ -2805,8 +2851,8 @@ pub const IDevice = extern struct {
             }
             pub inline fn CreateDepthStencilView(
                 self: *T,
-                resource: *IResource,
-                desc: *const DEPTH_STENCIL_VIEW_DESC,
+                resource: ?*IResource,
+                desc: ?*const DEPTH_STENCIL_VIEW_DESC,
                 dst_descriptor: CPU_DESCRIPTOR_HANDLE,
             ) void {
                 self.vtbl.CreateDepthStencilView(self, resource, desc, dst_descriptor);

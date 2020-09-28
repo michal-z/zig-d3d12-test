@@ -13,12 +13,13 @@ const window_num_samples = 8;
 
 const DemoState = struct {
     dx: gr.DxContext,
-    window: os.HWND,
     srgb_texture: gr.ResourceHandle,
+    depth_texture: gr.ResourceHandle,
     geometry_buffer: gr.ResourceHandle,
     transform_buffer: gr.ResourceHandle,
     pso: gr.PipelineHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    depth_texture_dsv: d3d12.CPU_DESCRIPTOR_HANDLE,
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
@@ -30,26 +31,38 @@ const DemoState = struct {
             .DEFAULT,
             .{},
             &blk: {
-                var desc = gr.resource_desc.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
+                var desc = d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
                 desc.Flags = .{ .ALLOW_RENDER_TARGET = 1 };
                 desc.SampleDesc.Count = window_num_samples;
                 break :blk desc;
             },
             .{ .RENDER_TARGET = 1 },
-            &d3d12.CLEAR_VALUE{
-                .Format = .R8G8B8A8_UNORM_SRGB,
-                .u = .{ .Color = [4]f32{ 0.2, 0.4, 0.8, 1.0 } },
-            },
+            &d3d12.CLEAR_VALUE.color(.R8G8B8A8_UNORM_SRGB, [4]f32{ 0.2, 0.4, 0.8, 1.0 }),
         );
         const srgb_texture_rtv = dx.allocateCpuDescriptors(.RTV, 1);
         dx.device.CreateRenderTargetView(dx.getResource(srgb_texture), null, srgb_texture_rtv);
+
+        const depth_texture = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &blk: {
+                var desc = d3d12.RESOURCE_DESC.tex2d(.D32_FLOAT, window_width, window_height);
+                desc.Flags = .{ .ALLOW_DEPTH_STENCIL = 1, .DENY_SHADER_RESOURCE = 1 };
+                desc.SampleDesc.Count = window_num_samples;
+                break :blk desc;
+            },
+            .{ .DEPTH_WRITE = 1 },
+            &d3d12.CLEAR_VALUE.depthStencil(.D32_FLOAT, 1.0, 0),
+        );
+        const depth_texture_dsv = dx.allocateCpuDescriptors(.DSV, 1);
+        dx.device.CreateDepthStencilView(dx.getResource(depth_texture), null, depth_texture_dsv);
 
         const pso = dx.createGraphicsPipeline(d3d12.GRAPHICS_PIPELINE_STATE_DESC{
             .PrimitiveTopologyType = .TRIANGLE,
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
+            .DSVFormat = .D32_FLOAT,
             .RasterizerState = .{ .CullMode = .NONE },
-            .DepthStencilState = .{ .DepthEnable = os.FALSE },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
@@ -66,14 +79,14 @@ const DemoState = struct {
         const geometry_buffer = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &gr.resource_desc.buffer(1024),
+            &d3d12.RESOURCE_DESC.buffer(1024),
             .{ .COPY_DEST = 1 },
             null,
         );
         const transform_buffer = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &gr.resource_desc.buffer(1024),
+            &d3d12.RESOURCE_DESC.buffer(1024),
             .{ .COPY_DEST = 1 },
             null,
         );
@@ -168,9 +181,10 @@ const DemoState = struct {
 
         return DemoState{
             .dx = dx,
-            .window = window,
             .srgb_texture = srgb_texture,
             .srgb_texture_rtv = srgb_texture_rtv,
+            .depth_texture = depth_texture,
+            .depth_texture_dsv = depth_texture_dsv,
             .geometry_buffer = geometry_buffer,
             .transform_buffer = transform_buffer,
             .vertex_buffer_srv = vertex_buffer_srv,
@@ -184,25 +198,27 @@ const DemoState = struct {
         _ = self.dx.releaseResource(self.geometry_buffer);
         _ = self.dx.releaseResource(self.transform_buffer);
         _ = self.dx.releaseResource(self.srgb_texture);
+        _ = self.dx.releaseResource(self.depth_texture);
         _ = self.dx.releasePipeline(self.pso);
         self.dx.deinit();
         self.* = undefined;
     }
 
     fn update(self: *DemoState) void {
-        const stats = updateFrameStats(self.window, window_name);
+        const stats = updateFrameStats(self.dx.window, window_name);
         var dx = &self.dx;
 
         dx.beginFrame();
         dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = 1 });
         dx.flushResourceBarriers();
-        dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, null);
+        dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, &self.depth_texture_dsv);
         dx.cmdlist.ClearRenderTargetView(
             self.srgb_texture_rtv,
             &[4]f32{ 0.2, 0.4, 0.8, 1.0 },
             0,
             null,
         );
+        dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = 1 }, 1.0, 0.0, 0, null);
         // Upload transform data.
         {
             const upload = dx.allocateUploadBufferRegion(1 * @sizeOf(Mat4));

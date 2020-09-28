@@ -56,6 +56,7 @@ pub const DxContext = struct {
     buffered_resource_barriers: []d3d12.RESOURCE_BARRIER,
     viewport_width: u32,
     viewport_height: u32,
+    window: os.HWND,
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
@@ -230,6 +231,7 @@ pub const DxContext = struct {
             ) catch unreachable,
             .viewport_width = viewport_width,
             .viewport_height = viewport_height,
+            .window = window,
         };
     }
 
@@ -874,7 +876,7 @@ const GpuMemoryHeap = struct {
         vhr(device.CreateCommittedResource(
             &d3d12.HEAP_PROPERTIES{ .Type = heap_type },
             .{},
-            &resource_desc.buffer(capacity),
+            &d3d12.RESOURCE_DESC.buffer(capacity),
             d3d12.RESOURCE_STATES.genericRead(),
             null,
             &d3d12.IID_IResource,
@@ -913,37 +915,5 @@ const GpuMemoryHeap = struct {
 
         self.size += aligned_size;
         return .{ .cpu_slice = cpu_slice, .gpu_addr = gpu_addr };
-    }
-};
-
-pub const resource_desc = struct {
-    pub fn buffer(width: u64) d3d12.RESOURCE_DESC {
-        return d3d12.RESOURCE_DESC{
-            .Dimension = .BUFFER,
-            .Alignment = 0,
-            .Width = width,
-            .Height = 1,
-            .DepthOrArraySize = 1,
-            .MipLevels = 1,
-            .Format = .UNKNOWN,
-            .SampleDesc = .{ .Count = 1, .Quality = 0 },
-            .Layout = .ROW_MAJOR,
-            .Flags = .{},
-        };
-    }
-
-    pub fn tex2d(format: dxgi.FORMAT, width: u64, height: u32) d3d12.RESOURCE_DESC {
-        return d3d12.RESOURCE_DESC{
-            .Dimension = .TEXTURE2D,
-            .Alignment = 0,
-            .Width = width,
-            .Height = height,
-            .DepthOrArraySize = 1,
-            .MipLevels = 1,
-            .Format = format,
-            .SampleDesc = .{ .Count = 1, .Quality = 0 },
-            .Layout = .UNKNOWN,
-            .Flags = .{},
-        };
     }
 };
