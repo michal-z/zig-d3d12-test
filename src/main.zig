@@ -125,49 +125,21 @@ const DemoState = struct {
         const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
             dx.getResource(geometry_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC{
-                .ViewDimension = .BUFFER,
-                .u = .{
-                    .Buffer = d3d12.BUFFER_SRV{
-                        .FirstElement = 0,
-                        .NumElements = 3,
-                        .StructureByteStride = @sizeOf(Vec3),
-                    },
-                },
-            },
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, 3, @sizeOf(Vec3)),
             vertex_buffer_srv,
         );
 
         const index_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
             dx.getResource(geometry_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC{
-                .Format = .R32_UINT,
-                .ViewDimension = .BUFFER,
-                .u = .{
-                    .Buffer = d3d12.BUFFER_SRV{
-                        .FirstElement = 3 * @sizeOf(Vec3) / @sizeOf(u32),
-                        .NumElements = 3,
-                        .StructureByteStride = 0,
-                    },
-                },
-            },
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.typedBuffer(.R32_UINT, 3 * @sizeOf(Vec3) / @sizeOf(u32), 3),
             index_buffer_srv,
         );
 
         const transform_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
             dx.getResource(transform_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC{
-                .ViewDimension = .BUFFER,
-                .u = .{
-                    .Buffer = d3d12.BUFFER_SRV{
-                        .FirstElement = 0,
-                        .NumElements = 1,
-                        .StructureByteStride = @sizeOf(Mat4),
-                    },
-                },
-            },
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, 1, @sizeOf(Mat4)),
             transform_buffer_srv,
         );
 
@@ -175,6 +147,10 @@ const DemoState = struct {
         dx.flushResourceBarriers();
         dx.closeAndExecuteCommandList();
         dx.waitForGpu();
+
+        //var buf: [128]u8 = undefined;
+        //const p = std.fmt.bufPrint(buf[0..], "{}\\data", .{std.fs.selfExeDirPath(buf[0..])});
+        //std.log.info("{}", .{p});
 
         return DemoState{
             .dx = dx,

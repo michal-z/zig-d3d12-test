@@ -656,6 +656,41 @@ pub const SHADER_RESOURCE_VIEW_DESC = extern struct {
         TextureCube: TEXCUBE_SRV,
         TextureCubeArray: TEXCUBE_ARRAY_SRV,
     },
+
+    pub fn typedBuffer(
+        format: dxgi.FORMAT,
+        first_element: u64,
+        num_elements: u32,
+    ) SHADER_RESOURCE_VIEW_DESC {
+        return SHADER_RESOURCE_VIEW_DESC{
+            .Format = format,
+            .ViewDimension = .BUFFER,
+            .u = .{
+                .Buffer = BUFFER_SRV{
+                    .FirstElement = first_element,
+                    .NumElements = num_elements,
+                    .StructureByteStride = 0,
+                },
+            },
+        };
+    }
+
+    pub fn structuredBuffer(
+        first_element: u64,
+        num_elements: u32,
+        stride: u32,
+    ) SHADER_RESOURCE_VIEW_DESC {
+        return SHADER_RESOURCE_VIEW_DESC{
+            .ViewDimension = .BUFFER,
+            .u = .{
+                .Buffer = BUFFER_SRV{
+                    .FirstElement = first_element,
+                    .NumElements = num_elements,
+                    .StructureByteStride = stride,
+                },
+            },
+        };
+    }
 };
 
 pub const FILTER = extern enum {
