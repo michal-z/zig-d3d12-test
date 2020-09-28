@@ -5,8 +5,8 @@ const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
 
-const num_frames = 2;
-const num_swapbuffers = 4;
+const num_frames = 3;
+const num_swapbuffers = 3;
 const num_rtv_descriptors = 128;
 const num_dsv_descriptors = 128;
 const num_cbv_srv_uav_cpu_descriptors = 16 * 1024;

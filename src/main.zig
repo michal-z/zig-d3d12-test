@@ -171,10 +171,7 @@ const DemoState = struct {
             transform_buffer_srv,
         );
 
-        dx.addTransitionBarrier(
-            geometry_buffer,
-            .{ .VERTEX_AND_CONSTANT_BUFFER = 1, .INDEX_BUFFER = 1 },
-        );
+        dx.addTransitionBarrier(geometry_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.flushResourceBarriers();
         dx.closeAndExecuteCommandList();
         dx.waitForGpu();
