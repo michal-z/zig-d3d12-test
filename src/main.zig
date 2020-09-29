@@ -11,6 +11,22 @@ const window_width = 1920;
 const window_height = 1080;
 const window_num_samples = 8;
 
+const Vertex = struct {
+    position: Vec3,
+    normal: Vec3,
+};
+
+const Triangle = struct {
+    index0: u32,
+    index1: u32,
+    index2: u32,
+};
+
+comptime {
+    assert(@sizeOf(Vertex) == 24);
+    assert(@sizeOf(Triangle) == 12);
+}
+
 const DemoState = struct {
     dx: gr.DxContext,
     srgb_texture: gr.ResourceHandle,
@@ -62,7 +78,7 @@ const DemoState = struct {
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
             .DSVFormat = .D32_FLOAT,
-            .RasterizerState = .{ .CullMode = .NONE },
+            .RasterizerState = .{ .CullMode = .NONE, .FillMode = .WIREFRAME },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
@@ -91,51 +107,6 @@ const DemoState = struct {
             null,
         );
 
-        // Upload vertex data.
-        {
-            const upload = dx.allocateUploadBufferRegion(3 * @sizeOf(Vec3));
-            var slice = std.mem.bytesAsSlice(Vec3, upload.cpu_slice);
-            slice[0] = vec3.init(-1.0, -1.0, 0.0);
-            slice[1] = vec3.init(0.0, 1.0, 0.0);
-            slice[2] = vec3.init(1.0, -1.0, 0.0);
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(geometry_buffer),
-                0,
-                upload.buffer,
-                upload.buffer_offset,
-                upload.cpu_slice.len,
-            );
-        }
-        // Upload index data.
-        {
-            const upload = dx.allocateUploadBufferRegion(3 * @sizeOf(u32));
-            var slice = std.mem.bytesAsSlice(u32, upload.cpu_slice);
-            slice[0] = 0;
-            slice[1] = 1;
-            slice[2] = 2;
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(geometry_buffer),
-                3 * @sizeOf(Vec3),
-                upload.buffer,
-                upload.buffer_offset,
-                upload.cpu_slice.len,
-            );
-        }
-
-        const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(geometry_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, 3, @sizeOf(Vec3)),
-            vertex_buffer_srv,
-        );
-
-        const index_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(geometry_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.typedBuffer(.R32_UINT, 3 * @sizeOf(Vec3) / @sizeOf(u32), 3),
-            index_buffer_srv,
-        );
-
         const transform_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
             dx.getResource(transform_buffer),
@@ -143,14 +114,67 @@ const DemoState = struct {
             transform_buffer_srv,
         );
 
+        var buf: [256]u8 = undefined;
+        const path = std.fmt.bufPrint(
+            buf[0..],
+            "{}/data/cube.ply",
+            .{std.fs.selfExeDirPath(buf[0..])},
+        ) catch unreachable;
+
+        var ply = PlyFileLoader.init(path);
+        defer ply.deinit();
+
+        const upload_verts = dx.allocateUploadBufferRegion(ply.num_vertices * @sizeOf(Vertex));
+        const upload_tris = dx.allocateUploadBufferRegion(ply.num_triangles * @sizeOf(Triangle));
+
+        var vertices = std.mem.bytesAsSlice(
+            Vertex,
+            @alignCast(@alignOf(Vertex), upload_verts.cpu_slice),
+        );
+        var triangles = std.mem.bytesAsSlice(
+            Triangle,
+            @alignCast(@alignOf(Triangle), upload_tris.cpu_slice),
+        );
+
+        ply.load(vertices, triangles);
+
+        dx.cmdlist.CopyBufferRegion(
+            dx.getResource(geometry_buffer),
+            0,
+            upload_verts.buffer,
+            upload_verts.buffer_offset,
+            upload_verts.cpu_slice.len,
+        );
+        dx.cmdlist.CopyBufferRegion(
+            dx.getResource(geometry_buffer),
+            ply.num_vertices * @sizeOf(Vertex),
+            upload_tris.buffer,
+            upload_tris.buffer_offset,
+            upload_tris.cpu_slice.len,
+        );
+
+        const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(geometry_buffer),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, ply.num_vertices, @sizeOf(Vertex)),
+            vertex_buffer_srv,
+        );
+
+        const index_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(geometry_buffer),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.typedBuffer(
+                .R32_UINT,
+                ply.num_vertices * @sizeOf(Vertex) / @sizeOf(u32),
+                3 * ply.num_triangles,
+            ),
+            index_buffer_srv,
+        );
+
         dx.addTransitionBarrier(geometry_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.flushResourceBarriers();
         dx.closeAndExecuteCommandList();
         dx.waitForGpu();
-
-        //var buf: [128]u8 = undefined;
-        //const p = std.fmt.bufPrint(buf[0..], "{}\\data", .{std.fs.selfExeDirPath(buf[0..])});
-        //std.log.info("{}", .{p});
 
         return DemoState{
             .dx = dx,
@@ -238,7 +262,7 @@ const DemoState = struct {
                 break :blk base;
             },
         );
-        dx.cmdlist.DrawInstanced(3, 1, 0, 0);
+        dx.cmdlist.DrawInstanced(36, 1, 0, 0);
         dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = 1 });
 
         const back_buffer = dx.getBackBuffer();
@@ -256,6 +280,84 @@ const DemoState = struct {
         dx.addTransitionBarrier(back_buffer.resource_handle, .{});
         dx.flushResourceBarriers();
         dx.endFrame();
+    }
+};
+
+const PlyFileLoader = struct {
+    num_vertices: u32,
+    num_triangles: u32,
+    file: std.fs.File,
+
+    fn init(path: []const u8) PlyFileLoader {
+        const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
+
+        var num_vertices: u32 = 0;
+        var num_triangles: u32 = 0;
+
+        var buf: [128]u8 = undefined;
+        const reader = file.reader();
+        line_loop: while (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch null) |line| {
+            var it = std.mem.split(line, " ");
+
+            while (it.next()) |item| {
+                if (std.mem.eql(u8, item, "end_header")) {
+                    break :line_loop;
+                } else if (std.mem.eql(u8, item, "vertex")) {
+                    num_vertices = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+                } else if (std.mem.eql(u8, item, "face")) {
+                    num_triangles = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+                }
+            }
+        }
+        assert(num_vertices > 0 and num_triangles > 0);
+
+        return PlyFileLoader{
+            .num_vertices = num_vertices,
+            .num_triangles = num_triangles,
+            .file = file,
+        };
+    }
+
+    fn deinit(self: *PlyFileLoader) void {
+        self.file.close();
+        self.* = undefined;
+    }
+
+    fn load(self: PlyFileLoader, vertices: []Vertex, triangles: []Triangle) void {
+        var buf: [256]u8 = undefined;
+        const reader = self.file.reader();
+
+        for (vertices) |*vertex| {
+            const line = reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable;
+            var it = std.mem.split(line.?, " ");
+
+            vertex.* = Vertex{
+                .position = Vec3{
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                },
+                .normal = Vec3{
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                },
+            };
+        }
+
+        for (triangles) |*tri| {
+            const line = reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable;
+            var it = std.mem.split(line.?, " ");
+
+            const num_verts = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+            assert(num_verts == 3);
+
+            tri.* = Triangle{
+                .index0 = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable,
+                .index1 = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable,
+                .index2 = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable,
+            };
+        }
     }
 };
 
