@@ -74,10 +74,12 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &factory),
         ));
 
-        var debug: *d3d12.IDebug = undefined;
-        vhr(d3d12.GetDebugInterface(&d3d12.IID_IDebug, @ptrCast(**c_void, &debug)));
-        debug.EnableDebugLayer();
-        releaseCom(&debug);
+        if (comptime builtin.mode == .Debug) {
+            var debug: *d3d12.IDebug = undefined;
+            vhr(d3d12.GetDebugInterface(&d3d12.IID_IDebug, @ptrCast(**c_void, &debug)));
+            debug.EnableDebugLayer();
+            releaseCom(&debug);
+        }
 
         var device: *d3d12.IDevice = undefined;
         vhr(d3d12.CreateDevice(
