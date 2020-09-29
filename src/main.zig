@@ -124,33 +124,24 @@ const DemoState = struct {
         var ply = PlyFileLoader.init(path);
         defer ply.deinit();
 
-        const upload_verts = dx.allocateUploadBufferRegion(ply.num_vertices * @sizeOf(Vertex));
-        const upload_tris = dx.allocateUploadBufferRegion(ply.num_triangles * @sizeOf(Triangle));
+        const upload_verts = dx.allocateUploadBufferRegion(Vertex, ply.num_vertices);
+        const upload_tris = dx.allocateUploadBufferRegion(Triangle, ply.num_triangles);
 
-        var vertices = std.mem.bytesAsSlice(
-            Vertex,
-            @alignCast(@alignOf(Vertex), upload_verts.cpu_slice),
-        );
-        var triangles = std.mem.bytesAsSlice(
-            Triangle,
-            @alignCast(@alignOf(Triangle), upload_tris.cpu_slice),
-        );
-
-        ply.load(vertices, triangles);
+        ply.load(upload_verts.cpu_slice, upload_tris.cpu_slice);
 
         dx.cmdlist.CopyBufferRegion(
             dx.getResource(geometry_buffer),
             0,
             upload_verts.buffer,
             upload_verts.buffer_offset,
-            upload_verts.cpu_slice.len,
+            upload_verts.cpu_slice.len * @sizeOf(Vertex),
         );
         dx.cmdlist.CopyBufferRegion(
             dx.getResource(geometry_buffer),
             ply.num_vertices * @sizeOf(Vertex),
             upload_tris.buffer,
             upload_tris.buffer_offset,
-            upload_tris.cpu_slice.len,
+            upload_tris.cpu_slice.len * @sizeOf(Triangle),
         );
 
         const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
@@ -219,9 +210,8 @@ const DemoState = struct {
         dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = 1 }, 1.0, 0.0, 0, null);
         // Upload transform data.
         {
-            const upload = dx.allocateUploadBufferRegion(@sizeOf(Mat4));
-            var slice = std.mem.bytesAsSlice(Mat4, @alignCast(@alignOf(Mat4), upload.cpu_slice));
-            slice[0] = mat4.transpose(
+            const upload = dx.allocateUploadBufferRegion(Mat4, 1);
+            upload.cpu_slice[0] = mat4.transpose(
                 mat4.mul(
                     mat4.mul(
                         mat4.initRotationY(@floatCast(f32, stats.time)),
@@ -244,7 +234,7 @@ const DemoState = struct {
                 0,
                 upload.buffer,
                 upload.buffer_offset,
-                upload.cpu_slice.len,
+                upload.cpu_slice.len * @sizeOf(Mat4),
             );
         }
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);

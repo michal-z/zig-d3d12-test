@@ -573,7 +573,7 @@ pub const DxContext = struct {
         return refcount;
     }
 
-    pub fn allocateUploadMemory(
+    fn allocateUploadMemory(
         dx: *DxContext,
         size: u32,
     ) struct { cpu_slice: []u8, gpu_addr: d3d12.GPU_VIRTUAL_ADDRESS } {
@@ -594,12 +594,14 @@ pub const DxContext = struct {
 
     pub fn allocateUploadBufferRegion(
         dx: *DxContext,
-        size: u32,
-    ) struct { cpu_slice: []u8, buffer: *d3d12.IResource, buffer_offset: u64 } {
+        comptime T: type,
+        num_elements: u32,
+    ) struct { cpu_slice: []T, buffer: *d3d12.IResource, buffer_offset: u64 } {
+        const size = num_elements * @sizeOf(T);
         const memory = dx.allocateUploadMemory(size);
         const aligned_size = (size + 255) & 0xffff_ff00;
         return .{
-            .cpu_slice = memory.cpu_slice,
+            .cpu_slice = std.mem.bytesAsSlice(T, @alignCast(@alignOf(T), memory.cpu_slice)),
             .buffer = dx.upload_memory_heaps[dx.frame_index].heap,
             .buffer_offset = dx.upload_memory_heaps[dx.frame_index].size - aligned_size,
         };
