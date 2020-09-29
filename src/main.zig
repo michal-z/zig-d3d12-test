@@ -78,7 +78,7 @@ const DemoState = struct {
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
             .DSVFormat = .D32_FLOAT,
-            .RasterizerState = .{ .CullMode = .NONE, .FillMode = .WIREFRAME },
+            .RasterizerState = .{ .CullMode = .NONE },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
@@ -219,14 +219,14 @@ const DemoState = struct {
         dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = 1 }, 1.0, 0.0, 0, null);
         // Upload transform data.
         {
-            const upload = dx.allocateUploadBufferRegion(1 * @sizeOf(Mat4));
-            var slice = std.mem.bytesAsSlice(Mat4, upload.cpu_slice);
+            const upload = dx.allocateUploadBufferRegion(@sizeOf(Mat4));
+            var slice = std.mem.bytesAsSlice(Mat4, @alignCast(@alignOf(Mat4), upload.cpu_slice));
             slice[0] = mat4.transpose(
                 mat4.mul(
                     mat4.mul(
                         mat4.initRotationY(@floatCast(f32, stats.time)),
                         mat4.initLookAt(
-                            vec3.init(0.0, 0.0, -4.0),
+                            vec3.init(0.0, 2.0, -4.0),
                             vec3.init(0.0, 0.0, 0.0),
                             vec3.init(0.0, 1.0, 0.0),
                         ),

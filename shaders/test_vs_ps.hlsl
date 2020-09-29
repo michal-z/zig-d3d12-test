@@ -17,17 +17,24 @@ StructuredBuffer<Transform> srv_transforms : register(t2);
 [RootSignature(root_signature)]
 void vsMain(
     in uint vertex_id : SV_VertexID,
-    out float4 out_position : SV_Position)
+    out float4 out_position : SV_Position,
+    out float3 out_color : _Color)
 {
     uint vertex_index = srv_indices[vertex_id];
-    float3 position = srv_vertices[vertex_index].position;
+    Vertex vertex = srv_vertices[vertex_index];
+
+    float3 position = vertex.position;
+    float3 normal = vertex.normal;
+
+    out_color = abs(normal);
     out_position = mul(float4(position, 1.0f), srv_transforms[0].m4x4);
 }
 
 [RootSignature(root_signature)]
 void psMain(
     in float4 in_position : SV_Position,
+    in float3 in_color : _Color,
     out float4 out_color : SV_Target0)
 {
-    out_color = float4(1.0f, 0.5f, 0.0f, 1.0f);
+    out_color = float4(in_color, 1.0f);
 }
