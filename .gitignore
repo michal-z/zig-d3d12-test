@@ -1,2 +1,6 @@
-zig-cache
+zig-cache/h
+zig-cache/o
+zig-cache/bin/.vs
 *.cso
+*.exe
+*.pdb
