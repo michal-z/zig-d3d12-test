@@ -168,6 +168,7 @@ const DemoState = struct {
     }
 
     fn deinit(self: *DemoState) void {
+        self.dx.waitForGpu();
         _ = self.dx.releaseResource(self.geometry_buffer);
         _ = self.dx.releaseResource(self.transform_buffer);
         _ = self.dx.releaseResource(self.srgb_texture);
