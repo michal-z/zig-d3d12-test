@@ -75,10 +75,12 @@ pub const DxContext = struct {
         ));
 
         if (comptime builtin.mode == .Debug) {
-            var debug: *d3d12.IDebug = undefined;
-            vhr(d3d12.GetDebugInterface(&d3d12.IID_IDebug, @ptrCast(**c_void, &debug)));
-            debug.EnableDebugLayer();
-            releaseCom(&debug);
+            var debug: *d3d12.IDebug1 = undefined;
+            if (d3d12.GetDebugInterface(&d3d12.IID_IDebug1, @ptrCast(**c_void, &debug)) == 0) {
+                debug.EnableDebugLayer();
+                debug.SetEnableGPUBasedValidation(os.TRUE);
+                releaseCom(&debug);
+            }
         }
 
         var device: *d3d12.IDevice = undefined;

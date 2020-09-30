@@ -1280,23 +1280,31 @@ pub const IBlob = extern struct {
     }
 };
 
-pub const IDebug = extern struct {
+pub const IDebug1 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
         QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
-        // ID3D12Debug
+        // ID3D12Debug1
         EnableDebugLayer: fn (*Self) callconv(.Stdcall) void,
+        SetEnableGPUBasedValidation: fn (*Self, os.BOOL) callconv(.Stdcall) void,
+        SetEnableSynchronizedCommandQueueValidation: fn (*Self, os.BOOL) callconv(.Stdcall) void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IDebug.Methods(Self);
+    usingnamespace IDebug1.Methods(Self);
 
     fn Methods(comptime T: type) type {
         return extern struct {
             pub inline fn EnableDebugLayer(self: *T) void {
                 self.vtbl.EnableDebugLayer(self);
+            }
+            pub inline fn SetEnableGPUBasedValidation(self: *T, enable: os.BOOL) void {
+                self.vtbl.SetEnableGPUBasedValidation(self, enable);
+            }
+            pub inline fn SetEnableSynchronizedCommandQueueValidation(self: *T, enable: os.BOOL) void {
+                self.vtbl.SetEnableSynchronizedCommandQueueValidation(self, enable);
             }
         };
     }
@@ -3123,12 +3131,6 @@ pub const IDevice = extern struct {
     }
 };
 
-pub const IID_IDebug = os.GUID{
-    .Data1 = 0x344488b7,
-    .Data2 = 0x6846,
-    .Data3 = 0x474b,
-    .Data4 = .{ 0xb9, 0x89, 0xf0, 0x27, 0x44, 0x82, 0x45, 0xe0 },
-};
 pub const IID_IDebug1 = os.GUID{
     .Data1 = 0xaffaa4ca,
     .Data2 = 0x63fe,
