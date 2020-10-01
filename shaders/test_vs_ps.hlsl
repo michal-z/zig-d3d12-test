@@ -1,5 +1,5 @@
 #define root_signature \
-    "RootConstants(b0, num32BitConstants = 3), " \
+    "RootConstants(b0, num32BitConstants = 2), " \
     "DescriptorTable(SRV(t0, numDescriptors = 3), visibility = SHADER_VISIBILITY_VERTEX)"
 
 struct Vertex {
@@ -14,7 +14,6 @@ struct Transform {
 struct DrawCallParams {
     uint start_index_location;
     uint base_vertex_location;
-    uint transform_location;
 };
 
 ConstantBuffer<DrawCallParams> drawcall : register(b0);

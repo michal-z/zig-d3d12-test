@@ -31,11 +31,15 @@ comptime {
 }
 
 // NOTE: Do not change the order of fields.
-const DrawCall = struct {
+const Mesh = struct {
     start_index_location: u32,
     base_vertex_location: u32,
-    transform_location: u32,
     num_indices: u32,
+};
+
+const Entity = struct {
+    mesh: Mesh,
+    position: Vec3,
 };
 
 const DemoState = struct {
@@ -51,7 +55,7 @@ const DemoState = struct {
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
-    draw_calls: [2]DrawCall,
+    meshes: [2]Mesh,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
@@ -148,15 +152,17 @@ const DemoState = struct {
 
         dx.beginFrame();
 
-        var draw_calls: [2]DrawCall = undefined;
+        const mesh_names = [_][]const u8{ "cube", "cube" };
+        var meshes: [2]Mesh = undefined;
         var start_index_location: u32 = 0;
         var base_vertex_location: u32 = 0;
-        {
+
+        for (meshes) |*mesh, mesh_idx| {
             var buf: [256]u8 = undefined;
             const path = std.fmt.bufPrint(
                 buf[0..],
-                "{}/data/cube.ply",
-                .{std.fs.selfExeDirPath(buf[0..])},
+                "{}/data/{}.ply",
+                .{ std.fs.selfExeDirPath(buf[0..]), mesh_names[mesh_idx] },
             ) catch unreachable;
 
             var ply = PlyFileLoader.init(path);
@@ -182,52 +188,10 @@ const DemoState = struct {
                 upload_tris.cpu_slice.len * @sizeOf(Triangle),
             );
 
-            draw_calls[0] = DrawCall{
+            mesh.* = Mesh{
                 .num_indices = ply.num_triangles * 3,
                 .start_index_location = start_index_location,
                 .base_vertex_location = base_vertex_location,
-                .transform_location = 0,
-            };
-
-            start_index_location += ply.num_triangles * 3;
-            base_vertex_location += ply.num_vertices;
-        }
-        {
-            var buf: [256]u8 = undefined;
-            const path = std.fmt.bufPrint(
-                buf[0..],
-                "{}/data/cube.ply",
-                .{std.fs.selfExeDirPath(buf[0..])},
-            ) catch unreachable;
-
-            var ply = PlyFileLoader.init(path);
-            defer ply.deinit();
-
-            const upload_verts = dx.allocateUploadBufferRegion(Vertex, ply.num_vertices);
-            const upload_tris = dx.allocateUploadBufferRegion(Triangle, ply.num_triangles);
-
-            ply.load(upload_verts.cpu_slice, upload_tris.cpu_slice);
-
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(vertex_buffer),
-                base_vertex_location * @sizeOf(Vertex),
-                upload_verts.buffer,
-                upload_verts.buffer_offset,
-                upload_verts.cpu_slice.len * @sizeOf(Vertex),
-            );
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(index_buffer),
-                start_index_location * @sizeOf(u32),
-                upload_tris.buffer,
-                upload_tris.buffer_offset,
-                upload_tris.cpu_slice.len * @sizeOf(Triangle),
-            );
-
-            draw_calls[1] = DrawCall{
-                .num_indices = ply.num_triangles * 3,
-                .start_index_location = start_index_location,
-                .base_vertex_location = base_vertex_location,
-                .transform_location = 0,
             };
 
             start_index_location += ply.num_triangles * 3;
@@ -253,7 +217,7 @@ const DemoState = struct {
             .index_buffer_srv = index_buffer_srv,
             .transform_buffer_srv = transform_buffer_srv,
             .pso = pso,
-            .draw_calls = draw_calls,
+            .meshes = meshes,
         };
     }
 
@@ -326,9 +290,9 @@ const DemoState = struct {
             break :blk base;
         };
 
-        dx.cmdlist.SetGraphicsRoot32BitConstants(0, 3, &self.draw_calls[1], 0);
+        dx.cmdlist.SetGraphicsRoot32BitConstants(0, 2, &self.meshes[1], 0);
         dx.cmdlist.SetGraphicsRootDescriptorTable(1, descriptor_table_base);
-        dx.cmdlist.DrawInstanced(self.draw_calls[1].num_indices, 1, 0, 0);
+        dx.cmdlist.DrawInstanced(self.meshes[1].num_indices, 1, 0, 0);
 
         dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = 1 });
 
