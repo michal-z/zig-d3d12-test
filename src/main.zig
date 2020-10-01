@@ -94,8 +94,6 @@ const DemoState = struct {
             .SampleDesc = .{ .Count = window_num_samples, .Quality = 0 },
         });
 
-        dx.beginFrame();
-
         const vertex_buffer = dx.createCommittedResource(
             .DEFAULT,
             .{},
@@ -139,35 +137,39 @@ const DemoState = struct {
             transform_buffer_srv,
         );
 
-        var buf: [256]u8 = undefined;
-        const path = std.fmt.bufPrint(
-            buf[0..],
-            "{}/data/cube.ply",
-            .{std.fs.selfExeDirPath(buf[0..])},
-        ) catch unreachable;
+        dx.beginFrame();
 
-        var ply = PlyFileLoader.init(path);
-        defer ply.deinit();
+        {
+            var buf: [256]u8 = undefined;
+            const path = std.fmt.bufPrint(
+                buf[0..],
+                "{}/data/cube.ply",
+                .{std.fs.selfExeDirPath(buf[0..])},
+            ) catch unreachable;
 
-        const upload_verts = dx.allocateUploadBufferRegion(Vertex, ply.num_vertices);
-        const upload_tris = dx.allocateUploadBufferRegion(Triangle, ply.num_triangles);
+            var ply = PlyFileLoader.init(path);
+            defer ply.deinit();
 
-        ply.load(upload_verts.cpu_slice, upload_tris.cpu_slice);
+            const upload_verts = dx.allocateUploadBufferRegion(Vertex, ply.num_vertices);
+            const upload_tris = dx.allocateUploadBufferRegion(Triangle, ply.num_triangles);
 
-        dx.cmdlist.CopyBufferRegion(
-            dx.getResource(vertex_buffer),
-            0,
-            upload_verts.buffer,
-            upload_verts.buffer_offset,
-            upload_verts.cpu_slice.len * @sizeOf(Vertex),
-        );
-        dx.cmdlist.CopyBufferRegion(
-            dx.getResource(index_buffer),
-            0,
-            upload_tris.buffer,
-            upload_tris.buffer_offset,
-            upload_tris.cpu_slice.len * @sizeOf(Triangle),
-        );
+            ply.load(upload_verts.cpu_slice, upload_tris.cpu_slice);
+
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(vertex_buffer),
+                0,
+                upload_verts.buffer,
+                upload_verts.buffer_offset,
+                upload_verts.cpu_slice.len * @sizeOf(Vertex),
+            );
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(index_buffer),
+                0,
+                upload_tris.buffer,
+                upload_tris.buffer_offset,
+                upload_tris.cpu_slice.len * @sizeOf(Triangle),
+            );
+        }
 
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
