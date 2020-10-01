@@ -319,17 +319,17 @@ const DemoState = struct {
         dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.flushResourceBarriers();
 
+        const descriptor_table_base = blk: {
+            const base = dx.copyDescriptorsToGpuHeap(1, self.vertex_buffer_srv);
+            _ = dx.copyDescriptorsToGpuHeap(1, self.index_buffer_srv);
+            _ = dx.copyDescriptorsToGpuHeap(1, self.transform_buffer_srv);
+            break :blk base;
+        };
+
         dx.cmdlist.SetGraphicsRoot32BitConstants(0, 3, &self.draw_calls[1], 0);
-        dx.cmdlist.SetGraphicsRootDescriptorTable(
-            1,
-            blk: {
-                const base = dx.copyDescriptorsToGpuHeap(1, self.vertex_buffer_srv);
-                _ = dx.copyDescriptorsToGpuHeap(1, self.index_buffer_srv);
-                _ = dx.copyDescriptorsToGpuHeap(1, self.transform_buffer_srv);
-                break :blk base;
-            },
-        );
+        dx.cmdlist.SetGraphicsRootDescriptorTable(1, descriptor_table_base);
         dx.cmdlist.DrawInstanced(self.draw_calls[1].num_indices, 1, 0, 0);
+
         dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = 1 });
 
         const back_buffer = dx.getBackBuffer();
