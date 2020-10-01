@@ -686,12 +686,12 @@ const DescriptorHeap = struct {
     }
 };
 
-const Descriptor = packed struct {
+const Descriptor = struct {
     cpu_handle: d3d12.CPU_DESCRIPTOR_HANDLE,
     gpu_handle: d3d12.GPU_DESCRIPTOR_HANDLE,
 };
 
-pub const PipelineHandle = packed struct {
+pub const PipelineHandle = struct {
     index: u16,
     generation: u16,
 };
@@ -783,7 +783,7 @@ const PipelinePool = struct {
     }
 };
 
-pub const ResourceHandle = packed struct {
+pub const ResourceHandle = struct {
     index: u16,
     generation: u16,
 };
