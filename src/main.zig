@@ -11,6 +11,9 @@ const window_width = 1920;
 const window_height = 1080;
 const window_num_samples = 8;
 
+const max_num_vertices = 10_000;
+const max_num_triangles = 10_000;
+
 const Vertex = struct {
     position: Vec3,
     normal: Vec3,
@@ -23,15 +26,16 @@ const Triangle = struct {
 };
 
 comptime {
-    assert(@sizeOf(Vertex) == 24);
-    assert(@sizeOf(Triangle) == 12);
+    assert(@sizeOf(Vertex) == 24 and @alignOf(Vertex) == 4);
+    assert(@sizeOf(Triangle) == 12 and @alignOf(Triangle) == 4);
 }
 
 const DemoState = struct {
     dx: gr.DxContext,
     srgb_texture: gr.ResourceHandle,
     depth_texture: gr.ResourceHandle,
-    geometry_buffer: gr.ResourceHandle,
+    vertex_buffer: gr.ResourceHandle,
+    index_buffer: gr.ResourceHandle,
     transform_buffer: gr.ResourceHandle,
     pso: gr.PipelineHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
@@ -92,10 +96,17 @@ const DemoState = struct {
 
         dx.beginFrame();
 
-        const geometry_buffer = dx.createCommittedResource(
+        const vertex_buffer = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &d3d12.RESOURCE_DESC.buffer(1024),
+            &d3d12.RESOURCE_DESC.buffer(max_num_vertices * @sizeOf(Vertex)),
+            .{ .COPY_DEST = 1 },
+            null,
+        );
+        const index_buffer = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &d3d12.RESOURCE_DESC.buffer(max_num_triangles * @sizeOf(Triangle)),
             .{ .COPY_DEST = 1 },
             null,
         );
@@ -105,6 +116,20 @@ const DemoState = struct {
             &d3d12.RESOURCE_DESC.buffer(1024),
             .{ .COPY_DEST = 1 },
             null,
+        );
+
+        const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(vertex_buffer),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, max_num_vertices, @sizeOf(Vertex)),
+            vertex_buffer_srv,
+        );
+
+        const index_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(index_buffer),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.typedBuffer(.R32_UINT, 0, 3 * max_num_triangles),
+            index_buffer_srv,
         );
 
         const transform_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
@@ -130,39 +155,22 @@ const DemoState = struct {
         ply.load(upload_verts.cpu_slice, upload_tris.cpu_slice);
 
         dx.cmdlist.CopyBufferRegion(
-            dx.getResource(geometry_buffer),
+            dx.getResource(vertex_buffer),
             0,
             upload_verts.buffer,
             upload_verts.buffer_offset,
             upload_verts.cpu_slice.len * @sizeOf(Vertex),
         );
         dx.cmdlist.CopyBufferRegion(
-            dx.getResource(geometry_buffer),
-            ply.num_vertices * @sizeOf(Vertex),
+            dx.getResource(index_buffer),
+            0,
             upload_tris.buffer,
             upload_tris.buffer_offset,
             upload_tris.cpu_slice.len * @sizeOf(Triangle),
         );
 
-        const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(geometry_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, ply.num_vertices, @sizeOf(Vertex)),
-            vertex_buffer_srv,
-        );
-
-        const index_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(geometry_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.typedBuffer(
-                .R32_UINT,
-                ply.num_vertices * @sizeOf(Vertex) / @sizeOf(u32),
-                3 * ply.num_triangles,
-            ),
-            index_buffer_srv,
-        );
-
-        dx.addTransitionBarrier(geometry_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
+        dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
+        dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.flushResourceBarriers();
         dx.closeAndExecuteCommandList();
         dx.waitForGpu();
@@ -173,7 +181,8 @@ const DemoState = struct {
             .srgb_texture_rtv = srgb_texture_rtv,
             .depth_texture = depth_texture,
             .depth_texture_dsv = depth_texture_dsv,
-            .geometry_buffer = geometry_buffer,
+            .vertex_buffer = vertex_buffer,
+            .index_buffer = index_buffer,
             .transform_buffer = transform_buffer,
             .vertex_buffer_srv = vertex_buffer_srv,
             .index_buffer_srv = index_buffer_srv,
@@ -184,7 +193,8 @@ const DemoState = struct {
 
     fn deinit(self: *DemoState) void {
         self.dx.waitForGpu();
-        _ = self.dx.releaseResource(self.geometry_buffer);
+        _ = self.dx.releaseResource(self.vertex_buffer);
+        _ = self.dx.releaseResource(self.index_buffer);
         _ = self.dx.releaseResource(self.transform_buffer);
         _ = self.dx.releaseResource(self.srgb_texture);
         _ = self.dx.releaseResource(self.depth_texture);
