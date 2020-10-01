@@ -1,4 +1,5 @@
 #define root_signature \
+    "RootConstants(b0, num32BitConstants = 3), " \
     "DescriptorTable(SRV(t0, numDescriptors = 3), visibility = SHADER_VISIBILITY_VERTEX)"
 
 struct Vertex {
@@ -10,6 +11,13 @@ struct Transform {
     float4x4 m4x4;
 };
 
+struct DrawCallParams {
+    uint start_index_location;
+    uint base_vertex_location;
+    uint transform_location;
+};
+
+ConstantBuffer<DrawCallParams> drawcall : register(b0);
 StructuredBuffer<Vertex> srv_vertices : register(t0);
 Buffer<uint> srv_indices : register(t1);
 StructuredBuffer<Transform> srv_transforms : register(t2);
@@ -20,7 +28,9 @@ void vsMain(
     out float4 out_position : SV_Position,
     out float3 out_color : _Color)
 {
-    uint vertex_index = srv_indices[vertex_id];
+    const uint vertex_index = drawcall.base_vertex_location +
+        srv_indices[vertex_id + drawcall.start_index_location];
+
     Vertex vertex = srv_vertices[vertex_index];
 
     float3 position = vertex.position;

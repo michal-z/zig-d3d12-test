@@ -995,6 +995,7 @@ pub const FENCE_FLAGS = extern enum {
     SHARED_CROSS_ADAPTER = 0x2,
 };
 
+// TODO: This has alignment of 1. How to force alignment of 4?
 pub const RESOURCE_STATES = packed struct {
     VERTEX_AND_CONSTANT_BUFFER: u1 = 0,
     INDEX_BUFFER: u1 = 0,
