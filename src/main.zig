@@ -208,12 +208,12 @@ const DemoState = struct {
             Entity{
                 .mesh = meshes[1],
                 .id = 2,
-                .position = vec3.init(2.0, 0.0, -1.0),
+                .position = vec3.init(-0.5, 0.0, 1.0),
             },
             Entity{
                 .mesh = meshes[0],
                 .id = 3,
-                .position = vec3.init(0.0, 0.0, 3.0),
+                .position = vec3.init(1.0, 0.0, 1.0),
             },
         };
 
