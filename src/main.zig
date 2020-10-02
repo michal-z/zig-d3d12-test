@@ -39,6 +39,7 @@ const Mesh = struct {
 
 const Entity = struct {
     mesh: Mesh,
+    id: u32,
     position: Vec3,
 };
 
@@ -55,7 +56,7 @@ const DemoState = struct {
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
-    meshes: [2]Mesh,
+    entities: [3]Entity,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
@@ -146,7 +147,7 @@ const DemoState = struct {
         const transform_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
             dx.getResource(transform_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, 1, @sizeOf(Mat4)),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, 8, @sizeOf(Mat4)),
             transform_buffer_srv,
         );
 
@@ -198,6 +199,24 @@ const DemoState = struct {
             base_vertex_location += ply.num_vertices;
         }
 
+        const entities = [_]Entity{
+            Entity{
+                .mesh = meshes[0],
+                .id = 1,
+                .position = vec3.init(-2.0, 0.0, 1.0),
+            },
+            Entity{
+                .mesh = meshes[1],
+                .id = 2,
+                .position = vec3.init(2.0, 0.0, 1.0),
+            },
+            Entity{
+                .mesh = meshes[0],
+                .id = 3,
+                .position = vec3.init(0.0, 0.0, 3.0),
+            },
+        };
+
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.flushResourceBarriers();
@@ -217,7 +236,7 @@ const DemoState = struct {
             .index_buffer_srv = index_buffer_srv,
             .transform_buffer_srv = transform_buffer_srv,
             .pso = pso,
-            .meshes = meshes,
+            .entities = entities,
         };
     }
 
@@ -250,25 +269,29 @@ const DemoState = struct {
         dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = 1 }, 1.0, 0.0, 0, null);
         // Upload transform data.
         {
-            const upload = dx.allocateUploadBufferRegion(Mat4, 1);
+            const upload = dx.allocateUploadBufferRegion(Mat4, self.entities.len + 1);
             upload.cpu_slice[0] = mat4.transpose(
                 mat4.mul(
-                    mat4.mul(
-                        mat4.initRotationY(@floatCast(f32, stats.time)),
-                        mat4.initLookAt(
-                            vec3.init(0.0, 2.0, -4.0),
-                            vec3.init(0.0, 0.0, 0.0),
-                            vec3.init(0.0, 1.0, 0.0),
-                        ),
+                    mat4.initLookAt(
+                        vec3.init(0.0, 6.0, -6.0),
+                        vec3.init(0.0, 0.0, 0.0),
+                        vec3.init(0.0, 1.0, 0.0),
                     ),
                     mat4.initPerspective(
                         math.pi / 3.0,
                         @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
                         0.1,
-                        10.0,
+                        100.0,
                     ),
                 ),
             );
+            upload.cpu_slice[1] = mat4.transpose(mat4.mul(
+                mat4.initRotationY(@floatCast(f32, stats.time)),
+                mat4.initTranslationV(self.entities[0].position),
+            ));
+            upload.cpu_slice[2] = mat4.transpose(mat4.initTranslationV(self.entities[1].position));
+            upload.cpu_slice[3] = mat4.transpose(mat4.initTranslationV(self.entities[2].position));
+
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(self.transform_buffer),
                 0,
@@ -283,16 +306,21 @@ const DemoState = struct {
         dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
         dx.flushResourceBarriers();
 
-        const descriptor_table_base = blk: {
+        dx.cmdlist.SetGraphicsRootDescriptorTable(1, blk: {
             const base = dx.copyDescriptorsToGpuHeap(1, self.vertex_buffer_srv);
             _ = dx.copyDescriptorsToGpuHeap(1, self.index_buffer_srv);
             _ = dx.copyDescriptorsToGpuHeap(1, self.transform_buffer_srv);
             break :blk base;
-        };
+        });
 
-        dx.cmdlist.SetGraphicsRoot32BitConstants(0, 2, &self.meshes[1], 0);
-        dx.cmdlist.SetGraphicsRootDescriptorTable(1, descriptor_table_base);
-        dx.cmdlist.DrawInstanced(self.meshes[1].num_indices, 1, 0, 0);
+        for (self.entities) |entity| {
+            dx.cmdlist.SetGraphicsRoot32BitConstants(0, 3, &[_]u32{
+                entity.mesh.start_index_location,
+                entity.mesh.base_vertex_location,
+                entity.id,
+            }, 0);
+            dx.cmdlist.DrawInstanced(entity.mesh.num_indices, 1, 0, 0);
+        }
 
         dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = 1 });
 

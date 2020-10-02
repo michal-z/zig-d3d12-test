@@ -1,5 +1,5 @@
 #define root_signature \
-    "RootConstants(b0, num32BitConstants = 2), " \
+    "RootConstants(b0, num32BitConstants = 3), " \
     "DescriptorTable(SRV(t0, numDescriptors = 3), visibility = SHADER_VISIBILITY_VERTEX)"
 
 struct Vertex {
@@ -14,6 +14,7 @@ struct Transform {
 struct DrawCallParams {
     uint start_index_location;
     uint base_vertex_location;
+    uint transform_location;
 };
 
 ConstantBuffer<DrawCallParams> drawcall : register(b0);
@@ -35,8 +36,12 @@ void vsMain(
     float3 position = vertex.position;
     float3 normal = vertex.normal;
 
+    float4x4 world_to_clip = srv_transforms[0].m4x4;
+    float4x4 object_to_world = srv_transforms[drawcall.transform_location].m4x4;
+    float4x4 object_to_clip = mul(object_to_world, world_to_clip);
+
     out_color = abs(normal);
-    out_position = mul(float4(position, 1.0f), srv_transforms[0].m4x4);
+    out_position = mul(float4(position, 1.0f), object_to_clip);
 }
 
 [RootSignature(root_signature)]

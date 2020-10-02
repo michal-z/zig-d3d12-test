@@ -130,6 +130,9 @@ pub const mat4 = struct {
             [_]f32{ x, y, z, 1.0 },
         };
     }
+    pub fn initTranslationV(a: Vec3) Mat4 {
+        return initTranslation(a[0], a[1], a[2]);
+    }
 
     pub fn initLookAt(eye: Vec3, at: Vec3, up: Vec3) Mat4 {
         const az = vec3.normalize(vec3.sub(at, eye));
