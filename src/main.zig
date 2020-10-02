@@ -153,7 +153,7 @@ const DemoState = struct {
 
         dx.beginFrame();
 
-        const mesh_names = [_][]const u8{ "cube", "cube" };
+        const mesh_names = [_][]const u8{ "cube", "sphere" };
         var meshes: [2]Mesh = undefined;
         var start_index_location: u32 = 0;
         var base_vertex_location: u32 = 0;
@@ -208,7 +208,7 @@ const DemoState = struct {
             Entity{
                 .mesh = meshes[1],
                 .id = 2,
-                .position = vec3.init(2.0, 0.0, 1.0),
+                .position = vec3.init(2.0, 0.0, -1.0),
             },
             Entity{
                 .mesh = meshes[0],
@@ -273,7 +273,7 @@ const DemoState = struct {
             upload.cpu_slice[0] = mat4.transpose(
                 mat4.mul(
                     mat4.initLookAt(
-                        vec3.init(0.0, 6.0, -6.0),
+                        vec3.init(0.0, 3.0, -4.0),
                         vec3.init(0.0, 0.0, 0.0),
                         vec3.init(0.0, 1.0, 0.0),
                     ),
@@ -289,7 +289,10 @@ const DemoState = struct {
                 mat4.initRotationY(@floatCast(f32, stats.time)),
                 mat4.initTranslationV(self.entities[0].position),
             ));
-            upload.cpu_slice[2] = mat4.transpose(mat4.initTranslationV(self.entities[1].position));
+            upload.cpu_slice[2] = mat4.transpose(mat4.mul(
+                mat4.initRotationY(@floatCast(f32, stats.time)),
+                mat4.initTranslationV(self.entities[1].position),
+            ));
             upload.cpu_slice[3] = mat4.transpose(mat4.initTranslationV(self.entities[2].position));
 
             dx.cmdlist.CopyBufferRegion(
