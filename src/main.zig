@@ -30,7 +30,6 @@ comptime {
     assert(@sizeOf(Triangle) == 12 and @alignOf(Triangle) == 4);
 }
 
-// NOTE: Do not change the order of fields.
 const Mesh = struct {
     start_index_location: u32,
     base_vertex_location: u32,
