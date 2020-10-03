@@ -65,11 +65,11 @@ const DemoState = struct {
             .{},
             &blk: {
                 var desc = d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
-                desc.Flags = .{ .ALLOW_RENDER_TARGET = 1 };
+                desc.Flags = .{ .ALLOW_RENDER_TARGET = true };
                 desc.SampleDesc.Count = window_num_samples;
                 break :blk desc;
             },
-            .{ .RENDER_TARGET = 1 },
+            .{ .RENDER_TARGET = true },
             &d3d12.CLEAR_VALUE.color(.R8G8B8A8_UNORM_SRGB, [4]f32{ 0.2, 0.4, 0.8, 1.0 }),
         );
         const srgb_texture_rtv = dx.allocateCpuDescriptors(.RTV, 1);
@@ -80,11 +80,11 @@ const DemoState = struct {
             .{},
             &blk: {
                 var desc = d3d12.RESOURCE_DESC.tex2d(.D32_FLOAT, window_width, window_height);
-                desc.Flags = .{ .ALLOW_DEPTH_STENCIL = 1, .DENY_SHADER_RESOURCE = 1 };
+                desc.Flags = .{ .ALLOW_DEPTH_STENCIL = true, .DENY_SHADER_RESOURCE = true };
                 desc.SampleDesc.Count = window_num_samples;
                 break :blk desc;
             },
-            .{ .DEPTH_WRITE = 1 },
+            .{ .DEPTH_WRITE = true },
             &d3d12.CLEAR_VALUE.depthStencil(.D32_FLOAT, 1.0, 0),
         );
         const depth_texture_dsv = dx.allocateCpuDescriptors(.DSV, 1);
@@ -111,21 +111,21 @@ const DemoState = struct {
             .DEFAULT,
             .{},
             &d3d12.RESOURCE_DESC.buffer(max_num_vertices * @sizeOf(Vertex)),
-            .{ .COPY_DEST = 1 },
+            .{ .COPY_DEST = true },
             null,
         );
         const index_buffer = dx.createCommittedResource(
             .DEFAULT,
             .{},
             &d3d12.RESOURCE_DESC.buffer(max_num_triangles * @sizeOf(Triangle)),
-            .{ .COPY_DEST = 1 },
+            .{ .COPY_DEST = true },
             null,
         );
         const transform_buffer = dx.createCommittedResource(
             .DEFAULT,
             .{},
             &d3d12.RESOURCE_DESC.buffer(1024),
-            .{ .COPY_DEST = 1 },
+            .{ .COPY_DEST = true },
             null,
         );
 
@@ -216,8 +216,8 @@ const DemoState = struct {
             },
         };
 
-        dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
-        dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
+        dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
+        dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.flushResourceBarriers();
         dx.closeAndExecuteCommandList();
         dx.waitForGpu();
@@ -256,7 +256,7 @@ const DemoState = struct {
         var dx = &self.dx;
 
         dx.beginFrame();
-        dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = 1 });
+        dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = true });
         dx.flushResourceBarriers();
         dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, &self.depth_texture_dsv);
         dx.cmdlist.ClearRenderTargetView(
@@ -265,7 +265,7 @@ const DemoState = struct {
             0,
             null,
         );
-        dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = 1 }, 1.0, 0.0, 0, null);
+        dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = true }, 1.0, 0.0, 0, null);
         // Upload transform data.
         {
             const upload = dx.allocateUploadBufferRegion(Mat4, self.entities.len + 1);
@@ -305,7 +305,7 @@ const DemoState = struct {
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
         dx.setPipelineState(self.pso);
 
-        dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = 1 });
+        dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.flushResourceBarriers();
 
         dx.cmdlist.SetGraphicsRootDescriptorTable(1, blk: {
@@ -324,11 +324,11 @@ const DemoState = struct {
             dx.cmdlist.DrawInstanced(entity.mesh.num_indices, 1, 0, 0);
         }
 
-        dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = 1 });
+        dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = true });
 
         const back_buffer = dx.getBackBuffer();
-        dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = 1 });
-        dx.addTransitionBarrier(self.srgb_texture, .{ .RESOLVE_SOURCE = 1 });
+        dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = true });
+        dx.addTransitionBarrier(self.srgb_texture, .{ .RESOLVE_SOURCE = true });
         dx.flushResourceBarriers();
 
         dx.cmdlist.ResolveSubresource(

@@ -54,6 +54,7 @@ pub const HEAP_FLAGS = packed struct {
     DENY_RT_DS_TEXTURES: bool = false,
     DENY_NON_RT_DS_TEXTURES: bool = false,
     HARDWARE_PROTECTED: bool = false,
+
     padding: u25 = 0,
 };
 
@@ -85,12 +86,13 @@ pub const TEXTURE_LAYOUT = extern enum {
 };
 
 pub const RESOURCE_FLAGS = packed struct {
-    ALLOW_RENDER_TARGET: u1 = 0,
-    ALLOW_DEPTH_STENCIL: u1 = 0,
-    ALLOW_UNORDERED_ACCESS: u1 = 0,
-    DENY_SHADER_RESOURCE: u1 = 0,
-    ALLOW_CROSS_ADAPTER: u1 = 0,
-    ALLOW_SIMULTANEOUS_ACCESS: u1 = 0,
+    ALLOW_RENDER_TARGET: bool = false,
+    ALLOW_DEPTH_STENCIL: bool = false,
+    ALLOW_UNORDERED_ACCESS: bool = false,
+    DENY_SHADER_RESOURCE: bool = false,
+    ALLOW_CROSS_ADAPTER: bool = false,
+    ALLOW_SIMULTANEOUS_ACCESS: bool = false,
+
     padding: u26 = 0,
 };
 
@@ -481,8 +483,8 @@ pub const CACHED_PIPELINE_STATE = extern struct {
 };
 
 pub const CLEAR_FLAGS = packed struct {
-    DEPTH: u1 = 0,
-    STENCIL: u1 = 0,
+    DEPTH: bool = false,
+    STENCIL: bool = false,
 
     padding: u30 = 0,
 };
@@ -998,50 +1000,50 @@ pub const FENCE_FLAGS = extern enum {
 // TODO: This has alignment of 1. How to force alignment of 4?
 //'pub const RESOURCE_STATES align(4) = packed struct {' causes compiler error.
 pub const RESOURCE_STATES = packed struct {
-    VERTEX_AND_CONSTANT_BUFFER: u1 = 0,
-    INDEX_BUFFER: u1 = 0,
-    RENDER_TARGET: u1 = 0,
-    UNORDERED_ACCESS: u1 = 0,
-    DEPTH_WRITE: u1 = 0,
-    DEPTH_READ: u1 = 0,
-    NON_PIXEL_SHADER_RESOURCE: u1 = 0,
-    PIXEL_SHADER_RESOURCE: u1 = 0,
-    STREAM_OUT: u1 = 0,
-    INDIRECT_ARGUMENT_AND_PREDICATION: u1 = 0,
-    COPY_DEST: u1 = 0,
-    COPY_SOURCE: u1 = 0,
-    RESOLVE_DEST: u1 = 0,
-    RESOLVE_SOURCE: u1 = 0,
+    VERTEX_AND_CONSTANT_BUFFER: bool = false,
+    INDEX_BUFFER: bool = false,
+    RENDER_TARGET: bool = false,
+    UNORDERED_ACCESS: bool = false,
+    DEPTH_WRITE: bool = false,
+    DEPTH_READ: bool = false,
+    NON_PIXEL_SHADER_RESOURCE: bool = false,
+    PIXEL_SHADER_RESOURCE: bool = false,
+    STREAM_OUT: bool = false,
+    INDIRECT_ARGUMENT_AND_PREDICATION: bool = false,
+    COPY_DEST: bool = false,
+    COPY_SOURCE: bool = false,
+    RESOLVE_DEST: bool = false,
+    RESOLVE_SOURCE: bool = false,
     // TODO: Clean this up.
     // 'padding: u17 = 0,'
     // causes @sizeOf(RESOURCE_STATES) == 5 with current compiler version.
-    RESERVED0: u1 = 0,
-    RESERVED1: u1 = 0,
-    RESERVED2: u1 = 0,
-    RESERVED3: u1 = 0,
-    RESERVED4: u1 = 0,
-    RESERVED5: u1 = 0,
-    RESERVED6: u1 = 0,
-    RESERVED7: u1 = 0,
-    RESERVED8: u1 = 0,
-    RESERVED9: u1 = 0,
-    RESERVED10: u1 = 0,
-    RESERVED11: u1 = 0,
-    RESERVED12: u1 = 0,
-    RESERVED13: u1 = 0,
-    RESERVED14: u1 = 0,
-    RESERVED15: u1 = 0,
-    RESERVED16: u1 = 0,
-    RESERVED17: u1 = 0,
+    RESERVED0: bool = false,
+    RESERVED1: bool = false,
+    RESERVED2: bool = false,
+    RESERVED3: bool = false,
+    RESERVED4: bool = false,
+    RESERVED5: bool = false,
+    RESERVED6: bool = false,
+    RESERVED7: bool = false,
+    RESERVED8: bool = false,
+    RESERVED9: bool = false,
+    RESERVED10: bool = false,
+    RESERVED11: bool = false,
+    RESERVED12: bool = false,
+    RESERVED13: bool = false,
+    RESERVED14: bool = false,
+    RESERVED15: bool = false,
+    RESERVED16: bool = false,
+    RESERVED17: bool = false,
 
     pub fn genericRead() RESOURCE_STATES {
         return RESOURCE_STATES{
-            .VERTEX_AND_CONSTANT_BUFFER = 1,
-            .INDEX_BUFFER = 1,
-            .NON_PIXEL_SHADER_RESOURCE = 1,
-            .PIXEL_SHADER_RESOURCE = 1,
-            .INDIRECT_ARGUMENT_AND_PREDICATION = 1,
-            .COPY_SOURCE = 1,
+            .VERTEX_AND_CONSTANT_BUFFER = true,
+            .INDEX_BUFFER = true,
+            .NON_PIXEL_SHADER_RESOURCE = true,
+            .PIXEL_SHADER_RESOURCE = true,
+            .INDIRECT_ARGUMENT_AND_PREDICATION = true,
+            .COPY_SOURCE = true,
         };
     }
 };
