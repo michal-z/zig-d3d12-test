@@ -69,7 +69,7 @@ pub const DxContext = struct {
 
         var factory: *dxgi.IFactory4 = undefined;
         vhr(dxgi.CreateFactory2(
-            dxgi.CREATE_FACTORY_DEBUG,
+            if (comptime builtin.mode == .Debug) dxgi.CREATE_FACTORY_DEBUG else 0,
             &dxgi.IID_IFactory4,
             @ptrCast(**c_void, &factory),
         ));
