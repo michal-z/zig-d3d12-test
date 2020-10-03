@@ -138,7 +138,7 @@ pub const DxContext = struct {
         releaseCom(&temp_swapchain);
         releaseCom(&factory);
 
-        var device11_on_12: *os.IUnknown = undefined;
+        var device11: *os.IUnknown = undefined;
         vhr(d3d12.D3D11On12CreateDevice(
             @ptrCast(*os.IUnknown, device),
             d3d12.D3D11_CREATE_DEVICE_BGRA_SUPPORT,
@@ -147,10 +147,15 @@ pub const DxContext = struct {
             &[_]*os.IUnknown{@ptrCast(*os.IUnknown, cmdqueue)},
             1,
             0,
-            &device11_on_12,
+            &device11,
             null,
             null,
         ));
+        defer releaseCom(&device11);
+
+        var device11_on_12: *os.IUnknown = undefined;
+        vhr(device11.QueryInterface(&d3d12.IID_ID3D11On12Device, @ptrCast(**c_void, &device11_on_12)));
+
         var dxgi_device: *dxgi.IDevice = undefined;
         vhr(device11_on_12.QueryInterface(&dxgi.IID_IDevice, @ptrCast(**c_void, &dxgi_device)));
 

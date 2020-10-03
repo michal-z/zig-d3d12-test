@@ -175,12 +175,7 @@ pub const GPU_DESCRIPTOR_HANDLE = extern struct {
     ptr: u64,
 };
 
-pub const RECT = extern struct {
-    left: c_long,
-    top: c_long,
-    right: c_long,
-    bottom: c_long,
-};
+pub const RECT = os.RECT;
 
 pub const DISCARD_REGION = extern struct {
     NumRects: u32,
@@ -3194,6 +3189,12 @@ pub const IID_IPipelineState = os.GUID{
     .Data2 = 0xf624,
     .Data3 = 0x4c6f,
     .Data4 = .{ 0xa8, 0x28, 0xac, 0xe9, 0x48, 0x62, 0x24, 0x45 },
+};
+pub const IID_ID3D11On12Device = os.GUID{
+    .Data1 = 0x85611e73,
+    .Data2 = 0x70a9,
+    .Data3 = 0x490e,
+    .Data4 = .{ 0x96, 0x14, 0xa9, 0xe3, 0x02, 0x77, 0x79, 0x04 },
 };
 
 pub var GetDebugInterface: fn (*const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
