@@ -4,6 +4,7 @@ const assert = std.debug.assert;
 const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
+const d2d1 = @import("d2d1.zig");
 
 const num_frames = 2;
 const num_swapbuffers = 4;
@@ -61,6 +62,7 @@ pub const DxContext = struct {
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
         d3d12.init();
+        d2d1.init();
 
         var rect: os.RECT = undefined;
         _ = os.GetClientRect(window, &rect);
@@ -135,6 +137,37 @@ pub const DxContext = struct {
         vhr(temp_swapchain.QueryInterface(&dxgi.IID_ISwapChain3, @ptrCast(**c_void, &swapchain)));
         releaseCom(&temp_swapchain);
         releaseCom(&factory);
+
+        var device11_on_12: *os.IUnknown = undefined;
+        vhr(d3d12.D3D11On12CreateDevice(
+            @ptrCast(*os.IUnknown, device),
+            d3d12.D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+            null,
+            0,
+            &[_]*os.IUnknown{@ptrCast(*os.IUnknown, cmdqueue)},
+            1,
+            0,
+            &device11_on_12,
+            null,
+            null,
+        ));
+        var dxgi_device: *dxgi.IDevice = undefined;
+        vhr(device11_on_12.QueryInterface(&dxgi.IID_IDevice, @ptrCast(**c_void, &dxgi_device)));
+
+        var d2d_factory: *os.IUnknown = undefined;
+        vhr(d2d1.CreateFactory(
+            .SINGLE_THREADED,
+            &d2d1.IID_IFactory,
+            if (comptime builtin.mode == .Debug)
+                &d2d1.FACTORY_OPTIONS{ .debugLevel = .INFORMATION }
+            else
+                &d2d1.FACTORY_OPTIONS{ .debugLevel = .NONE },
+            @ptrCast(**c_void, &d2d_factory),
+        ));
+
+        releaseCom(&d2d_factory);
+        releaseCom(&device11_on_12);
+        releaseCom(&dxgi_device);
 
         var frame_fence: *d3d12.IFence = undefined;
         vhr(device.CreateFence(0, .NONE, &d3d12.IID_IFence, @ptrCast(**c_void, &frame_fence)));

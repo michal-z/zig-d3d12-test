@@ -232,6 +232,29 @@ pub const IObject = extern struct {
     }
 };
 
+pub const IDevice = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // IDXGIObject
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const os.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // IDXGIDevice
+        _0: [5]*c_void, // TODO: add missing function pointers
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+};
+
 pub const IDeviceSubObject = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
@@ -378,6 +401,12 @@ pub const IID_IFactory4 = os.GUID{
     .Data2 = 0xef36,
     .Data3 = 0x464f,
     .Data4 = .{ 0xbf, 0x0c, 0x21, 0xca, 0x39, 0xe5, 0x16, 0x8a },
+};
+pub const IID_IDevice = os.GUID{
+    .Data1 = 0x54ec77fa,
+    .Data2 = 0x1377,
+    .Data3 = 0x44e6,
+    .Data4 = .{ 0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c },
 };
 
 pub var CreateFactory2: fn (u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;

@@ -3204,9 +3204,27 @@ pub var CreateDevice: fn (
     **c_void,
 ) callconv(.Stdcall) HRESULT = undefined;
 
+pub const D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20; // Required for Direct2D interop.
+
+pub var D3D11On12CreateDevice: fn (
+    *os.IUnknown,
+    u32,
+    [*c]const FEATURE_LEVEL,
+    u32,
+    [*c]const *os.IUnknown,
+    u32,
+    u32,
+    **os.IUnknown, // ID3D11Device
+    ?**os.IUnknown, // ID3D11DeviceContext
+    ?*FEATURE_LEVEL,
+) callconv(.Stdcall) HRESULT = undefined;
+
 pub fn init() void {
     // TODO: Handle error.
     var d3d12_dll = std.DynLib.open("/windows/system32/d3d12.dll") catch unreachable;
     GetDebugInterface = d3d12_dll.lookup(@TypeOf(GetDebugInterface), "D3D12GetDebugInterface").?;
     CreateDevice = d3d12_dll.lookup(@TypeOf(CreateDevice), "D3D12CreateDevice").?;
+
+    var d3d11_dll = std.DynLib.open("/windows/system32/d3d11.dll") catch unreachable;
+    D3D11On12CreateDevice = d3d11_dll.lookup(@TypeOf(D3D11On12CreateDevice), "D3D11On12CreateDevice").?;
 }
