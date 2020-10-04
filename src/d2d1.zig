@@ -494,6 +494,398 @@ pub const IGeometrySink = extern struct {
     usingnamespace os.IUnknown.Methods(Self);
 };
 
+pub const ITessellationSink = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1TessellationSink
+        AddTriangles: *c_void,
+        Close: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+};
+
+pub const IPathGeometry = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Geometry
+        GetBounds: *c_void,
+        GetWidenedBounds: *c_void,
+        StrokeContainsPoint: *c_void,
+        FillContainsPoint: *c_void,
+        CompareWithGeometry: *c_void,
+        Simplify: *c_void,
+        Tessellate: *c_void,
+        CombineWithGeometry: *c_void,
+        Outline: *c_void,
+        ComputeArea: *c_void,
+        ComputeLength: *c_void,
+        ComputePointAtLength: *c_void,
+        Widen: *c_void,
+        // ID2D1PathGeometry
+        Open: *c_void,
+        Stream: *c_void,
+        GetSegmentCount: *c_void,
+        GetFigureCount: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IMesh = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Mesh
+        Open: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const ILayer = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Layer
+        GetSize: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IDrawingStateBlock = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1DrawingStateBlock
+        GetDescription: *c_void,
+        SetDescription: *c_void,
+        SetTextRenderingParams: *c_void,
+        GetTextRenderingParams: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IRenderTarget = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1RenderTarget
+        CreateBitmap: *c_void,
+        CreateBitmapFromWicBitmap: *c_void,
+        CreateSharedBitmap: *c_void,
+        CreateBitmapBrush: *c_void,
+        CreateSolidColorBrush: *c_void,
+        CreateGradientStopCollection: *c_void,
+        CreateLinearGradientBrush: *c_void,
+        CreateRadialGradientBrush: *c_void,
+        CreateCompatibleRenderTarget: *c_void,
+        CreateLayer: *c_void,
+        CreateMesh: *c_void,
+        DrawLine: *c_void,
+        DrawRectangle: *c_void,
+        FillRectangle: *c_void,
+        DrawRoundedRectangle: *c_void,
+        FillRoundedRectangle: *c_void,
+        DrawEllipse: *c_void,
+        FillEllipse: *c_void,
+        DrawGeometry: *c_void,
+        FillGeometry: *c_void,
+        FillMesh: *c_void,
+        FillOpacityMask: *c_void,
+        DrawBitmap: *c_void,
+        DrawText: *c_void,
+        DrawTextLayout: *c_void,
+        DrawGlyphRun: *c_void,
+        SetTransform: *c_void,
+        GetTransform: *c_void,
+        SetAntialiasMode: *c_void,
+        GetAntialiasMode: *c_void,
+        SetTextAntialiasMode: *c_void,
+        GetTextAntialiasMode: *c_void,
+        SetTextRenderingParams: *c_void,
+        GetTextRenderingParams: *c_void,
+        SetTags: *c_void,
+        GetTags: *c_void,
+        PushLayer: *c_void,
+        PopLayer: *c_void,
+        Flush: *c_void,
+        SaveDrawingState: *c_void,
+        RestoreDrawingState: *c_void,
+        PushAxisAlignedClip: *c_void,
+        PopAxisAlignedClip: *c_void,
+        Clear: *c_void,
+        BeginDraw: *c_void,
+        EndDraw: *c_void,
+        GetPixelFormat: *c_void,
+        SetDpi: *c_void,
+        GetDpi: *c_void,
+        GetSize: *c_void,
+        GetPixelSize: *c_void,
+        GetMaximumBitmapSize: *c_void,
+        IsSupported: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IBitmapRenderTarget = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1RenderTarget
+        CreateBitmap: *c_void,
+        CreateBitmapFromWicBitmap: *c_void,
+        CreateSharedBitmap: *c_void,
+        CreateBitmapBrush: *c_void,
+        CreateSolidColorBrush: *c_void,
+        CreateGradientStopCollection: *c_void,
+        CreateLinearGradientBrush: *c_void,
+        CreateRadialGradientBrush: *c_void,
+        CreateCompatibleRenderTarget: *c_void,
+        CreateLayer: *c_void,
+        CreateMesh: *c_void,
+        DrawLine: *c_void,
+        DrawRectangle: *c_void,
+        FillRectangle: *c_void,
+        DrawRoundedRectangle: *c_void,
+        FillRoundedRectangle: *c_void,
+        DrawEllipse: *c_void,
+        FillEllipse: *c_void,
+        DrawGeometry: *c_void,
+        FillGeometry: *c_void,
+        FillMesh: *c_void,
+        FillOpacityMask: *c_void,
+        DrawBitmap: *c_void,
+        DrawText: *c_void,
+        DrawTextLayout: *c_void,
+        DrawGlyphRun: *c_void,
+        SetTransform: *c_void,
+        GetTransform: *c_void,
+        SetAntialiasMode: *c_void,
+        GetAntialiasMode: *c_void,
+        SetTextAntialiasMode: *c_void,
+        GetTextAntialiasMode: *c_void,
+        SetTextRenderingParams: *c_void,
+        GetTextRenderingParams: *c_void,
+        SetTags: *c_void,
+        GetTags: *c_void,
+        PushLayer: *c_void,
+        PopLayer: *c_void,
+        Flush: *c_void,
+        SaveDrawingState: *c_void,
+        RestoreDrawingState: *c_void,
+        PushAxisAlignedClip: *c_void,
+        PopAxisAlignedClip: *c_void,
+        Clear: *c_void,
+        BeginDraw: *c_void,
+        EndDraw: *c_void,
+        GetPixelFormat: *c_void,
+        SetDpi: *c_void,
+        GetDpi: *c_void,
+        GetSize: *c_void,
+        GetPixelSize: *c_void,
+        GetMaximumBitmapSize: *c_void,
+        IsSupported: *c_void,
+        // ID2D1BitmapRenderTarget
+        GetBitmap: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IHwndRenderTarget = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1RenderTarget
+        CreateBitmap: *c_void,
+        CreateBitmapFromWicBitmap: *c_void,
+        CreateSharedBitmap: *c_void,
+        CreateBitmapBrush: *c_void,
+        CreateSolidColorBrush: *c_void,
+        CreateGradientStopCollection: *c_void,
+        CreateLinearGradientBrush: *c_void,
+        CreateRadialGradientBrush: *c_void,
+        CreateCompatibleRenderTarget: *c_void,
+        CreateLayer: *c_void,
+        CreateMesh: *c_void,
+        DrawLine: *c_void,
+        DrawRectangle: *c_void,
+        FillRectangle: *c_void,
+        DrawRoundedRectangle: *c_void,
+        FillRoundedRectangle: *c_void,
+        DrawEllipse: *c_void,
+        FillEllipse: *c_void,
+        DrawGeometry: *c_void,
+        FillGeometry: *c_void,
+        FillMesh: *c_void,
+        FillOpacityMask: *c_void,
+        DrawBitmap: *c_void,
+        DrawText: *c_void,
+        DrawTextLayout: *c_void,
+        DrawGlyphRun: *c_void,
+        SetTransform: *c_void,
+        GetTransform: *c_void,
+        SetAntialiasMode: *c_void,
+        GetAntialiasMode: *c_void,
+        SetTextAntialiasMode: *c_void,
+        GetTextAntialiasMode: *c_void,
+        SetTextRenderingParams: *c_void,
+        GetTextRenderingParams: *c_void,
+        SetTags: *c_void,
+        GetTags: *c_void,
+        PushLayer: *c_void,
+        PopLayer: *c_void,
+        Flush: *c_void,
+        SaveDrawingState: *c_void,
+        RestoreDrawingState: *c_void,
+        PushAxisAlignedClip: *c_void,
+        PopAxisAlignedClip: *c_void,
+        Clear: *c_void,
+        BeginDraw: *c_void,
+        EndDraw: *c_void,
+        GetPixelFormat: *c_void,
+        SetDpi: *c_void,
+        GetDpi: *c_void,
+        GetSize: *c_void,
+        GetPixelSize: *c_void,
+        GetMaximumBitmapSize: *c_void,
+        IsSupported: *c_void,
+        // ID2D1HwndRenderTarget
+        CheckWindowState: *c_void,
+        Resize: *c_void,
+        GetHwnd: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IDCRenderTarget = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1RenderTarget
+        CreateBitmap: *c_void,
+        CreateBitmapFromWicBitmap: *c_void,
+        CreateSharedBitmap: *c_void,
+        CreateBitmapBrush: *c_void,
+        CreateSolidColorBrush: *c_void,
+        CreateGradientStopCollection: *c_void,
+        CreateLinearGradientBrush: *c_void,
+        CreateRadialGradientBrush: *c_void,
+        CreateCompatibleRenderTarget: *c_void,
+        CreateLayer: *c_void,
+        CreateMesh: *c_void,
+        DrawLine: *c_void,
+        DrawRectangle: *c_void,
+        FillRectangle: *c_void,
+        DrawRoundedRectangle: *c_void,
+        FillRoundedRectangle: *c_void,
+        DrawEllipse: *c_void,
+        FillEllipse: *c_void,
+        DrawGeometry: *c_void,
+        FillGeometry: *c_void,
+        FillMesh: *c_void,
+        FillOpacityMask: *c_void,
+        DrawBitmap: *c_void,
+        DrawText: *c_void,
+        DrawTextLayout: *c_void,
+        DrawGlyphRun: *c_void,
+        SetTransform: *c_void,
+        GetTransform: *c_void,
+        SetAntialiasMode: *c_void,
+        GetAntialiasMode: *c_void,
+        SetTextAntialiasMode: *c_void,
+        GetTextAntialiasMode: *c_void,
+        SetTextRenderingParams: *c_void,
+        GetTextRenderingParams: *c_void,
+        SetTags: *c_void,
+        GetTags: *c_void,
+        PushLayer: *c_void,
+        PopLayer: *c_void,
+        Flush: *c_void,
+        SaveDrawingState: *c_void,
+        RestoreDrawingState: *c_void,
+        PushAxisAlignedClip: *c_void,
+        PopAxisAlignedClip: *c_void,
+        Clear: *c_void,
+        BeginDraw: *c_void,
+        EndDraw: *c_void,
+        GetPixelFormat: *c_void,
+        SetDpi: *c_void,
+        GetDpi: *c_void,
+        GetSize: *c_void,
+        GetPixelSize: *c_void,
+        GetMaximumBitmapSize: *c_void,
+        IsSupported: *c_void,
+        // ID2D1DCRenderTarget
+        BindDC: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IGdiInteropRenderTarget = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1GdiInteropRenderTarget
+        GetDC: *c_void,
+        ReleaseDC: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+};
+
 pub const IFactory = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
