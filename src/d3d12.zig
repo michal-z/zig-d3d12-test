@@ -2714,9 +2714,9 @@ pub const IDevice = extern struct {
         CreateSharedHandle: fn (
             *Self,
             *IDeviceChild,
-            *const os.SECURITY_ATTRIBUTES,
+            ?*const os.SECURITY_ATTRIBUTES,
             os.DWORD,
-            os.LPCWSTR,
+            ?os.LPCWSTR,
             *os.HANDLE,
         ) callconv(.Stdcall) HRESULT,
         OpenSharedHandle: fn (*Self, os.HANDLE, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
@@ -3019,9 +3019,9 @@ pub const IDevice = extern struct {
             pub inline fn CreateSharedHandle(
                 self: *T,
                 object: *IDeviceChild,
-                attributes: *const os.SECURITY_ATTRIBUTES,
+                attributes: ?*const os.SECURITY_ATTRIBUTES,
                 access: os.DWORD,
-                name: os.LPCWSTR,
+                name: ?os.LPCWSTR,
                 handle: *os.HANDLE,
             ) HRESULT {
                 return self.vtbl.CreateSharedHandle(self, object, attributes, access, name, handle);
@@ -3132,10 +3132,10 @@ pub const IDevice = extern struct {
 };
 
 pub const RESOURCE_FLAGS_11ON12 = extern struct {
-    BindFlags: u32,
-    MiscFlags: u32,
-    CPUAccessFlags: u32,
-    StructureByteStride: u32,
+    BindFlags: u32 = 0x20, // D3D11_BIND_RENDER_TARGET
+    MiscFlags: u32 = 0,
+    CPUAccessFlags: u32 = 0,
+    StructureByteStride: u32 = 0,
 };
 
 pub const I11On12Device = extern struct {
@@ -3260,7 +3260,7 @@ pub const IID_IPipelineState = os.GUID{
     .Data3 = 0x4c6f,
     .Data4 = .{ 0xa8, 0x28, 0xac, 0xe9, 0x48, 0x62, 0x24, 0x45 },
 };
-pub const IID_ID3D11On12Device = os.GUID{
+pub const IID_I11On12Device = os.GUID{
     .Data1 = 0x85611e73,
     .Data2 = 0x70a9,
     .Data3 = 0x490e,
@@ -3275,14 +3275,12 @@ pub var CreateDevice: fn (
     **c_void,
 ) callconv(.Stdcall) HRESULT = undefined;
 
-pub const D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20; // Required for Direct2D interop.
-
 pub var Create11On12Device: fn (
     *os.IUnknown,
+    d3d11.CREATE_DEVICE_FLAG,
+    ?[*]const FEATURE_LEVEL,
     u32,
-    [*c]const FEATURE_LEVEL,
-    u32,
-    [*c]const *os.IUnknown,
+    [*]const *os.IUnknown,
     u32,
     u32,
     ?**d3d11.IDevice,

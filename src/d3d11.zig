@@ -2,6 +2,20 @@ const std = @import("std");
 const os = @import("windows.zig");
 const HRESULT = os.HRESULT;
 
+pub const CREATE_DEVICE_FLAG = packed struct {
+    SINGLETHREADED: bool = false,
+    DEBUG: bool = false,
+    SWITCH_TO_REF: bool = false,
+    PREVENT_INTERNAL_THREADING_OPTIMIZATIONS: bool = false,
+    RESERVED0: bool = false,
+    BGRA_SUPPORT: bool = false,
+    DEBUGGABLE: bool = false,
+    PREVENT_ALTERING_LAYER_SETTINGS_FROM_REGISTRY: bool = false,
+    DISABLE_GPU_TIMEOUT: bool = false,
+
+    padding: u24 = 0,
+};
+
 pub const IDevice = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
@@ -10,23 +24,46 @@ pub const IDevice = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID3D11Device
-        CreateVideoDecoder: *c_void,
-        CreateVideoProcessor: *c_void,
-        CreateAuthenticatedChannel: *c_void,
-        CreateCryptoSession: *c_void,
-        CreateVideoDecoderOutputView: *c_void,
-        CreateVideoProcessorInputView: *c_void,
-        CreateVideoProcessorOutputView: *c_void,
-        CreateVideoProcessorEnumerator: *c_void,
-        GetVideoDecoderProfileCount: *c_void,
-        GetVideoDecoderProfile: *c_void,
-        CheckVideoDecoderFormat: *c_void,
-        GetVideoDecoderConfigCount: *c_void,
-        GetVideoDecoderConfig: *c_void,
-        GetContentProtectionCaps: *c_void,
-        CheckCryptoKeyExchange: *c_void,
+        CreateBuffer: *c_void,
+        CreateTexture1D: *c_void,
+        CreateTexture2D: *c_void,
+        CreateTexture3D: *c_void,
+        CreateShaderResourceView: *c_void,
+        CreateUnorderedAccessView: *c_void,
+        CreateRenderTargetView: *c_void,
+        CreateDepthStencilView: *c_void,
+        CreateInputLayout: *c_void,
+        CreateVertexShader: *c_void,
+        CreateGeometryShader: *c_void,
+        CreateGeometryShaderWithStreamOutput: *c_void,
+        CreatePixelShader: *c_void,
+        CreateHullShader: *c_void,
+        CreateDomainShader: *c_void,
+        CreateComputeShader: *c_void,
+        CreateClassLinkage: *c_void,
+        CreateBlendState: *c_void,
+        CreateDepthStencilState: *c_void,
+        CreateRasterizerState: *c_void,
+        CreateSamplerState: *c_void,
+        CreateQuery: *c_void,
+        CreatePredicate: *c_void,
+        CreateCounter: *c_void,
+        CreateDeferredContext: *c_void,
+        OpenSharedResource: *c_void,
+        CheckFormatSupport: *c_void,
+        CheckMultisampleQualityLevels: *c_void,
+        CheckCounterInfo: *c_void,
+        CheckCounter: *c_void,
+        CheckFeatureSupport: *c_void,
+        GetPrivateData: *c_void,
         SetPrivateData: *c_void,
         SetPrivateDataInterface: *c_void,
+        GetFeatureLevel: *c_void,
+        GetCreationFlags: *c_void,
+        GetDeviceRemovedReason: *c_void,
+        GetImmediateContext: *c_void,
+        SetExceptionMode: *c_void,
+        GetExceptionMode: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
 };
@@ -174,4 +211,11 @@ pub const IDeviceContext = extern struct {
         FinishCommandList: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
+};
+
+pub const IID_IResource = os.GUID{
+    .Data1 = 0xdc8e63f3,
+    .Data2 = 0xd12b,
+    .Data3 = 0x4952,
+    .Data4 = .{ 0xb4, 0x7b, 0x5e, 0x45, 0x02, 0x6a, 0x86, 0x2d },
 };

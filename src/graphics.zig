@@ -59,6 +59,14 @@ pub const DxContext = struct {
     viewport_width: u32,
     viewport_height: u32,
     window: os.HWND,
+    d2d: struct {
+        factory: *d2d1.IFactory7,
+        device: *d2d1.IDevice6,
+        context: *d2d1.IDeviceContext6,
+        device11on12: *d3d12.I11On12Device,
+        device11: *d3d11.IDevice,
+        context11: *d3d11.IDeviceContext,
+    },
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
@@ -143,7 +151,7 @@ pub const DxContext = struct {
         var device_context11: *d3d11.IDeviceContext = undefined;
         vhr(d3d12.Create11On12Device(
             @ptrCast(*os.IUnknown, device),
-            d3d12.D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+            .{ .DEBUG = true, .BGRA_SUPPORT = true },
             null,
             0,
             &[_]*os.IUnknown{@ptrCast(*os.IUnknown, cmdqueue)},
@@ -153,11 +161,9 @@ pub const DxContext = struct {
             &device_context11,
             null,
         ));
-        defer releaseCom(&device11);
-        defer releaseCom(&device_context11);
 
         var device11on12: *d3d12.I11On12Device = undefined;
-        vhr(device11.QueryInterface(&d3d12.IID_ID3D11On12Device, @ptrCast(**c_void, &device11on12)));
+        vhr(device11.QueryInterface(&d3d12.IID_I11On12Device, @ptrCast(**c_void, &device11on12)));
 
         var dxgi_device: *dxgi.IDevice = undefined;
         vhr(device11on12.QueryInterface(&dxgi.IID_IDevice, @ptrCast(**c_void, &dxgi_device)));
@@ -179,11 +185,29 @@ pub const DxContext = struct {
         var d2d_device_context: *d2d1.IDeviceContext6 = undefined;
         vhr(d2d_device.CreateDeviceContext6(.{}, &d2d_device_context));
 
-        releaseCom(&d2d_device);
-        releaseCom(&d2d_device_context);
-        releaseCom(&d2d_factory);
-        releaseCom(&device11on12);
         releaseCom(&dxgi_device);
+
+        // TODO:
+        if (false) {
+            const bp = d2d1.BITMAP_PROPERTIES1{
+                .pixelFormat = .{ .format = .R8G8B8A8_UNORM_SRGB, .alphaMode = .PREMULTIPLIED },
+                .dpiX = 96.0,
+                .dpiY = 96.0,
+                .bitmapOptions = .{ .TARGET = true, .CANNOT_DRAW = true },
+            };
+
+            var d2d_render_target: *d3d11.IResource = undefined;
+            gr.vhr(dx.d2d.device11on12.CreateWrappedResource(
+                @ptrCast(*os.IUnknown, dx.getResource(srgb_texture)),
+                &d3d12.RESOURCE_FLAGS_11ON12{},
+                .{ .RENDER_TARGET = true },
+                .{ .RENDER_TARGET = true },
+                &d3d11.IID_IResource,
+                @ptrCast(**c_void, &d2d_render_target),
+            ));
+            _ = dx.releaseResource(srgb_texture);
+            _ = d2d_render_target.Release();
+        }
 
         var frame_fence: *d3d12.IFence = undefined;
         vhr(device.CreateFence(0, .NONE, &d3d12.IID_IFence, @ptrCast(**c_void, &frame_fence)));
@@ -285,11 +309,25 @@ pub const DxContext = struct {
             .viewport_width = viewport_width,
             .viewport_height = viewport_height,
             .window = window,
+            .d2d = .{
+                .factory = d2d_factory,
+                .device = d2d_device,
+                .context = d2d_device_context,
+                .device11on12 = device11on12,
+                .device11 = device11,
+                .context11 = device_context11,
+            },
         };
     }
 
     pub fn deinit(dx: *DxContext) void {
         waitForGpu(dx);
+        releaseCom(&dx.d2d.context);
+        releaseCom(&dx.d2d.device);
+        releaseCom(&dx.d2d.factory);
+        releaseCom(&dx.d2d.device11on12);
+        releaseCom(&dx.d2d.context11);
+        releaseCom(&dx.d2d.device11);
         dx.resource_pool.deinit();
         dx.pipeline.pool.deinit();
         assert(dx.pipeline.map.count() == 0);

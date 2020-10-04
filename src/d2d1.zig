@@ -50,6 +50,35 @@ pub const SIZE_U = extern struct {
     height: u32,
 };
 
+pub const BITMAP_OPTIONS = packed struct {
+    TARGET: bool = false,
+    CANNOT_DRAW: bool = false,
+    CPU_READ: bool = false,
+    GDI_COMPATIBLE: bool = false,
+
+    padding: u28 = 0,
+};
+
+pub const ALPHA_MODE = extern enum {
+    UNKNOWN = 0,
+    PREMULTIPLIED = 1,
+    STRAIGHT = 2,
+    IGNORE = 3,
+};
+
+pub const PIXEL_FORMAT = extern struct {
+    format: dxgi.FORMAT,
+    alphaMode: ALPHA_MODE,
+};
+
+pub const BITMAP_PROPERTIES1 = extern struct {
+    pixelFormat: PIXEL_FORMAT,
+    dpiX: f32,
+    dpiY: f32,
+    bitmapOptions: BITMAP_OPTIONS,
+    colorContext: ?*IColorContext = null,
+};
+
 pub const IResource = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
@@ -64,6 +93,19 @@ pub const IResource = extern struct {
 };
 
 pub const IImage = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+};
+
+pub const IColorContext = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
