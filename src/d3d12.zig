@@ -3131,6 +3131,75 @@ pub const IDevice = extern struct {
     }
 };
 
+pub const RESOURCE_FLAGS_11ON12 = extern struct {
+    BindFlags: u32,
+    MiscFlags: u32,
+    CPUAccessFlags: u32,
+    StructureByteStride: u32,
+};
+
+pub const I11On12Device = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D11On12Device
+        CreateWrappedResource: fn (
+            *Self,
+            *os.IUnknown,
+            *const RESOURCE_FLAGS_11ON12,
+            RESOURCE_STATES,
+            RESOURCE_STATES,
+            *const os.GUID,
+            **c_void,
+        ) callconv(.Stdcall) HRESULT,
+        ReleaseWrappedResources: fn (*Self, *const *d3d11.IResource, u32) callconv(.Stdcall) void,
+        AcquireWrappedResources: fn (*Self, *const *d3d11.IResource, u32) callconv(.Stdcall) void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace I11On12Device.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn CreateWrappedResource(
+                self: *T,
+                resource12: *os.IUnknown,
+                flags11: *const RESOURCE_FLAGS_11ON12,
+                in_state: RESOURCE_STATES,
+                out_state: RESOURCE_STATES,
+                guid: *const os.GUID,
+                resource11: **c_void,
+            ) HRESULT {
+                return self.vtbl.CreateWrappedResource(
+                    self,
+                    resource12,
+                    flags11,
+                    in_state,
+                    out_state,
+                    guid,
+                    resource11,
+                );
+            }
+            pub inline fn ReleaseWrappedResources(
+                self: *T,
+                resources: *const *d3d11.IResource,
+                num_resources: u32,
+            ) void {
+                self.vtbl.ReleaseWrappedResources(self, resources, num_resources);
+            }
+            pub inline fn AcquireWrappedResources(
+                self: *T,
+                resources: *const *d3d11.IResource,
+                num_resources: u32,
+            ) void {
+                self.vtbl.AcquireWrappedResources(self, resources, num_resources);
+            }
+        };
+    }
+};
+
 pub const IID_IDebug1 = os.GUID{
     .Data1 = 0xaffaa4ca,
     .Data2 = 0x63fe,

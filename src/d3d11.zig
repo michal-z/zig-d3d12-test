@@ -31,6 +31,26 @@ pub const IDevice = extern struct {
     usingnamespace os.IUnknown.Methods(Self);
 };
 
+pub const IResource = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D11DeviceChild
+        GetDevice: *c_void,
+        GetPrivateData: *c_void,
+        SetPrivateData: *c_void,
+        SetPrivateDataInterface: *c_void,
+        // ID3D11Resource
+        GetType: *c_void,
+        SetEvictionPriority: *c_void,
+        GetEvictionPriority: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+};
+
 pub const IDeviceContext = extern struct {
     const Self = @This();
     vtbl: *const extern struct {

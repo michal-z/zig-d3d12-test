@@ -156,7 +156,7 @@ pub const DxContext = struct {
         defer releaseCom(&device11);
         defer releaseCom(&device_context11);
 
-        var device11on12: *os.IUnknown = undefined;
+        var device11on12: *d3d12.I11On12Device = undefined;
         vhr(device11.QueryInterface(&d3d12.IID_ID3D11On12Device, @ptrCast(**c_void, &device11on12)));
 
         var dxgi_device: *dxgi.IDevice = undefined;
