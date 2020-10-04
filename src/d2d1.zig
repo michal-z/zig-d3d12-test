@@ -269,6 +269,231 @@ pub const IStrokeStyle = extern struct {
     usingnamespace IResource.Methods(Self);
 };
 
+pub const IGeometry = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Geometry
+        GetBounds: *c_void,
+        GetWidenedBounds: *c_void,
+        StrokeContainsPoint: *c_void,
+        FillContainsPoint: *c_void,
+        CompareWithGeometry: *c_void,
+        Simplify: *c_void,
+        Tessellate: *c_void,
+        CombineWithGeometry: *c_void,
+        Outline: *c_void,
+        ComputeArea: *c_void,
+        ComputeLength: *c_void,
+        ComputePointAtLength: *c_void,
+        Widen: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IRectangleGeometry = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Geometry
+        GetBounds: *c_void,
+        GetWidenedBounds: *c_void,
+        StrokeContainsPoint: *c_void,
+        FillContainsPoint: *c_void,
+        CompareWithGeometry: *c_void,
+        Simplify: *c_void,
+        Tessellate: *c_void,
+        CombineWithGeometry: *c_void,
+        Outline: *c_void,
+        ComputeArea: *c_void,
+        ComputeLength: *c_void,
+        ComputePointAtLength: *c_void,
+        Widen: *c_void,
+        // ID2D1RectangleGeometry
+        GetRect: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IRoundedRectangleGeometry = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Geometry
+        GetBounds: *c_void,
+        GetWidenedBounds: *c_void,
+        StrokeContainsPoint: *c_void,
+        FillContainsPoint: *c_void,
+        CompareWithGeometry: *c_void,
+        Simplify: *c_void,
+        Tessellate: *c_void,
+        CombineWithGeometry: *c_void,
+        Outline: *c_void,
+        ComputeArea: *c_void,
+        ComputeLength: *c_void,
+        ComputePointAtLength: *c_void,
+        Widen: *c_void,
+        // ID2D1RoundedRectangleGeometry
+        GetRoundRect: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IEllipseGeometry = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Geometry
+        GetBounds: *c_void,
+        GetWidenedBounds: *c_void,
+        StrokeContainsPoint: *c_void,
+        FillContainsPoint: *c_void,
+        CompareWithGeometry: *c_void,
+        Simplify: *c_void,
+        Tessellate: *c_void,
+        CombineWithGeometry: *c_void,
+        Outline: *c_void,
+        ComputeArea: *c_void,
+        ComputeLength: *c_void,
+        ComputePointAtLength: *c_void,
+        Widen: *c_void,
+        // ID2D1EllipseGeometry
+        GetEllipse: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IGeometryGroup = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Geometry
+        GetBounds: *c_void,
+        GetWidenedBounds: *c_void,
+        StrokeContainsPoint: *c_void,
+        FillContainsPoint: *c_void,
+        CompareWithGeometry: *c_void,
+        Simplify: *c_void,
+        Tessellate: *c_void,
+        CombineWithGeometry: *c_void,
+        Outline: *c_void,
+        ComputeArea: *c_void,
+        ComputeLength: *c_void,
+        ComputePointAtLength: *c_void,
+        Widen: *c_void,
+        // ID2D1GeometryGroup
+        GetFillMode: *c_void,
+        GetSourceGeometryCount: *c_void,
+        GetSourceGeometries: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const ITransformedGeometry = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Geometry
+        GetBounds: *c_void,
+        GetWidenedBounds: *c_void,
+        StrokeContainsPoint: *c_void,
+        FillContainsPoint: *c_void,
+        CompareWithGeometry: *c_void,
+        Simplify: *c_void,
+        Tessellate: *c_void,
+        CombineWithGeometry: *c_void,
+        Outline: *c_void,
+        ComputeArea: *c_void,
+        ComputeLength: *c_void,
+        ComputePointAtLength: *c_void,
+        Widen: *c_void,
+        // ID2D1TransformedGeometry
+        GetSourceGeometry: *c_void,
+        GetTransform: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const ISimplifiedGeometrySink = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1SimplifiedGeometrySink
+        SetFillMode: *c_void,
+        SetSegmentFlags: *c_void,
+        BeginFigure: *c_void,
+        AddLines: *c_void,
+        AddBeziers: *c_void,
+        EndFigure: *c_void,
+        Close: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+};
+
+pub const IGeometrySink = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1SimplifiedGeometrySink
+        SetFillMode: *c_void,
+        SetSegmentFlags: *c_void,
+        BeginFigure: *c_void,
+        AddLines: *c_void,
+        AddBeziers: *c_void,
+        EndFigure: *c_void,
+        Close: *c_void,
+        // ID2D1GeometrySink
+        AddLine: *c_void,
+        AddBezier: *c_void,
+        AddQuadraticBezier: *c_void,
+        AddQuadraticBeziers: *c_void,
+        AddArc: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+};
+
 pub const IFactory = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
