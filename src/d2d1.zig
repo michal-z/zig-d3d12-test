@@ -82,7 +82,191 @@ pub const IImage = extern struct {
 };
 
 pub const IBitmap = extern struct {
-    // TODO:
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Bitmap
+        GetSize: *c_void,
+        GetPixelSize: *c_void,
+        GetPixelFormat: *c_void,
+        GetPixelDpi: *c_void,
+        CopyFromBitmap: *c_void,
+        CopyFromRenderTarget: *c_void,
+        CopyFromMemory: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IGradientStopCollection = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1GradientStopCollection
+        GetGradientStopCount: *c_void,
+        GetGradientStops: *c_void,
+        GetColorInterpolationGamma: *c_void,
+        GetExtendMode: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IBrush = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Brush
+        SetOpacity: *c_void,
+        SetTransform: *c_void,
+        GetOpacity: *c_void,
+        GetTransform: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IBitmapBrush = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Brush
+        SetOpacity: *c_void,
+        SetTransform: *c_void,
+        GetOpacity: *c_void,
+        GetTransform: *c_void,
+        // ID2D1BitmapBrush
+        SetExtendModeX: *c_void,
+        SetExtendModeY: *c_void,
+        SetInterpolationMode: *c_void,
+        SetBitmap: *c_void,
+        GetExtendModeX: *c_void,
+        GetExtendModeY: *c_void,
+        GetInterpolationMode: *c_void,
+        GetBitmap: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const ISolidColorBrush = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Brush
+        SetOpacity: *c_void,
+        SetTransform: *c_void,
+        GetOpacity: *c_void,
+        GetTransform: *c_void,
+        // ID2D1SolidColorBrush
+        SetColor: *c_void,
+        GetColor: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const ILinearGradientBrush = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Brush
+        SetOpacity: *c_void,
+        SetTransform: *c_void,
+        GetOpacity: *c_void,
+        GetTransform: *c_void,
+        // ID2D1LinearGradientBrush
+        SetStartPoint: *c_void,
+        SetEndPoint: *c_void,
+        GetStartPoint: *c_void,
+        GetEndPoint: *c_void,
+        GetGradientStopCollection: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IRadialGradientBrush = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1Brush
+        SetOpacity: *c_void,
+        SetTransform: *c_void,
+        GetOpacity: *c_void,
+        GetTransform: *c_void,
+        // ID2D1RadialGradientBrush
+        SetCenter: *c_void,
+        SetGradientOriginOffset: *c_void,
+        SetRadiusX: *c_void,
+        SetRadiusY: *c_void,
+        GetCenter: *c_void,
+        GetGradientOriginOffset: *c_void,
+        GetRadiusX: *c_void,
+        GetRadiusY: *c_void,
+        GetGradientStopCollection: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
+};
+
+pub const IStrokeStyle = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID2D1Resource
+        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        // ID2D1StrokeStyle
+        GetStartCap: *c_void,
+        GetEndCap: *c_void,
+        GetDashCap: *c_void,
+        GetMiterLimit: *c_void,
+        GetLineJoin: *c_void,
+        GetDashOffset: *c_void,
+        GetDashStyle: *c_void,
+        GetDashesCount: *c_void,
+        GetDashes: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IResource.Methods(Self);
 };
 
 pub const IFactory = extern struct {
