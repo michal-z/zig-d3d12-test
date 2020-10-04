@@ -4,6 +4,7 @@ const assert = std.debug.assert;
 const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
+const d3d11 = @import("d3d11.zig");
 const d2d1 = @import("d2d1.zig");
 
 const num_frames = 2;
@@ -138,8 +139,9 @@ pub const DxContext = struct {
         releaseCom(&temp_swapchain);
         releaseCom(&factory);
 
-        var device11: *os.IUnknown = undefined;
-        vhr(d3d12.D3D11On12CreateDevice(
+        var device11: *d3d11.IDevice = undefined;
+        var device_context11: *d3d11.IDeviceContext = undefined;
+        vhr(d3d12.Create11On12Device(
             @ptrCast(*os.IUnknown, device),
             d3d12.D3D11_CREATE_DEVICE_BGRA_SUPPORT,
             null,
@@ -148,21 +150,22 @@ pub const DxContext = struct {
             1,
             0,
             &device11,
-            null,
+            &device_context11,
             null,
         ));
         defer releaseCom(&device11);
+        defer releaseCom(&device_context11);
 
-        var device11_on_12: *os.IUnknown = undefined;
-        vhr(device11.QueryInterface(&d3d12.IID_ID3D11On12Device, @ptrCast(**c_void, &device11_on_12)));
+        var device11on12: *os.IUnknown = undefined;
+        vhr(device11.QueryInterface(&d3d12.IID_ID3D11On12Device, @ptrCast(**c_void, &device11on12)));
 
         var dxgi_device: *dxgi.IDevice = undefined;
-        vhr(device11_on_12.QueryInterface(&dxgi.IID_IDevice, @ptrCast(**c_void, &dxgi_device)));
+        vhr(device11on12.QueryInterface(&dxgi.IID_IDevice, @ptrCast(**c_void, &dxgi_device)));
 
-        var d2d_factory: *os.IUnknown = undefined;
+        var d2d_factory: *d2d1.IFactory7 = undefined;
         vhr(d2d1.CreateFactory(
             .SINGLE_THREADED,
-            &d2d1.IID_IFactory,
+            &d2d1.IID_IFactory7,
             if (comptime builtin.mode == .Debug)
                 &d2d1.FACTORY_OPTIONS{ .debugLevel = .INFORMATION }
             else
@@ -170,8 +173,16 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &d2d_factory),
         ));
 
+        var d2d_device: *d2d1.IDevice6 = undefined;
+        vhr(d2d_factory.CreateDevice6(dxgi_device, &d2d_device));
+
+        var d2d_device_context: *d2d1.IDeviceContext6 = undefined;
+        vhr(d2d_device.CreateDeviceContext6(.{}, &d2d_device_context));
+
+        releaseCom(&d2d_device);
+        releaseCom(&d2d_device_context);
         releaseCom(&d2d_factory);
-        releaseCom(&device11_on_12);
+        releaseCom(&device11on12);
         releaseCom(&dxgi_device);
 
         var frame_fence: *d3d12.IFence = undefined;

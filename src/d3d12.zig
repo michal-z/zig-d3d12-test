@@ -1,6 +1,7 @@
 const std = @import("std");
 const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
+const d3d11 = @import("d3d11.zig");
 
 pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
 
@@ -3207,7 +3208,7 @@ pub var CreateDevice: fn (
 
 pub const D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20; // Required for Direct2D interop.
 
-pub var D3D11On12CreateDevice: fn (
+pub var Create11On12Device: fn (
     *os.IUnknown,
     u32,
     [*c]const FEATURE_LEVEL,
@@ -3215,8 +3216,8 @@ pub var D3D11On12CreateDevice: fn (
     [*c]const *os.IUnknown,
     u32,
     u32,
-    **os.IUnknown, // ID3D11Device
-    ?**os.IUnknown, // ID3D11DeviceContext
+    ?**d3d11.IDevice,
+    ?**d3d11.IDeviceContext,
     ?*FEATURE_LEVEL,
 ) callconv(.Stdcall) HRESULT = undefined;
 
@@ -3227,5 +3228,5 @@ pub fn init() void {
     CreateDevice = d3d12_dll.lookup(@TypeOf(CreateDevice), "D3D12CreateDevice").?;
 
     var d3d11_dll = std.DynLib.open("/windows/system32/d3d11.dll") catch unreachable;
-    D3D11On12CreateDevice = d3d11_dll.lookup(@TypeOf(D3D11On12CreateDevice), "D3D11On12CreateDevice").?;
+    Create11On12Device = d3d11_dll.lookup(@TypeOf(Create11On12Device), "D3D11On12CreateDevice").?;
 }

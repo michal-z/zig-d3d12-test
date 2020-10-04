@@ -1,6 +1,7 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const os = @import("windows.zig");
+const dxgi = @import("dxgi.zig");
 const HRESULT = os.HRESULT;
 
 pub const FACTORY_TYPE = extern enum {
@@ -17,6 +18,10 @@ pub const DEBUG_LEVEL = extern enum {
 
 pub const FACTORY_OPTIONS = extern struct {
     debugLevel: DEBUG_LEVEL,
+};
+
+pub const DEVICE_CONTEXT_OPTIONS = packed struct {
+    ENABLE_MULTITHREADED_OPTIMIZATIONS: bool = false,
 };
 
 pub const RECT_F = extern struct {
@@ -53,18 +58,9 @@ pub const IResource = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
-
-    fn Methods(comptime T: type) type {
-        return extern struct {
-            pub inline fn GetFactory(self: *T, factory: **IFactory) void {
-                self.vtbl.GetFactory(self, factory);
-            }
-        };
-    }
 };
 
 pub const IImage = extern struct {
@@ -75,10 +71,9 @@ pub const IImage = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IBitmap = extern struct {
@@ -89,7 +84,7 @@ pub const IBitmap = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Bitmap
         GetSize: *c_void,
         GetPixelSize: *c_void,
@@ -100,7 +95,6 @@ pub const IBitmap = extern struct {
         CopyFromMemory: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IGradientStopCollection = extern struct {
@@ -111,7 +105,7 @@ pub const IGradientStopCollection = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1GradientStopCollection
         GetGradientStopCount: *c_void,
         GetGradientStops: *c_void,
@@ -119,7 +113,6 @@ pub const IGradientStopCollection = extern struct {
         GetExtendMode: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IBrush = extern struct {
@@ -130,7 +123,7 @@ pub const IBrush = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Brush
         SetOpacity: *c_void,
         SetTransform: *c_void,
@@ -138,7 +131,6 @@ pub const IBrush = extern struct {
         GetTransform: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IBitmapBrush = extern struct {
@@ -150,6 +142,7 @@ pub const IBitmapBrush = extern struct {
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
         GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Brush
         SetOpacity: *c_void,
         SetTransform: *c_void,
@@ -166,7 +159,6 @@ pub const IBitmapBrush = extern struct {
         GetBitmap: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const ISolidColorBrush = extern struct {
@@ -177,7 +169,7 @@ pub const ISolidColorBrush = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Brush
         SetOpacity: *c_void,
         SetTransform: *c_void,
@@ -188,7 +180,6 @@ pub const ISolidColorBrush = extern struct {
         GetColor: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const ILinearGradientBrush = extern struct {
@@ -199,7 +190,7 @@ pub const ILinearGradientBrush = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Brush
         SetOpacity: *c_void,
         SetTransform: *c_void,
@@ -213,7 +204,6 @@ pub const ILinearGradientBrush = extern struct {
         GetGradientStopCollection: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IRadialGradientBrush = extern struct {
@@ -224,7 +214,7 @@ pub const IRadialGradientBrush = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Brush
         SetOpacity: *c_void,
         SetTransform: *c_void,
@@ -242,7 +232,6 @@ pub const IRadialGradientBrush = extern struct {
         GetGradientStopCollection: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IStrokeStyle = extern struct {
@@ -253,7 +242,7 @@ pub const IStrokeStyle = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1StrokeStyle
         GetStartCap: *c_void,
         GetEndCap: *c_void,
@@ -266,7 +255,6 @@ pub const IStrokeStyle = extern struct {
         GetDashes: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IGeometry = extern struct {
@@ -277,7 +265,7 @@ pub const IGeometry = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Geometry
         GetBounds: *c_void,
         GetWidenedBounds: *c_void,
@@ -294,7 +282,6 @@ pub const IGeometry = extern struct {
         Widen: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IRectangleGeometry = extern struct {
@@ -305,7 +292,7 @@ pub const IRectangleGeometry = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Geometry
         GetBounds: *c_void,
         GetWidenedBounds: *c_void,
@@ -324,7 +311,6 @@ pub const IRectangleGeometry = extern struct {
         GetRect: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IRoundedRectangleGeometry = extern struct {
@@ -335,7 +321,7 @@ pub const IRoundedRectangleGeometry = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Geometry
         GetBounds: *c_void,
         GetWidenedBounds: *c_void,
@@ -354,7 +340,6 @@ pub const IRoundedRectangleGeometry = extern struct {
         GetRoundRect: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IEllipseGeometry = extern struct {
@@ -365,7 +350,7 @@ pub const IEllipseGeometry = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Geometry
         GetBounds: *c_void,
         GetWidenedBounds: *c_void,
@@ -384,7 +369,6 @@ pub const IEllipseGeometry = extern struct {
         GetEllipse: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IGeometryGroup = extern struct {
@@ -395,7 +379,7 @@ pub const IGeometryGroup = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Geometry
         GetBounds: *c_void,
         GetWidenedBounds: *c_void,
@@ -416,7 +400,6 @@ pub const IGeometryGroup = extern struct {
         GetSourceGeometries: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const ITransformedGeometry = extern struct {
@@ -427,7 +410,7 @@ pub const ITransformedGeometry = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Geometry
         GetBounds: *c_void,
         GetWidenedBounds: *c_void,
@@ -447,7 +430,6 @@ pub const ITransformedGeometry = extern struct {
         GetTransform: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const ISimplifiedGeometrySink = extern struct {
@@ -516,7 +498,7 @@ pub const IPathGeometry = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Geometry
         GetBounds: *c_void,
         GetWidenedBounds: *c_void,
@@ -538,7 +520,6 @@ pub const IPathGeometry = extern struct {
         GetFigureCount: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IMesh = extern struct {
@@ -549,12 +530,11 @@ pub const IMesh = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Mesh
         Open: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const ILayer = extern struct {
@@ -565,12 +545,11 @@ pub const ILayer = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Layer
         GetSize: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IDrawingStateBlock = extern struct {
@@ -581,7 +560,7 @@ pub const IDrawingStateBlock = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1DrawingStateBlock
         GetDescription: *c_void,
         SetDescription: *c_void,
@@ -589,7 +568,6 @@ pub const IDrawingStateBlock = extern struct {
         GetTextRenderingParams: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IDeviceContext6 = extern struct {
@@ -600,7 +578,7 @@ pub const IDeviceContext6 = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1RenderTarget
         CreateBitmap: *c_void,
         CreateBitmapFromWicBitmap: *c_void,
@@ -727,7 +705,6 @@ pub const IDeviceContext6 = extern struct {
         BlendImage: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
 };
 
 pub const IDevice6 = extern struct {
@@ -738,7 +715,7 @@ pub const IDevice6 = extern struct {
         AddRef: fn (*Self) callconv(.Stdcall) u32,
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: *c_void,
         // ID2D1Device
         CreateDeviceContext: *c_void,
         CreatePrintControl: *c_void,
@@ -762,10 +739,26 @@ pub const IDevice6 = extern struct {
         // ID2D1Device5
         CreateDeviceContext5: *c_void,
         // ID2D1Device6
-        CreateDeviceContext6: *c_void,
+        CreateDeviceContext6: fn (
+            *Self,
+            DEVICE_CONTEXT_OPTIONS,
+            **IDeviceContext6,
+        ) callconv(.Stdcall) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace IResource.Methods(Self);
+    usingnamespace IDevice6.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn CreateDeviceContext6(
+                self: *T,
+                options: DEVICE_CONTEXT_OPTIONS,
+                device_context6: **IDeviceContext6,
+            ) HRESULT {
+                return self.vtbl.CreateDeviceContext6(self, options, device_context6);
+            }
+        };
+    }
 };
 
 pub const IFactory7 = extern struct {
@@ -812,16 +805,29 @@ pub const IFactory7 = extern struct {
         // ID2D1Factory6
         CreateDevice5: *c_void,
         // ID2D1Factory7
-        CreateDevice6: *c_void,
+        CreateDevice6: fn (*Self, *dxgi.IDevice, **IDevice6) callconv(.Stdcall) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IFactory7.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn CreateDevice6(
+                self: *T,
+                dxgi_device: *dxgi.IDevice,
+                d2d_device6: **IDevice6,
+            ) HRESULT {
+                return self.vtbl.CreateDevice6(self, dxgi_device, d2d_device6);
+            }
+        };
+    }
 };
 
-pub const IID_IFactory = os.GUID{
-    .Data1 = 0x06152247,
-    .Data2 = 0x6f50,
-    .Data3 = 0x465a,
-    .Data4 = .{ 0x92, 0x45, 0x11, 0x8b, 0xfd, 0x3b, 0x60, 0x07 },
+pub const IID_IFactory7 = os.GUID{
+    .Data1 = 0xbdc2bdd3,
+    .Data2 = 0xb96c,
+    .Data3 = 0x4de6,
+    .Data4 = .{ 0xbd, 0xf7, 0x99, 0xd4, 0x74, 0x54, 0x54, 0xde },
 };
 
 pub var CreateFactory: fn (
