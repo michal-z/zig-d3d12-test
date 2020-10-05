@@ -66,6 +66,7 @@ pub const DxContext = struct {
         device11on12: *d3d12.I11On12Device,
         device11: *d3d11.IDevice,
         context11: *d3d11.IDeviceContext,
+        wrapped_swapbuffers: [num_swapbuffers]*d3d11.IResource,
     },
 
     pub fn init(window: os.HWND) DxContext {
@@ -190,23 +191,11 @@ pub const DxContext = struct {
         // TODO:
         if (false) {
             const bp = d2d1.BITMAP_PROPERTIES1{
-                .pixelFormat = .{ .format = .R8G8B8A8_UNORM_SRGB, .alphaMode = .PREMULTIPLIED },
+                .pixelFormat = .{ .format = .R8G8B8A8_UNORM, .alphaMode = .PREMULTIPLIED },
                 .dpiX = 96.0,
                 .dpiY = 96.0,
                 .bitmapOptions = .{ .TARGET = true, .CANNOT_DRAW = true },
             };
-
-            var d2d_render_target: *d3d11.IResource = undefined;
-            gr.vhr(dx.d2d.device11on12.CreateWrappedResource(
-                @ptrCast(*os.IUnknown, dx.getResource(srgb_texture)),
-                &d3d12.RESOURCE_FLAGS_11ON12{},
-                .{ .RENDER_TARGET = true },
-                .{ .RENDER_TARGET = true },
-                &d3d11.IID_IResource,
-                @ptrCast(**c_void, &d2d_render_target),
-            ));
-            _ = dx.releaseResource(srgb_texture);
-            _ = d2d_render_target.Release();
         }
 
         var frame_fence: *d3d12.IFence = undefined;
@@ -254,6 +243,7 @@ pub const DxContext = struct {
 
         // First 'num_swapbuffers' slots in 'rtv_heap' contain swapbuffer descriptors.
         var swapbuffers: [num_swapbuffers]ResourceHandle = undefined;
+        var wrapped_swapbuffers: [num_swapbuffers]*d3d11.IResource = undefined;
         {
             var handle = rtv_heap.allocateDescriptors(num_swapbuffers).cpu_handle;
 
@@ -267,6 +257,15 @@ pub const DxContext = struct {
                 swapbuffer.* = resource_pool.addResource(buffer, .{}, .R8G8B8A8_UNORM);
                 device.CreateRenderTargetView(buffer, null, handle);
                 handle.ptr += rtv_heap.descriptor_size;
+
+                vhr(device11on12.CreateWrappedResource(
+                    @ptrCast(*os.IUnknown, buffer),
+                    &d3d12.RESOURCE_FLAGS_11ON12{},
+                    .{ .RENDER_TARGET = true },
+                    .{ .RENDER_TARGET = true },
+                    &d3d11.IID_IResource,
+                    @ptrCast(**c_void, &wrapped_swapbuffers[i]),
+                ));
             }
         }
 
@@ -316,6 +315,7 @@ pub const DxContext = struct {
                 .device11on12 = device11on12,
                 .device11 = device11,
                 .context11 = device_context11,
+                .wrapped_swapbuffers = wrapped_swapbuffers,
             },
         };
     }

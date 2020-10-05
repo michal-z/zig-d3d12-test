@@ -249,7 +249,11 @@ pub const IDevice = extern struct {
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // IDXGIDevice
-        _0: [5]*c_void, // TODO: add missing function pointers
+        GetAdapter: *c_void,
+        CreateSurface: *c_void,
+        QueryResourceResidency: *c_void,
+        SetGPUThreadPriority: *c_void,
+        GetGPUThreadPriority: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -287,6 +291,34 @@ pub const IDeviceSubObject = extern struct {
     }
 };
 
+pub const ISurface = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // IDXGIObject
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateDataInterface: fn (
+            *Self,
+            *const os.GUID,
+            ?*const os.IUnknown,
+        ) callconv(.Stdcall) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // IDXGIDeviceSubObject
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        // IDXGISurface
+        GetDesc: *c_void,
+        Map: *c_void,
+        Unmap: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IObject.Methods(Self);
+    usingnamespace IDeviceSubObject.Methods(Self);
+};
+
 pub const IFactory4 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
@@ -304,14 +336,36 @@ pub const IFactory4 = extern struct {
         GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
         GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
         // IDXGIFactory
-        _0: [3]*c_void, // TODO: add missing function pointers
+        EnumAdapters: *c_void,
+        MakeWindowAssociation: *c_void,
+        GetWindowAssociation: *c_void,
         CreateSwapChain: fn (
             *Self,
             *os.IUnknown,
             *SWAP_CHAIN_DESC,
-            **os.IUnknown, // TODO: type should be **ISwapChain
+            **os.IUnknown,
         ) callconv(.Stdcall) HRESULT,
-        _1: [17]*c_void, // TODO: add missing function pointers
+        CreateSoftwareAdapter: *c_void,
+        // IDXGIFactory1
+        EnumAdapters1: *c_void,
+        IsCurrent: *c_void,
+        // IDXGIFactory2
+        IsWindowedStereoEnabled: *c_void,
+        CreateSwapChainForHwnd: *c_void,
+        CreateSwapChainForCoreWindow: *c_void,
+        GetSharedResourceAdapterLuid: *c_void,
+        RegisterOcclusionStatusWindow: *c_void,
+        RegisterStereoStatusEvent: *c_void,
+        UnregisterStereoStatus: *c_void,
+        RegisterStereoStatusWindow: *c_void,
+        RegisterOcclusionStatusEvent: *c_void,
+        UnregisterOcclusionStatus: *c_void,
+        CreateSwapChainForComposition: *c_void,
+        // IDXGIFactory3
+        GetCreationFlags: *c_void,
+        // IDXGIFactory4
+        EnumAdapterByLuid: *c_void,
+        EnumWarpAdapter: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -352,12 +406,39 @@ pub const ISwapChain3 = extern struct {
         // IDXGISwapChain
         Present: fn (*Self, u32, u32) callconv(.Stdcall) HRESULT,
         GetBuffer: fn (*Self, u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        _0: [8]*c_void, // TODO: add missing function pointers
+        SetFullscreenState: *c_void,
+        GetFullscreenState: *c_void,
+        GetDesc: *c_void,
+        ResizeBuffers: *c_void,
+        ResizeTarget: *c_void,
+        GetContainingOutput: *c_void,
+        GetFrameStatistics: *c_void,
+        GetLastPresentCount: *c_void,
+        // IDXGISwapChain1
+        GetDesc1: *c_void,
+        GetFullscreenDesc: *c_void,
+        GetHwnd: *c_void,
+        GetCoreWindow: *c_void,
+        Present1: *c_void,
+        IsTemporaryMonoSupported: *c_void,
+        GetRestrictToOutput: *c_void,
+        SetBackgroundColor: *c_void,
+        GetBackgroundColor: *c_void,
+        SetRotation: *c_void,
+        GetRotation: *c_void,
         // IDXGISwapChain2
-        _1: [18]*c_void, // TODO: add missing function pointers
+        SetSourceSize: *c_void,
+        GetSourceSize: *c_void,
+        SetMaximumFrameLatency: *c_void,
+        GetMaximumFrameLatency: *c_void,
+        GetFrameLatencyWaitableObject: *c_void,
+        SetMatrixTransform: *c_void,
+        GetMatrixTransform: *c_void,
         // IDXGISwapChain3
         GetCurrentBackBufferIndex: fn (*Self) callconv(.Stdcall) u32,
-        _2: [3]*c_void, // TODO: add missing function pointers
+        CheckColorSpaceSupport: *c_void,
+        SetColorSpace1: *c_void,
+        ResizeBuffers1: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
