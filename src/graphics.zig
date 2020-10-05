@@ -172,6 +172,7 @@ pub const DxContext = struct {
 
         var dxgi_device: *dxgi.IDevice = undefined;
         vhr(device11on12.QueryInterface(&dxgi.IID_IDevice, @ptrCast(**c_void, &dxgi_device)));
+        defer releaseCom(&dxgi_device);
 
         var d2d_factory: *d2d1.IFactory7 = undefined;
         vhr(d2d1.CreateFactory(
@@ -189,8 +190,6 @@ pub const DxContext = struct {
 
         var d2d_device_context: *d2d1.IDeviceContext6 = undefined;
         vhr(d2d_device.CreateDeviceContext6(.{}, &d2d_device_context));
-
-        releaseCom(&dxgi_device);
 
         var frame_fence: *d3d12.IFence = undefined;
         vhr(device.CreateFence(0, .NONE, &d3d12.IID_IFence, @ptrCast(**c_void, &frame_fence)));
