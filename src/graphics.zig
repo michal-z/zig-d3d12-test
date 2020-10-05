@@ -437,9 +437,13 @@ pub const DxContext = struct {
             &[_]*d3d11.IResource{dx.d2d.wrapped_swapbuffers[dx.back_buffer_index]},
             1,
         );
+        dx.d2d.context.SetTarget(@ptrCast(*d2d1.IImage, dx.d2d.targets[dx.back_buffer_index]));
+        dx.d2d.context.BeginDraw();
     }
 
     pub fn endDraw2d(dx: DxContext) void {
+        vhr(dx.d2d.context.EndDraw(null, null));
+
         dx.d2d.device11on12.ReleaseWrappedResources(
             &[_]*d3d11.IResource{dx.d2d.wrapped_swapbuffers[dx.back_buffer_index]},
             1,

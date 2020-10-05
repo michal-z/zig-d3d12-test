@@ -693,8 +693,8 @@ pub const IDeviceContext6 = extern struct {
         PushAxisAlignedClip: *c_void,
         PopAxisAlignedClip: *c_void,
         Clear: *c_void,
-        BeginDraw: *c_void,
-        EndDraw: *c_void,
+        BeginDraw: fn (*Self) callconv(.Stdcall) void,
+        EndDraw: fn (*Self, ?*u64, ?*u64) callconv(.Stdcall) HRESULT,
         GetPixelFormat: *c_void,
         SetDpi: *c_void,
         GetDpi: *c_void,
@@ -725,7 +725,7 @@ pub const IDeviceContext6 = extern struct {
         GetImageWorldBounds: *c_void,
         GetGlyphRunWorldBounds: *c_void,
         GetDevice: *c_void,
-        SetTarget: *c_void,
+        SetTarget: fn (*Self, *IImage) callconv(.Stdcall) void,
         GetTarget: *c_void,
         SetRenderingControls: *c_void,
         GetRenderingControls: *c_void,
@@ -798,6 +798,15 @@ pub const IDeviceContext6 = extern struct {
                 brush: **ISolidColorBrush,
             ) HRESULT {
                 return self.vtbl.CreateSolidColorBrush(self, color, properties, brush);
+            }
+            pub inline fn SetTarget(self: *T, image: *IImage) void {
+                self.vtbl.SetTarget(self, image);
+            }
+            pub inline fn BeginDraw(self: *T) void {
+                self.vtbl.BeginDraw(self);
+            }
+            pub inline fn EndDraw(self: *T, tag1: ?*u64, tag2: ?*u64) HRESULT {
+                return self.vtbl.EndDraw(self, tag1, tag2);
             }
         };
     }
