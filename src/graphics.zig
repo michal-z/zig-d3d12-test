@@ -262,7 +262,7 @@ pub const DxContext = struct {
                     @ptrCast(*os.IUnknown, buffer),
                     &d3d12.RESOURCE_FLAGS_11ON12{},
                     .{ .RENDER_TARGET = true },
-                    .{ .RENDER_TARGET = true },
+                    .{},
                     &d3d11.IID_IResource,
                     @ptrCast(**c_void, &wrapped_swapbuffers[buffer_idx]),
                 ));
@@ -403,9 +403,8 @@ pub const DxContext = struct {
     }
 
     pub fn endFrame(dx: *DxContext) void {
-        dx.closeAndExecuteCommandList();
-
         dx.frame_fence_counter += 1;
+
         vhr(dx.swapchain.Present(0, 0));
         vhr(dx.cmdqueue.Signal(dx.frame_fence, dx.frame_fence_counter));
 
@@ -431,6 +430,25 @@ pub const DxContext = struct {
 
         dx.cbv_srv_uav_gpu_heaps[dx.frame_index].size = 0;
         dx.upload_memory_heaps[dx.frame_index].size = 0;
+    }
+
+    pub fn beginDraw2d(dx: DxContext) void {
+        dx.d2d.device11on12.AcquireWrappedResources(
+            &[_]*d3d11.IResource{dx.d2d.wrapped_swapbuffers[dx.back_buffer_index]},
+            1,
+        );
+    }
+
+    pub fn endDraw2d(dx: DxContext) void {
+        dx.d2d.device11on12.ReleaseWrappedResources(
+            &[_]*d3d11.IResource{dx.d2d.wrapped_swapbuffers[dx.back_buffer_index]},
+            1,
+        );
+        dx.d2d.context11.Flush();
+
+        // Above calls will set back buffer state to PRESENT. We need to reflect this change
+        // in 'resource_pool' by manually setting state.
+        dx.resource_pool.getResource(dx.swapbuffers[dx.back_buffer_index]).*.state = .{};
     }
 
     pub fn allocateCpuDescriptors(

@@ -258,6 +258,7 @@ const DemoState = struct {
         dx.beginFrame();
         dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = true });
         dx.flushResourceBarriers();
+
         dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, &self.depth_texture_dsv);
         dx.cmdlist.ClearRenderTargetView(
             self.srgb_texture_rtv,
@@ -338,8 +339,13 @@ const DemoState = struct {
             0,
             .R8G8B8A8_UNORM,
         );
-        dx.addTransitionBarrier(back_buffer.resource_handle, .{});
+        dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RENDER_TARGET = true });
         dx.flushResourceBarriers();
+        dx.closeAndExecuteCommandList();
+
+        dx.beginDraw2d();
+        dx.endDraw2d();
+
         dx.endFrame();
     }
 };

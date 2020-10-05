@@ -3155,8 +3155,8 @@ pub const I11On12Device = extern struct {
             *const os.GUID,
             **c_void,
         ) callconv(.Stdcall) HRESULT,
-        ReleaseWrappedResources: fn (*Self, *const *d3d11.IResource, u32) callconv(.Stdcall) void,
-        AcquireWrappedResources: fn (*Self, *const *d3d11.IResource, u32) callconv(.Stdcall) void,
+        ReleaseWrappedResources: fn (*Self, [*]const *d3d11.IResource, u32) callconv(.Stdcall) void,
+        AcquireWrappedResources: fn (*Self, [*]const *d3d11.IResource, u32) callconv(.Stdcall) void,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace I11On12Device.Methods(Self);
@@ -3184,14 +3184,14 @@ pub const I11On12Device = extern struct {
             }
             pub inline fn ReleaseWrappedResources(
                 self: *T,
-                resources: *const *d3d11.IResource,
+                resources: [*]const *d3d11.IResource,
                 num_resources: u32,
             ) void {
                 self.vtbl.ReleaseWrappedResources(self, resources, num_resources);
             }
             pub inline fn AcquireWrappedResources(
                 self: *T,
-                resources: *const *d3d11.IResource,
+                resources: [*]const *d3d11.IResource,
                 num_resources: u32,
             ) void {
                 self.vtbl.AcquireWrappedResources(self, resources, num_resources);

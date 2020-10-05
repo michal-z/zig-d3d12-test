@@ -205,12 +205,21 @@ pub const IDeviceContext = extern struct {
         CSGetSamplers: *c_void,
         CSGetConstantBuffers: *c_void,
         ClearState: *c_void,
-        Flush: *c_void,
+        Flush: fn (*Self) callconv(.Stdcall) void,
         GetType: *c_void,
         GetContextFlags: *c_void,
         FinishCommandList: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IDeviceContext.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn Flush(self: *T) void {
+                self.vtbl.Flush(self);
+            }
+        };
+    }
 };
 
 pub const IID_IResource = os.GUID{
