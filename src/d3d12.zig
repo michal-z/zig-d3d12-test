@@ -319,7 +319,7 @@ pub const COLOR_WRITE_ENABLE = extern enum {
     GREEN = 2,
     BLUE = 4,
     ALPHA = 8,
-    ALL = 1 | 2 | 4 | 8,
+    ALL = 1 | 2 | 4 | 8, // TODO: Fix this.
 };
 
 pub const LOGIC_OP = extern enum {

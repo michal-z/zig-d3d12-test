@@ -31,6 +31,13 @@ pub const RECT_F = extern struct {
     bottom: f32,
 };
 
+pub const COLOR_F = extern struct {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+};
+
 pub const RECT_U = extern struct {
     left: u32,
     top: u32,
@@ -64,6 +71,15 @@ pub const ALPHA_MODE = extern enum {
     PREMULTIPLIED = 1,
     STRAIGHT = 2,
     IGNORE = 3,
+};
+
+pub const MATRIX_3X2_F = extern struct {
+    m: [3][2]f32,
+};
+
+pub const BRUSH_PROPERTIES = extern struct {
+    opacity: f32,
+    transform: MATRIX_3X2_F,
 };
 
 pub const PIXEL_FORMAT = extern struct {
@@ -632,7 +648,12 @@ pub const IDeviceContext6 = extern struct {
         CreateBitmapFromWicBitmap: *c_void,
         CreateSharedBitmap: *c_void,
         CreateBitmapBrush: *c_void,
-        CreateSolidColorBrush: *c_void,
+        CreateSolidColorBrush: fn (
+            *Self,
+            *const COLOR_F,
+            ?*const BRUSH_PROPERTIES,
+            **ISolidColorBrush,
+        ) callconv(.Stdcall) HRESULT,
         CreateGradientStopCollection: *c_void,
         CreateLinearGradientBrush: *c_void,
         CreateRadialGradientBrush: *c_void,
@@ -769,6 +790,14 @@ pub const IDeviceContext6 = extern struct {
                 bitmap: **IBitmap1,
             ) HRESULT {
                 return self.vtbl.CreateBitmapFromDxgiSurface(self, surface, properties, bitmap);
+            }
+            pub inline fn CreateSolidColorBrush(
+                self: *T,
+                color: *const COLOR_F,
+                properties: ?*const BRUSH_PROPERTIES,
+                brush: **ISolidColorBrush,
+            ) HRESULT {
+                return self.vtbl.CreateSolidColorBrush(self, color, properties, brush);
             }
         };
     }

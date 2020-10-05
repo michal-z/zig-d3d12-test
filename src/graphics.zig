@@ -6,6 +6,7 @@ const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
 const d3d11 = @import("d3d11.zig");
 const d2d1 = @import("d2d1.zig");
+const dwrite = @import("dwrite.zig");
 
 const num_frames = 2;
 const num_swapbuffers = 4;
@@ -68,12 +69,14 @@ pub const DxContext = struct {
         context11: *d3d11.IDeviceContext,
         wrapped_swapbuffers: [num_swapbuffers]*d3d11.IResource,
         targets: [num_swapbuffers]*d2d1.IBitmap1,
+        dwrite_factory: *dwrite.IFactory,
     },
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
         d3d12.init();
         d2d1.init();
+        dwrite.init();
 
         var rect: os.RECT = undefined;
         _ = os.GetClientRect(window, &rect);
@@ -191,6 +194,9 @@ pub const DxContext = struct {
         var d2d_device_context: *d2d1.IDeviceContext6 = undefined;
         vhr(d2d_device.CreateDeviceContext6(.{}, &d2d_device_context));
 
+        var dwrite_factory: *dwrite.IFactory = undefined;
+        vhr(dwrite.CreateFactory(.SHARED, &dwrite.IID_IFactory, @ptrCast(**c_void, &dwrite_factory)));
+
         var frame_fence: *d3d12.IFence = undefined;
         vhr(device.CreateFence(0, .NONE, &d3d12.IID_IFence, @ptrCast(**c_void, &frame_fence)));
         const frame_fence_event = os.CreateEventEx(
@@ -241,10 +247,10 @@ pub const DxContext = struct {
         {
             var handle = rtv_heap.allocateDescriptors(num_swapbuffers).cpu_handle;
 
-            for (swapbuffers) |*swapbuffer, i| {
+            for (swapbuffers) |*swapbuffer, buffer_idx| {
                 var buffer: *d3d12.IResource = undefined;
                 vhr(swapchain.GetBuffer(
-                    @intCast(u32, i),
+                    @intCast(u32, buffer_idx),
                     &d3d12.IID_IResource,
                     @ptrCast(**c_void, &buffer),
                 ));
@@ -258,11 +264,11 @@ pub const DxContext = struct {
                     .{ .RENDER_TARGET = true },
                     .{ .RENDER_TARGET = true },
                     &d3d11.IID_IResource,
-                    @ptrCast(**c_void, &wrapped_swapbuffers[i]),
+                    @ptrCast(**c_void, &wrapped_swapbuffers[buffer_idx]),
                 ));
 
                 var surface: *dxgi.ISurface = undefined;
-                vhr(wrapped_swapbuffers[i].QueryInterface(
+                vhr(wrapped_swapbuffers[buffer_idx].QueryInterface(
                     &dxgi.IID_ISurface,
                     @ptrCast(**c_void, &surface),
                 ));
@@ -276,7 +282,7 @@ pub const DxContext = struct {
                         .dpiY = 96.0,
                         .bitmapOptions = .{ .TARGET = true, .CANNOT_DRAW = true },
                     },
-                    &d2d_targets[i],
+                    &d2d_targets[buffer_idx],
                 ));
             }
         }
@@ -329,6 +335,7 @@ pub const DxContext = struct {
                 .context11 = device_context11,
                 .wrapped_swapbuffers = wrapped_swapbuffers,
                 .targets = d2d_targets,
+                .dwrite_factory = dwrite_factory,
             },
         };
     }
@@ -341,6 +348,7 @@ pub const DxContext = struct {
         for (dx.d2d.targets) |*target| {
             releaseCom(&target.*);
         }
+        releaseCom(&dx.d2d.dwrite_factory);
         releaseCom(&dx.d2d.context);
         releaseCom(&dx.d2d.device);
         releaseCom(&dx.d2d.factory);
