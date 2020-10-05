@@ -153,7 +153,10 @@ pub const DxContext = struct {
         var device_context11: *d3d11.IDeviceContext = undefined;
         vhr(d3d12.Create11On12Device(
             @ptrCast(*os.IUnknown, device),
-            .{ .DEBUG = true, .BGRA_SUPPORT = true },
+            if (comptime builtin.mode == .Debug)
+                .{ .DEBUG = true, .BGRA_SUPPORT = true }
+            else
+                .{ .BGRA_SUPPORT = true },
             null,
             0,
             &[_]*os.IUnknown{@ptrCast(*os.IUnknown, cmdqueue)},
