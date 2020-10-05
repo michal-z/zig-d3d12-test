@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
+const d2d1 = @import("d2d1.zig");
 const gr = @import("graphics.zig");
 usingnamespace @import("math.zig");
 
@@ -56,6 +57,7 @@ const DemoState = struct {
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     entities: [3]Entity,
+    brush: *d2d1.ISolidColorBrush,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
@@ -150,6 +152,13 @@ const DemoState = struct {
             transform_buffer_srv,
         );
 
+        var brush: *d2d1.ISolidColorBrush = undefined;
+        gr.vhr(dx.d2d.context.CreateSolidColorBrush(
+            &d2d1.COLOR_F{ .r = 1.0, .g = 0.5, .b = 0.0, .a = 1.0 },
+            null,
+            &brush,
+        ));
+
         dx.beginFrame();
 
         const mesh_names = [_][]const u8{ "cube", "sphere" };
@@ -236,11 +245,13 @@ const DemoState = struct {
             .transform_buffer_srv = transform_buffer_srv,
             .pso = pso,
             .entities = entities,
+            .brush = brush,
         };
     }
 
     fn deinit(self: *DemoState) void {
         self.dx.waitForGpu();
+        _ = self.brush.Release();
         _ = self.dx.releaseResource(self.vertex_buffer);
         _ = self.dx.releaseResource(self.index_buffer);
         _ = self.dx.releaseResource(self.transform_buffer);
@@ -344,6 +355,11 @@ const DemoState = struct {
         dx.closeAndExecuteCommandList();
 
         dx.beginDraw2d();
+        dx.d2d.context.SetTransform(&d2d1.MATRIX_3X2_F.identity());
+        dx.d2d.context.FillRectangle(
+            &d2d1.RECT_F{ .left = 10.0, .top = 10.0, .right = 600.0, .bottom = 500.0 },
+            @ptrCast(*d2d1.IBrush, self.brush),
+        );
         dx.endDraw2d();
 
         dx.endFrame();

@@ -75,6 +75,16 @@ pub const ALPHA_MODE = extern enum {
 
 pub const MATRIX_3X2_F = extern struct {
     m: [3][2]f32,
+
+    pub fn identity() MATRIX_3X2_F {
+        return MATRIX_3X2_F{
+            .m = [_][2]f32{
+                [_]f32{ 1.0, 0.0 },
+                [_]f32{ 0.0, 1.0 },
+                [_]f32{ 0.0, 0.0 },
+            },
+        };
+    }
 };
 
 pub const BRUSH_PROPERTIES = extern struct {
@@ -662,7 +672,7 @@ pub const IDeviceContext6 = extern struct {
         CreateMesh: *c_void,
         DrawLine: *c_void,
         DrawRectangle: *c_void,
-        FillRectangle: *c_void,
+        FillRectangle: fn (*Self, *const RECT_F, *IBrush) callconv(.Stdcall) void,
         DrawRoundedRectangle: *c_void,
         FillRoundedRectangle: *c_void,
         DrawEllipse: *c_void,
@@ -675,7 +685,7 @@ pub const IDeviceContext6 = extern struct {
         DrawText: *c_void,
         DrawTextLayout: *c_void,
         DrawGlyphRun: *c_void,
-        SetTransform: *c_void,
+        SetTransform: fn (*Self, *const MATRIX_3X2_F) callconv(.Stdcall) void,
         GetTransform: *c_void,
         SetAntialiasMode: *c_void,
         GetAntialiasMode: *c_void,
@@ -692,7 +702,7 @@ pub const IDeviceContext6 = extern struct {
         RestoreDrawingState: *c_void,
         PushAxisAlignedClip: *c_void,
         PopAxisAlignedClip: *c_void,
-        Clear: *c_void,
+        Clear: fn (*Self, *const COLOR_F) callconv(.Stdcall) void,
         BeginDraw: fn (*Self) callconv(.Stdcall) void,
         EndDraw: fn (*Self, ?*u64, ?*u64) callconv(.Stdcall) HRESULT,
         GetPixelFormat: *c_void,
@@ -807,6 +817,15 @@ pub const IDeviceContext6 = extern struct {
             }
             pub inline fn EndDraw(self: *T, tag1: ?*u64, tag2: ?*u64) HRESULT {
                 return self.vtbl.EndDraw(self, tag1, tag2);
+            }
+            pub inline fn SetTransform(self: *T, transform: *const MATRIX_3X2_F) void {
+                self.vtbl.SetTransform(self, transform);
+            }
+            pub inline fn Clear(self: *T, color: *const COLOR_F) void {
+                self.vtbl.Clear(self, color);
+            }
+            pub inline fn FillRectangle(self: *T, rect: *const RECT_F, brush: *IBrush) void {
+                self.vtbl.FillRectangle(self, rect, brush);
             }
         };
     }
