@@ -67,6 +67,7 @@ pub const DxContext = struct {
         device11: *d3d11.IDevice,
         context11: *d3d11.IDeviceContext,
         wrapped_swapbuffers: [num_swapbuffers]*d3d11.IResource,
+        targets: [num_swapbuffers]*d2d1.IBitmap1,
     },
 
     pub fn init(window: os.HWND) DxContext {
@@ -188,16 +189,6 @@ pub const DxContext = struct {
 
         releaseCom(&dxgi_device);
 
-        // TODO:
-        if (false) {
-            const bp = d2d1.BITMAP_PROPERTIES1{
-                .pixelFormat = .{ .format = .R8G8B8A8_UNORM, .alphaMode = .PREMULTIPLIED },
-                .dpiX = 96.0,
-                .dpiY = 96.0,
-                .bitmapOptions = .{ .TARGET = true, .CANNOT_DRAW = true },
-            };
-        }
-
         var frame_fence: *d3d12.IFence = undefined;
         vhr(device.CreateFence(0, .NONE, &d3d12.IID_IFence, @ptrCast(**c_void, &frame_fence)));
         const frame_fence_event = os.CreateEventEx(
@@ -244,6 +235,7 @@ pub const DxContext = struct {
         // First 'num_swapbuffers' slots in 'rtv_heap' contain swapbuffer descriptors.
         var swapbuffers: [num_swapbuffers]ResourceHandle = undefined;
         var wrapped_swapbuffers: [num_swapbuffers]*d3d11.IResource = undefined;
+        var d2d_targets: [num_swapbuffers]*d2d1.IBitmap1 = undefined;
         {
             var handle = rtv_heap.allocateDescriptors(num_swapbuffers).cpu_handle;
 
@@ -265,6 +257,24 @@ pub const DxContext = struct {
                     .{ .RENDER_TARGET = true },
                     &d3d11.IID_IResource,
                     @ptrCast(**c_void, &wrapped_swapbuffers[i]),
+                ));
+
+                var surface: *dxgi.ISurface = undefined;
+                vhr(wrapped_swapbuffers[i].QueryInterface(
+                    &dxgi.IID_ISurface,
+                    @ptrCast(**c_void, &surface),
+                ));
+                defer releaseCom(&surface);
+
+                vhr(d2d_device_context.CreateBitmapFromDxgiSurface(
+                    surface,
+                    &d2d1.BITMAP_PROPERTIES1{
+                        .pixelFormat = .{ .format = .R8G8B8A8_UNORM, .alphaMode = .PREMULTIPLIED },
+                        .dpiX = 96.0,
+                        .dpiY = 96.0,
+                        .bitmapOptions = .{ .TARGET = true, .CANNOT_DRAW = true },
+                    },
+                    &d2d_targets[i],
                 ));
             }
         }
@@ -316,12 +326,19 @@ pub const DxContext = struct {
                 .device11 = device11,
                 .context11 = device_context11,
                 .wrapped_swapbuffers = wrapped_swapbuffers,
+                .targets = d2d_targets,
             },
         };
     }
 
     pub fn deinit(dx: *DxContext) void {
         waitForGpu(dx);
+        for (dx.d2d.wrapped_swapbuffers) |*buffer| {
+            releaseCom(&buffer.*);
+        }
+        for (dx.d2d.targets) |*target| {
+            releaseCom(&target.*);
+        }
         releaseCom(&dx.d2d.context);
         releaseCom(&dx.d2d.device);
         releaseCom(&dx.d2d.factory);

@@ -489,6 +489,12 @@ pub const IID_IDevice = os.GUID{
     .Data3 = 0x44e6,
     .Data4 = .{ 0x8c, 0x32, 0x88, 0xfd, 0x5f, 0x44, 0xc8, 0x4c },
 };
+pub const IID_ISurface = os.GUID{
+    .Data1 = 0xcafcb56c,
+    .Data2 = 0x6ac3,
+    .Data3 = 0x4889,
+    .Data4 = .{ 0xbf, 0x47, 0x9e, 0x23, 0xbb, 0xd2, 0x60, 0xec },
+};
 
 pub var CreateFactory2: fn (u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
 

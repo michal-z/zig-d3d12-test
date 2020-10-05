@@ -118,7 +118,7 @@ pub const IColorContext = extern struct {
     usingnamespace os.IUnknown.Methods(Self);
 };
 
-pub const IBitmap = extern struct {
+pub const IBitmap1 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
@@ -135,6 +135,12 @@ pub const IBitmap = extern struct {
         CopyFromBitmap: *c_void,
         CopyFromRenderTarget: *c_void,
         CopyFromMemory: *c_void,
+        // ID2D1Bitmap1
+        GetColorContext: *c_void,
+        GetOptions: *c_void,
+        GetSurface: *c_void,
+        Map: *c_void,
+        Unmap: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
 };
@@ -681,7 +687,12 @@ pub const IDeviceContext6 = extern struct {
         CreateColorContext: *c_void,
         CreateColorContextFromFilename: *c_void,
         CreateColorContextFromWicColorContext: *c_void,
-        CreateBitmapFromDxgiSurface: *c_void,
+        CreateBitmapFromDxgiSurface: fn (
+            *Self,
+            *dxgi.ISurface,
+            *const BITMAP_PROPERTIES1,
+            **IBitmap1,
+        ) callconv(.Stdcall) HRESULT,
         CreateEffect: *c_void,
         CreateGradientStopCollection1: *c_void,
         CreateImageBrush: *c_void,
@@ -747,6 +758,20 @@ pub const IDeviceContext6 = extern struct {
         BlendImage: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IDeviceContext6.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn CreateBitmapFromDxgiSurface(
+                self: *T,
+                surface: *dxgi.ISurface,
+                properties: *const BITMAP_PROPERTIES1,
+                bitmap: **IBitmap1,
+            ) HRESULT {
+                return self.vtbl.CreateBitmapFromDxgiSurface(self, surface, properties, bitmap);
+            }
+        };
+    }
 };
 
 pub const IDevice6 = extern struct {
