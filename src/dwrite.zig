@@ -56,6 +56,12 @@ pub const PARAGRAPH_ALIGNMENT = extern enum {
     CENTER = 2,
 };
 
+pub const MEASURING_MODE = extern enum {
+    NATURAL = 0,
+    GDI_CLASSIC = 1,
+    GDI_NATURAL = 2,
+};
+
 pub const IFactory = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
@@ -79,7 +85,7 @@ pub const IFactory = extern struct {
         CreateTextFormat: fn (
             *Self,
             os.LPCWSTR,
-            *IFontCollection,
+            ?*IFontCollection,
             FONT_WEIGHT,
             FONT_STYLE,
             FONT_STRETCH,
@@ -104,7 +110,7 @@ pub const IFactory = extern struct {
             pub inline fn CreateTextFormat(
                 self: *T,
                 font_family_name: os.LPCWSTR,
-                font_collection: *IFontCollection,
+                font_collection: ?*IFontCollection,
                 font_weight: FONT_WEIGHT,
                 font_style: FONT_STYLE,
                 font_stretch: FONT_STRETCH,

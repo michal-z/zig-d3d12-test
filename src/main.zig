@@ -4,6 +4,7 @@ const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
 const d3d12 = @import("d3d12.zig");
 const d2d1 = @import("d2d1.zig");
+const dwrite = @import("dwrite.zig");
 const gr = @import("graphics.zig");
 usingnamespace @import("math.zig");
 
@@ -58,6 +59,7 @@ const DemoState = struct {
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     entities: [3]Entity,
     brush: *d2d1.ISolidColorBrush,
+    text_format: *dwrite.ITextFormat,
 
     fn init(window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
@@ -159,6 +161,20 @@ const DemoState = struct {
             &brush,
         ));
 
+        var text_format: *dwrite.ITextFormat = undefined;
+        gr.vhr(dx.d2d.dwrite_factory.CreateTextFormat(
+            std.unicode.utf8ToUtf16LeStringLiteral("Verdana")[0..],
+            null,
+            .NORMAL,
+            .NORMAL,
+            .NORMAL,
+            50.0,
+            std.unicode.utf8ToUtf16LeStringLiteral("en-us")[0..],
+            &text_format,
+        ));
+        gr.vhr(text_format.SetTextAlignment(.CENTER));
+        gr.vhr(text_format.SetParagraphAlignment(.CENTER));
+
         dx.beginFrame();
 
         const mesh_names = [_][]const u8{ "cube", "sphere" };
@@ -246,12 +262,14 @@ const DemoState = struct {
             .pso = pso,
             .entities = entities,
             .brush = brush,
+            .text_format = text_format,
         };
     }
 
     fn deinit(self: *DemoState) void {
         self.dx.waitForGpu();
         _ = self.brush.Release();
+        _ = self.text_format.Release();
         _ = self.dx.releaseResource(self.vertex_buffer);
         _ = self.dx.releaseResource(self.index_buffer);
         _ = self.dx.releaseResource(self.transform_buffer);
@@ -356,9 +374,26 @@ const DemoState = struct {
 
         dx.beginDraw2d();
         dx.d2d.context.SetTransform(&d2d1.MATRIX_3X2_F.identity());
-        dx.d2d.context.FillRectangle(
-            &d2d1.RECT_F{ .left = 10.0, .top = 10.0, .right = 600.0, .bottom = 500.0 },
+        dx.d2d.context.FillEllipse(
+            &d2d1.ELLIPSE{ .point = .{ .x = 300.0, .y = 300 }, .radiusX = 200.0, .radiusY = 100.0 },
             @ptrCast(*d2d1.IBrush, self.brush),
+        );
+        dx.d2d.context.DrawLine(
+            .{ .x = 100.0, .y = 100.0 },
+            .{ .x = 800.0, .y = 800.0 },
+            @ptrCast(*d2d1.IBrush, self.brush),
+            30.0,
+            null,
+        );
+        const text = std.unicode.utf8ToUtf16LeStringLiteral("magic is everywhere");
+        dx.d2d.context.DrawText(
+            text[0..],
+            text.len,
+            self.text_format,
+            &d2d1.RECT_F{ .left = 0.0, .top = 0.0, .right = 1920.0, .bottom = 1080.0 },
+            @ptrCast(*d2d1.IBrush, self.brush),
+            .{},
+            .NATURAL,
         );
         dx.endDraw2d();
 

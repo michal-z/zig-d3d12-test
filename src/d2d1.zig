@@ -2,6 +2,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
+const dwrite = @import("dwrite.zig");
 const HRESULT = os.HRESULT;
 
 pub const FACTORY_TYPE = extern enum {
@@ -24,18 +25,26 @@ pub const DEVICE_CONTEXT_OPTIONS = packed struct {
     ENABLE_MULTITHREADED_OPTIMIZATIONS: bool = false,
 };
 
+pub const POINT_2F = extern struct {
+    x: f32,
+    y: f32,
+};
+
+pub const POINT_2U = extern struct {
+    x: u32,
+    y: u32,
+};
+
+pub const POINT_2L = extern struct {
+    x: c_long,
+    y: c_long,
+};
+
 pub const RECT_F = extern struct {
     left: f32,
     top: f32,
     right: f32,
     bottom: f32,
-};
-
-pub const COLOR_F = extern struct {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
 };
 
 pub const RECT_U = extern struct {
@@ -47,6 +56,13 @@ pub const RECT_U = extern struct {
 
 pub const RECT_L = os.RECT;
 
+pub const COLOR_F = extern struct {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+};
+
 pub const SIZE_F = extern struct {
     width: f32,
     height: f32,
@@ -55,6 +71,12 @@ pub const SIZE_F = extern struct {
 pub const SIZE_U = extern struct {
     width: u32,
     height: u32,
+};
+
+pub const ELLIPSE = extern struct {
+    point: POINT_2F,
+    radiusX: f32,
+    radiusY: f32,
 };
 
 pub const BITMAP_OPTIONS = packed struct {
@@ -103,6 +125,15 @@ pub const BITMAP_PROPERTIES1 = extern struct {
     dpiY: f32,
     bitmapOptions: BITMAP_OPTIONS,
     colorContext: ?*IColorContext = null,
+};
+
+pub const DRAW_TEXT_OPTIONS = packed struct {
+    NO_SNAP: bool = false,
+    CLIP: bool = false,
+    ENABLE_COLOR_FONT: bool = false,
+    DISABLE_COLOR_BITMAP_SNAPPING: bool = false,
+
+    padding: u28 = 0,
 };
 
 pub const IResource = extern struct {
@@ -670,19 +701,28 @@ pub const IDeviceContext6 = extern struct {
         CreateCompatibleRenderTarget: *c_void,
         CreateLayer: *c_void,
         CreateMesh: *c_void,
-        DrawLine: *c_void,
+        DrawLine: fn (*Self, POINT_2F, POINT_2F, *IBrush, f32, ?*IStrokeStyle) callconv(.Stdcall) void,
         DrawRectangle: *c_void,
         FillRectangle: fn (*Self, *const RECT_F, *IBrush) callconv(.Stdcall) void,
         DrawRoundedRectangle: *c_void,
         FillRoundedRectangle: *c_void,
         DrawEllipse: *c_void,
-        FillEllipse: *c_void,
+        FillEllipse: fn (*Self, *const ELLIPSE, *IBrush) callconv(.Stdcall) void,
         DrawGeometry: *c_void,
         FillGeometry: *c_void,
         FillMesh: *c_void,
         FillOpacityMask: *c_void,
         DrawBitmap: *c_void,
-        DrawText: *c_void,
+        DrawText: fn (
+            *Self,
+            os.LPCWSTR,
+            u32,
+            *dwrite.ITextFormat,
+            *const RECT_F,
+            *IBrush,
+            DRAW_TEXT_OPTIONS,
+            dwrite.MEASURING_MODE,
+        ) callconv(.Stdcall) void,
         DrawTextLayout: *c_void,
         DrawGlyphRun: *c_void,
         SetTransform: fn (*Self, *const MATRIX_3X2_F) callconv(.Stdcall) void,
@@ -826,6 +866,40 @@ pub const IDeviceContext6 = extern struct {
             }
             pub inline fn FillRectangle(self: *T, rect: *const RECT_F, brush: *IBrush) void {
                 self.vtbl.FillRectangle(self, rect, brush);
+            }
+            pub inline fn FillEllipse(self: *T, ellipse: *const ELLIPSE, brush: *IBrush) void {
+                self.vtbl.FillEllipse(self, ellipse, brush);
+            }
+            pub inline fn DrawLine(
+                self: *T,
+                p0: POINT_2F,
+                p1: POINT_2F,
+                brush: *IBrush,
+                width: f32,
+                style: ?*IStrokeStyle,
+            ) void {
+                self.vtbl.DrawLine(self, p0, p1, brush, width, style);
+            }
+            pub inline fn DrawText(
+                self: *T,
+                string: os.LPCWSTR,
+                length: u32,
+                format: *dwrite.ITextFormat,
+                layout_rect: *const RECT_F,
+                brush: *IBrush,
+                options: DRAW_TEXT_OPTIONS,
+                measuring_mode: dwrite.MEASURING_MODE,
+            ) void {
+                self.vtbl.DrawText(
+                    self,
+                    string,
+                    length,
+                    format,
+                    layout_rect,
+                    brush,
+                    options,
+                    measuring_mode,
+                );
             }
         };
     }
