@@ -289,7 +289,12 @@ const DemoState = struct {
         dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = true });
         dx.flushResourceBarriers();
 
-        dx.cmdlist.OMSetRenderTargets(1, &self.srgb_texture_rtv, os.TRUE, &self.depth_texture_dsv);
+        dx.cmdlist.OMSetRenderTargets(
+            1,
+            &[_]d3d12.CPU_DESCRIPTOR_HANDLE{self.srgb_texture_rtv},
+            os.TRUE,
+            &self.depth_texture_dsv,
+        );
         dx.cmdlist.ClearRenderTargetView(
             self.srgb_texture_rtv,
             &[4]f32{ 0.2, 0.4, 0.8, 1.0 },
@@ -317,13 +322,13 @@ const DemoState = struct {
             );
             upload.cpu_slice[1] = mat4.transpose(mat4.mul(
                 mat4.initRotationY(@floatCast(f32, stats.time)),
-                mat4.initTranslationV(self.entities[0].position),
+                mat4.initTranslation(self.entities[0].position),
             ));
             upload.cpu_slice[2] = mat4.transpose(mat4.mul(
                 mat4.initRotationY(@floatCast(f32, stats.time)),
-                mat4.initTranslationV(self.entities[1].position),
+                mat4.initTranslation(self.entities[1].position),
             ));
-            upload.cpu_slice[3] = mat4.transpose(mat4.initTranslationV(self.entities[2].position));
+            upload.cpu_slice[3] = mat4.transpose(mat4.initTranslation(self.entities[2].position));
 
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(self.transform_buffer),
@@ -391,7 +396,12 @@ const DemoState = struct {
             text[0..],
             text.len,
             self.text_format,
-            &dcommon.RECT_F{ .left = 0.0, .top = 0.0, .right = 1920.0, .bottom = 1080.0 },
+            &dcommon.RECT_F{
+                .left = 0.0,
+                .top = 0.0,
+                .right = @intToFloat(f32, window_width),
+                .bottom = @intToFloat(f32, window_height),
+            },
             @ptrCast(*d2d1.IBrush, self.brush),
             .{},
             .NATURAL,

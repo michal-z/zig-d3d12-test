@@ -122,16 +122,13 @@ pub const mat4 = struct {
         };
     }
 
-    pub fn initTranslation(x: f32, y: f32, z: f32) Mat4 {
+    pub fn initTranslation(a: Vec3) Mat4 {
         return Mat4{
             [_]f32{ 1.0, 0.0, 0.0, 0.0 },
             [_]f32{ 0.0, 1.0, 0.0, 0.0 },
             [_]f32{ 0.0, 0.0, 1.0, 0.0 },
-            [_]f32{ x, y, z, 1.0 },
+            [_]f32{ a[0], a[1], a[2], 1.0 },
         };
-    }
-    pub fn initTranslationV(a: Vec3) Mat4 {
-        return initTranslation(a[0], a[1], a[2]);
     }
 
     pub fn initLookAt(eye: Vec3, at: Vec3, up: Vec3) Mat4 {

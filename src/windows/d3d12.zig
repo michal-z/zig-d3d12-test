@@ -267,9 +267,9 @@ pub const SO_DECLARATION_ENTRY = extern struct {
 };
 
 pub const STREAM_OUTPUT_DESC = extern struct {
-    pSODeclaration: [*c]const SO_DECLARATION_ENTRY = null,
+    pSODeclaration: ?[*]const SO_DECLARATION_ENTRY = null,
     NumEntries: u32 = 0,
-    pBufferStrides: [*c]const u32 = null,
+    pBufferStrides: ?[*]const u32 = null,
     NumStrides: u32 = 0,
     RasterizedStream: u32 = 0,
 };
@@ -418,7 +418,7 @@ pub const DEPTH_STENCIL_DESC = extern struct {
 };
 
 pub const INPUT_LAYOUT_DESC = extern struct {
-    pInputElementDescs: [*c]const INPUT_ELEMENT_DESC = null,
+    pInputElementDescs: ?[*]const INPUT_ELEMENT_DESC = null,
     NumElements: u32 = 0,
 };
 
@@ -1883,14 +1883,14 @@ pub const IGraphicsCommandList = extern struct {
             dxgi.FORMAT,
         ) callconv(.Stdcall) void,
         IASetPrimitiveTopology: fn (*Self, PRIMITIVE_TOPOLOGY) callconv(.Stdcall) void,
-        RSSetViewports: fn (*Self, u32, [*c]const VIEWPORT) callconv(.Stdcall) void,
-        RSSetScissorRects: fn (*Self, u32, [*c]const RECT) callconv(.Stdcall) void,
+        RSSetViewports: fn (*Self, u32, [*]const VIEWPORT) callconv(.Stdcall) void,
+        RSSetScissorRects: fn (*Self, u32, [*]const RECT) callconv(.Stdcall) void,
         OMSetBlendFactor: fn (*Self, *const [4]f32) callconv(.Stdcall) void,
         OMSetStencilRef: fn (*Self, u32) callconv(.Stdcall) void,
         SetPipelineState: fn (*Self, *IPipelineState) callconv(.Stdcall) void,
-        ResourceBarrier: fn (*Self, u32, [*c]const RESOURCE_BARRIER) callconv(.Stdcall) void,
+        ResourceBarrier: fn (*Self, u32, [*]const RESOURCE_BARRIER) callconv(.Stdcall) void,
         ExecuteBundle: fn (*Self, *IGraphicsCommandList) callconv(.Stdcall) void,
-        SetDescriptorHeaps: fn (*Self, u32, [*c]const *IDescriptorHeap) callconv(.Stdcall) void,
+        SetDescriptorHeaps: fn (*Self, u32, [*]const *IDescriptorHeap) callconv(.Stdcall) void,
         SetComputeRootSignature: fn (*Self, *IRootSignature) callconv(.Stdcall) void,
         SetGraphicsRootSignature: fn (*Self, *IRootSignature) callconv(.Stdcall) void,
         SetComputeRootDescriptorTable: fn (*Self, u32, GPU_DESCRIPTOR_HANDLE) callconv(.Stdcall) void,
@@ -1911,7 +1911,7 @@ pub const IGraphicsCommandList = extern struct {
         OMSetRenderTargets: fn (
             *Self,
             u32,
-            [*c]const CPU_DESCRIPTOR_HANDLE,
+            ?[*]const CPU_DESCRIPTOR_HANDLE,
             os.BOOL,
             ?*const CPU_DESCRIPTOR_HANDLE,
         ) callconv(.Stdcall) void,
@@ -1922,14 +1922,14 @@ pub const IGraphicsCommandList = extern struct {
             f32,
             u8,
             u32,
-            [*c]const RECT,
+            ?[*]const RECT,
         ) callconv(.Stdcall) void,
         ClearRenderTargetView: fn (
             *Self,
             CPU_DESCRIPTOR_HANDLE,
             *const [4]f32,
             u32,
-            [*c]const RECT,
+            ?[*]const RECT,
         ) callconv(.Stdcall) void,
         ClearUnorderedAccessViewUint: fn (
             *Self,
@@ -1938,7 +1938,7 @@ pub const IGraphicsCommandList = extern struct {
             *IResource,
             *const [4]u32,
             u32,
-            [*c]const RECT,
+            ?[*]const RECT,
         ) callconv(.Stdcall) void,
         ClearUnorderedAccessViewFloat: fn (
             *Self,
@@ -1947,7 +1947,7 @@ pub const IGraphicsCommandList = extern struct {
             *IResource,
             *const [4]f32,
             u32,
-            [*c]const RECT,
+            ?[*]const RECT,
         ) callconv(.Stdcall) void,
         DiscardResource: fn (*Self, *IResource, *const DISCARD_REGION) callconv(.Stdcall) void,
         BeginQuery: fn (*Self, *IQueryHeap, QUERY_TYPE, u32) callconv(.Stdcall) void,
@@ -2101,10 +2101,10 @@ pub const IGraphicsCommandList = extern struct {
             pub inline fn IASetPrimitiveTopology(self: *T, topology: PRIMITIVE_TOPOLOGY) void {
                 self.vtbl.IASetPrimitiveTopology(self, topology);
             }
-            pub inline fn RSSetViewports(self: *T, num: u32, viewports: [*c]const VIEWPORT) void {
+            pub inline fn RSSetViewports(self: *T, num: u32, viewports: [*]const VIEWPORT) void {
                 self.vtbl.RSSetViewports(self, num, viewports);
             }
-            pub inline fn RSSetScissorRects(self: *T, num: u32, rects: [*c]const RECT) void {
+            pub inline fn RSSetScissorRects(self: *T, num: u32, rects: [*]const RECT) void {
                 self.vtbl.RSSetScissorRects(self, num, rects);
             }
             pub inline fn OMSetBlendFactor(self: *T, blend_factor: *const [4]f32) void {
@@ -2119,14 +2119,14 @@ pub const IGraphicsCommandList = extern struct {
             pub inline fn ResourceBarrier(
                 self: *T,
                 num: u32,
-                barriers: [*c]const RESOURCE_BARRIER,
+                barriers: [*]const RESOURCE_BARRIER,
             ) void {
                 self.vtbl.ResourceBarrier(self, num, barriers);
             }
             pub inline fn ExecuteBundle(self: *T, cmdlist: *IGraphicsCommandList) void {
                 self.vtbl.ExecuteBundle(self, cmdlist);
             }
-            pub inline fn SetDescriptorHeaps(self: *T, num: u32, heaps: [*c]const *IDescriptorHeap) void {
+            pub inline fn SetDescriptorHeaps(self: *T, num: u32, heaps: [*]const *IDescriptorHeap) void {
                 self.vtbl.SetDescriptorHeaps(self, num, heaps);
             }
             pub inline fn SetComputeRootSignature(self: *T, root_signature: *IRootSignature) void {
@@ -2237,7 +2237,7 @@ pub const IGraphicsCommandList = extern struct {
             pub inline fn OMSetRenderTargets(
                 self: *T,
                 num_rt_descriptors: u32,
-                rt_descriptors: [*c]const CPU_DESCRIPTOR_HANDLE,
+                rt_descriptors: ?[*]const CPU_DESCRIPTOR_HANDLE,
                 single_handle: os.BOOL,
                 ds_descriptors: ?*const CPU_DESCRIPTOR_HANDLE,
             ) void {
@@ -2256,7 +2256,7 @@ pub const IGraphicsCommandList = extern struct {
                 depth: f32,
                 stencil: u8,
                 num_rects: u32,
-                rects: [*c]const RECT,
+                rects: ?[*]const RECT,
             ) void {
                 self.vtbl.ClearDepthStencilView(
                     self,
@@ -2273,7 +2273,7 @@ pub const IGraphicsCommandList = extern struct {
                 rt_view: CPU_DESCRIPTOR_HANDLE,
                 rgba: *const [4]f32,
                 num_rects: u32,
-                rects: [*c]const RECT,
+                rects: ?[*]const RECT,
             ) void {
                 self.vtbl.ClearRenderTargetView(self, rt_view, rgba, num_rects, rects);
             }
@@ -2284,7 +2284,7 @@ pub const IGraphicsCommandList = extern struct {
                 resource: *IResource,
                 values: *const [4]u32,
                 num_rects: u32,
-                rects: [*c]const RECT,
+                rects: ?[*]const RECT,
             ) void {
                 self.vtbl.ClearUnorderedAccessViewUint(
                     self,
@@ -2303,7 +2303,7 @@ pub const IGraphicsCommandList = extern struct {
                 resource: *IResource,
                 values: *const [4]f32,
                 num_rects: u32,
-                rects: [*c]const RECT,
+                rects: ?[*]const RECT,
             ) void {
                 self.vtbl.ClearUnorderedAccessViewFloat(
                     self,
@@ -2438,7 +2438,7 @@ pub const ICommandQueue = extern struct {
             *const TILE_REGION_SIZE,
             TILE_MAPPING_FLAGS,
         ) callconv(.Stdcall) void,
-        ExecuteCommandLists: fn (*Self, u32, [*c]const *ICommandList) callconv(.Stdcall) void,
+        ExecuteCommandLists: fn (*Self, u32, [*]const *ICommandList) callconv(.Stdcall) void,
         SetMarker: fn (*Self, u32, *const c_void, u32) callconv(.Stdcall) void,
         BeginEvent: fn (*Self, u32, *const c_void, u32) callconv(.Stdcall) void,
         EndEvent: fn (*Self) callconv(.Stdcall) void,
@@ -2504,7 +2504,7 @@ pub const ICommandQueue = extern struct {
             pub inline fn ExecuteCommandLists(
                 self: *T,
                 num: u32,
-                cmdlists: [*c]const *ICommandList,
+                cmdlists: [*]const *ICommandList,
             ) void {
                 self.vtbl.ExecuteCommandLists(self, num, cmdlists);
             }

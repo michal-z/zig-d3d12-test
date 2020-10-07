@@ -386,21 +386,24 @@ pub const DxContext = struct {
         const cmdalloc = dx.cmdallocs[dx.frame_index];
         vhr(cmdalloc.Reset());
         vhr(dx.cmdlist.Reset(cmdalloc, null));
-        dx.cmdlist.SetDescriptorHeaps(1, &dx.cbv_srv_uav_gpu_heaps[dx.frame_index].heap);
-        dx.cmdlist.RSSetViewports(1, &d3d12.VIEWPORT{
+        dx.cmdlist.SetDescriptorHeaps(
+            1,
+            &[_]*d3d12.IDescriptorHeap{dx.cbv_srv_uav_gpu_heaps[dx.frame_index].heap},
+        );
+        dx.cmdlist.RSSetViewports(1, &[_]d3d12.VIEWPORT{.{
             .TopLeftX = 0.0,
             .TopLeftY = 0.0,
             .Width = @intToFloat(f32, dx.viewport_width),
             .Height = @intToFloat(f32, dx.viewport_height),
             .MinDepth = 0.0,
             .MaxDepth = 1.0,
-        });
-        dx.cmdlist.RSSetScissorRects(1, &d3d12.RECT{
+        }});
+        dx.cmdlist.RSSetScissorRects(1, &[_]d3d12.RECT{.{
             .left = 0,
             .top = 0,
             .right = @intCast(c_long, dx.viewport_width),
             .bottom = @intCast(c_long, dx.viewport_height),
-        });
+        }});
         dx.pipeline.current = .{ .index = 0, .generation = 0 };
     }
 
@@ -747,9 +750,12 @@ pub const DxContext = struct {
         };
     }
 
-    pub fn closeAndExecuteCommandList(dx: DxContext) void {
+    pub fn closeAndExecuteCommandList(dx: *DxContext) void {
         vhr(dx.cmdlist.Close());
-        dx.cmdqueue.ExecuteCommandLists(1, @ptrCast(*const *d3d12.ICommandList, &dx.cmdlist));
+        dx.cmdqueue.ExecuteCommandLists(
+            1,
+            &[_]*d3d12.ICommandList{@ptrCast(*d3d12.ICommandList, dx.cmdlist)},
+        );
     }
 
     pub fn copyDescriptorsToGpuHeap(
