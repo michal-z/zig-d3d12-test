@@ -1,10 +1,11 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const os = @import("windows.zig");
-const dxgi = @import("dxgi.zig");
-const d3d12 = @import("d3d12.zig");
-const d2d1 = @import("d2d1.zig");
-const dwrite = @import("dwrite.zig");
+const os = @import("windows/windows.zig");
+const dxgi = @import("windows/dxgi.zig");
+const d3d12 = @import("windows/d3d12.zig");
+const d2d1 = @import("windows/d2d1.zig");
+const dwrite = @import("windows/dwrite.zig");
+const dcommon = @import("windows/dcommon.zig");
 const gr = @import("graphics.zig");
 usingnamespace @import("math.zig");
 
@@ -373,7 +374,7 @@ const DemoState = struct {
         dx.closeAndExecuteCommandList();
 
         dx.beginDraw2d();
-        dx.d2d.context.SetTransform(&d2d1.MATRIX_3X2_F.identity());
+        dx.d2d.context.SetTransform(&dcommon.MATRIX_3X2_F.identity());
         dx.d2d.context.FillEllipse(
             &d2d1.ELLIPSE{ .point = .{ .x = 300.0, .y = 300 }, .radiusX = 200.0, .radiusY = 100.0 },
             @ptrCast(*d2d1.IBrush, self.brush),
@@ -390,7 +391,7 @@ const DemoState = struct {
             text[0..],
             text.len,
             self.text_format,
-            &d2d1.RECT_F{ .left = 0.0, .top = 0.0, .right = 1920.0, .bottom = 1080.0 },
+            &dcommon.RECT_F{ .left = 0.0, .top = 0.0, .right = 1920.0, .bottom = 1080.0 },
             @ptrCast(*d2d1.IBrush, self.brush),
             .{},
             .NATURAL,

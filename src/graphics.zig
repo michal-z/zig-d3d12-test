@@ -1,12 +1,13 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const assert = std.debug.assert;
-const os = @import("windows.zig");
-const dxgi = @import("dxgi.zig");
-const d3d12 = @import("d3d12.zig");
-const d3d11 = @import("d3d11.zig");
-const d2d1 = @import("d2d1.zig");
-const dwrite = @import("dwrite.zig");
+const os = @import("windows/windows.zig");
+const dxgi = @import("windows/dxgi.zig");
+const dcommon = @import("windows/dcommon.zig");
+const d3d12 = @import("windows/d3d12.zig");
+const d3d11 = @import("windows/d3d11.zig");
+const d2d1 = @import("windows/d2d1.zig");
+const dwrite = @import("windows/dwrite.zig");
 
 const num_frames = 2;
 const num_swapbuffers = 4;
@@ -64,7 +65,7 @@ pub const DxContext = struct {
         factory: *d2d1.IFactory7,
         device: *d2d1.IDevice6,
         context: *d2d1.IDeviceContext6,
-        device11on12: *d3d12.I11On12Device,
+        device11on12: *d3d11.I11On12Device,
         device11: *d3d11.IDevice,
         context11: *d3d11.IDeviceContext,
         wrapped_swapbuffers: [num_swapbuffers]*d3d11.IResource,
@@ -74,6 +75,7 @@ pub const DxContext = struct {
 
     pub fn init(window: os.HWND) DxContext {
         dxgi.init();
+        d3d11.init();
         d3d12.init();
         d2d1.init();
         dwrite.init();
@@ -102,7 +104,7 @@ pub const DxContext = struct {
         var device: *d3d12.IDevice = undefined;
         vhr(d3d12.CreateDevice(
             null,
-            d3d12.FEATURE_LEVEL._11_1,
+            dcommon.FEATURE_LEVEL._11_1,
             &d3d12.IID_IDevice,
             @ptrCast(**c_void, &device),
         ));
@@ -154,7 +156,7 @@ pub const DxContext = struct {
 
         var device11: *d3d11.IDevice = undefined;
         var device_context11: *d3d11.IDeviceContext = undefined;
-        vhr(d3d12.Create11On12Device(
+        vhr(d3d11.Create11On12Device(
             @ptrCast(*os.IUnknown, device),
             if (comptime builtin.mode == .Debug)
                 .{ .DEBUG = true, .BGRA_SUPPORT = true }
@@ -170,8 +172,8 @@ pub const DxContext = struct {
             null,
         ));
 
-        var device11on12: *d3d12.I11On12Device = undefined;
-        vhr(device11.QueryInterface(&d3d12.IID_I11On12Device, @ptrCast(**c_void, &device11on12)));
+        var device11on12: *d3d11.I11On12Device = undefined;
+        vhr(device11.QueryInterface(&d3d11.IID_I11On12Device, @ptrCast(**c_void, &device11on12)));
 
         var dxgi_device: *dxgi.IDevice = undefined;
         vhr(device11on12.QueryInterface(&dxgi.IID_IDevice, @ptrCast(**c_void, &dxgi_device)));
@@ -260,7 +262,7 @@ pub const DxContext = struct {
 
                 vhr(device11on12.CreateWrappedResource(
                     @ptrCast(*os.IUnknown, buffer),
-                    &d3d12.RESOURCE_FLAGS_11ON12{},
+                    &d3d11.RESOURCE_FLAGS_11ON12{},
                     .{ .RENDER_TARGET = true },
                     .{},
                     &d3d11.IID_IResource,

@@ -1,7 +1,6 @@
 const builtin = @import("builtin");
 const std = @import("std");
 const os = @import("windows.zig");
-const dxgi = @import("dxgi.zig");
 const HRESULT = os.HRESULT;
 
 pub const FACTORY_TYPE = extern enum {
@@ -54,12 +53,6 @@ pub const PARAGRAPH_ALIGNMENT = extern enum {
     NEAR = 0,
     FAR = 1,
     CENTER = 2,
-};
-
-pub const MEASURING_MODE = extern enum {
-    NATURAL = 0,
-    GDI_CLASSIC = 1,
-    GDI_NATURAL = 2,
 };
 
 pub const IFactory = extern struct {

@@ -1,23 +1,11 @@
 const std = @import("std");
 const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
-const d3d11 = @import("d3d11.zig");
+const dcommon = @import("dcommon.zig");
 
 pub const RESOURCE_BARRIER_ALL_SUBRESOURCES = 0xffffffff;
 
 pub const GPU_VIRTUAL_ADDRESS = u64;
-
-pub const FEATURE_LEVEL = extern enum {
-    _9_1 = 0x9100,
-    _9_2 = 0x9200,
-    _9_3 = 0x9300,
-    _10_0 = 0xa000,
-    _10_1 = 0xa100,
-    _11_0 = 0xb000,
-    _11_1 = 0xb100,
-    _12_0 = 0xc000,
-    _12_1 = 0xc100,
-};
 
 pub const HEAP_TYPE = extern enum {
     DEFAULT = 1,
@@ -3131,75 +3119,6 @@ pub const IDevice = extern struct {
     }
 };
 
-pub const RESOURCE_FLAGS_11ON12 = extern struct {
-    BindFlags: u32 = 0x20, // D3D11_BIND_RENDER_TARGET
-    MiscFlags: u32 = 0,
-    CPUAccessFlags: u32 = 0,
-    StructureByteStride: u32 = 0,
-};
-
-pub const I11On12Device = extern struct {
-    const Self = @This();
-    vtbl: *const extern struct {
-        // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
-        // ID3D11On12Device
-        CreateWrappedResource: fn (
-            *Self,
-            *os.IUnknown,
-            *const RESOURCE_FLAGS_11ON12,
-            RESOURCE_STATES,
-            RESOURCE_STATES,
-            *const os.GUID,
-            **c_void,
-        ) callconv(.Stdcall) HRESULT,
-        ReleaseWrappedResources: fn (*Self, [*]const *d3d11.IResource, u32) callconv(.Stdcall) void,
-        AcquireWrappedResources: fn (*Self, [*]const *d3d11.IResource, u32) callconv(.Stdcall) void,
-    },
-    usingnamespace os.IUnknown.Methods(Self);
-    usingnamespace I11On12Device.Methods(Self);
-
-    fn Methods(comptime T: type) type {
-        return extern struct {
-            pub inline fn CreateWrappedResource(
-                self: *T,
-                resource12: *os.IUnknown,
-                flags11: *const RESOURCE_FLAGS_11ON12,
-                in_state: RESOURCE_STATES,
-                out_state: RESOURCE_STATES,
-                guid: *const os.GUID,
-                resource11: **c_void,
-            ) HRESULT {
-                return self.vtbl.CreateWrappedResource(
-                    self,
-                    resource12,
-                    flags11,
-                    in_state,
-                    out_state,
-                    guid,
-                    resource11,
-                );
-            }
-            pub inline fn ReleaseWrappedResources(
-                self: *T,
-                resources: [*]const *d3d11.IResource,
-                num_resources: u32,
-            ) void {
-                self.vtbl.ReleaseWrappedResources(self, resources, num_resources);
-            }
-            pub inline fn AcquireWrappedResources(
-                self: *T,
-                resources: [*]const *d3d11.IResource,
-                num_resources: u32,
-            ) void {
-                self.vtbl.AcquireWrappedResources(self, resources, num_resources);
-            }
-        };
-    }
-};
-
 pub const IID_IDebug1 = os.GUID{
     .Data1 = 0xaffaa4ca,
     .Data2 = 0x63fe,
@@ -3260,32 +3179,13 @@ pub const IID_IPipelineState = os.GUID{
     .Data3 = 0x4c6f,
     .Data4 = .{ 0xa8, 0x28, 0xac, 0xe9, 0x48, 0x62, 0x24, 0x45 },
 };
-pub const IID_I11On12Device = os.GUID{
-    .Data1 = 0x85611e73,
-    .Data2 = 0x70a9,
-    .Data3 = 0x490e,
-    .Data4 = .{ 0x96, 0x14, 0xa9, 0xe3, 0x02, 0x77, 0x79, 0x04 },
-};
 
 pub var GetDebugInterface: fn (*const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
 pub var CreateDevice: fn (
     ?*os.IUnknown,
-    FEATURE_LEVEL,
+    dcommon.FEATURE_LEVEL,
     *const os.GUID,
     **c_void,
-) callconv(.Stdcall) HRESULT = undefined;
-
-pub var Create11On12Device: fn (
-    *os.IUnknown,
-    d3d11.CREATE_DEVICE_FLAG,
-    ?[*]const FEATURE_LEVEL,
-    u32,
-    [*]const *os.IUnknown,
-    u32,
-    u32,
-    ?**d3d11.IDevice,
-    ?**d3d11.IDeviceContext,
-    ?*FEATURE_LEVEL,
 ) callconv(.Stdcall) HRESULT = undefined;
 
 pub fn init() void {
@@ -3293,7 +3193,4 @@ pub fn init() void {
     var d3d12_dll = std.DynLib.open("/windows/system32/d3d12.dll") catch unreachable;
     GetDebugInterface = d3d12_dll.lookup(@TypeOf(GetDebugInterface), "D3D12GetDebugInterface").?;
     CreateDevice = d3d12_dll.lookup(@TypeOf(CreateDevice), "D3D12CreateDevice").?;
-
-    var d3d11_dll = std.DynLib.open("/windows/system32/d3d11.dll") catch unreachable;
-    Create11On12Device = d3d11_dll.lookup(@TypeOf(Create11On12Device), "D3D11On12CreateDevice").?;
 }

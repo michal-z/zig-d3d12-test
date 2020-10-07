@@ -2,8 +2,9 @@ const builtin = @import("builtin");
 const std = @import("std");
 const os = @import("windows.zig");
 const dxgi = @import("dxgi.zig");
-const dwrite = @import("dwrite.zig");
+const dcommon = @import("dcommon.zig");
 const HRESULT = os.HRESULT;
+const ITextFormat = @import("dwrite.zig").ITextFormat;
 
 pub const FACTORY_TYPE = extern enum {
     SINGLE_THREADED = 0,
@@ -25,37 +26,6 @@ pub const DEVICE_CONTEXT_OPTIONS = packed struct {
     ENABLE_MULTITHREADED_OPTIMIZATIONS: bool = false,
 };
 
-pub const POINT_2F = extern struct {
-    x: f32,
-    y: f32,
-};
-
-pub const POINT_2U = extern struct {
-    x: u32,
-    y: u32,
-};
-
-pub const POINT_2L = extern struct {
-    x: c_long,
-    y: c_long,
-};
-
-pub const RECT_F = extern struct {
-    left: f32,
-    top: f32,
-    right: f32,
-    bottom: f32,
-};
-
-pub const RECT_U = extern struct {
-    left: u32,
-    top: u32,
-    right: u32,
-    bottom: u32,
-};
-
-pub const RECT_L = os.RECT;
-
 pub const COLOR_F = extern struct {
     r: f32,
     g: f32,
@@ -63,18 +33,8 @@ pub const COLOR_F = extern struct {
     a: f32,
 };
 
-pub const SIZE_F = extern struct {
-    width: f32,
-    height: f32,
-};
-
-pub const SIZE_U = extern struct {
-    width: u32,
-    height: u32,
-};
-
 pub const ELLIPSE = extern struct {
-    point: POINT_2F,
+    point: dcommon.POINT_2F,
     radiusX: f32,
     radiusY: f32,
 };
@@ -88,39 +48,13 @@ pub const BITMAP_OPTIONS = packed struct {
     padding: u28 = 0,
 };
 
-pub const ALPHA_MODE = extern enum {
-    UNKNOWN = 0,
-    PREMULTIPLIED = 1,
-    STRAIGHT = 2,
-    IGNORE = 3,
-};
-
-pub const MATRIX_3X2_F = extern struct {
-    m: [3][2]f32,
-
-    pub fn identity() MATRIX_3X2_F {
-        return MATRIX_3X2_F{
-            .m = [_][2]f32{
-                [_]f32{ 1.0, 0.0 },
-                [_]f32{ 0.0, 1.0 },
-                [_]f32{ 0.0, 0.0 },
-            },
-        };
-    }
-};
-
 pub const BRUSH_PROPERTIES = extern struct {
     opacity: f32,
-    transform: MATRIX_3X2_F,
-};
-
-pub const PIXEL_FORMAT = extern struct {
-    format: dxgi.FORMAT,
-    alphaMode: ALPHA_MODE,
+    transform: dcommon.MATRIX_3X2_F,
 };
 
 pub const BITMAP_PROPERTIES1 = extern struct {
-    pixelFormat: PIXEL_FORMAT,
+    pixelFormat: dcommon.PIXEL_FORMAT,
     dpiX: f32,
     dpiY: f32,
     bitmapOptions: BITMAP_OPTIONS,
@@ -701,9 +635,16 @@ pub const IDeviceContext6 = extern struct {
         CreateCompatibleRenderTarget: *c_void,
         CreateLayer: *c_void,
         CreateMesh: *c_void,
-        DrawLine: fn (*Self, POINT_2F, POINT_2F, *IBrush, f32, ?*IStrokeStyle) callconv(.Stdcall) void,
+        DrawLine: fn (
+            *Self,
+            dcommon.POINT_2F,
+            dcommon.POINT_2F,
+            *IBrush,
+            f32,
+            ?*IStrokeStyle,
+        ) callconv(.Stdcall) void,
         DrawRectangle: *c_void,
-        FillRectangle: fn (*Self, *const RECT_F, *IBrush) callconv(.Stdcall) void,
+        FillRectangle: fn (*Self, *const dcommon.RECT_F, *IBrush) callconv(.Stdcall) void,
         DrawRoundedRectangle: *c_void,
         FillRoundedRectangle: *c_void,
         DrawEllipse: *c_void,
@@ -717,15 +658,15 @@ pub const IDeviceContext6 = extern struct {
             *Self,
             os.LPCWSTR,
             u32,
-            *dwrite.ITextFormat,
-            *const RECT_F,
+            *ITextFormat,
+            *const dcommon.RECT_F,
             *IBrush,
             DRAW_TEXT_OPTIONS,
-            dwrite.MEASURING_MODE,
+            dcommon.MEASURING_MODE,
         ) callconv(.Stdcall) void,
         DrawTextLayout: *c_void,
         DrawGlyphRun: *c_void,
-        SetTransform: fn (*Self, *const MATRIX_3X2_F) callconv(.Stdcall) void,
+        SetTransform: fn (*Self, *const dcommon.MATRIX_3X2_F) callconv(.Stdcall) void,
         GetTransform: *c_void,
         SetAntialiasMode: *c_void,
         GetAntialiasMode: *c_void,
@@ -858,13 +799,13 @@ pub const IDeviceContext6 = extern struct {
             pub inline fn EndDraw(self: *T, tag1: ?*u64, tag2: ?*u64) HRESULT {
                 return self.vtbl.EndDraw(self, tag1, tag2);
             }
-            pub inline fn SetTransform(self: *T, transform: *const MATRIX_3X2_F) void {
+            pub inline fn SetTransform(self: *T, transform: *const dcommon.MATRIX_3X2_F) void {
                 self.vtbl.SetTransform(self, transform);
             }
             pub inline fn Clear(self: *T, color: *const COLOR_F) void {
                 self.vtbl.Clear(self, color);
             }
-            pub inline fn FillRectangle(self: *T, rect: *const RECT_F, brush: *IBrush) void {
+            pub inline fn FillRectangle(self: *T, rect: *const dcommon.RECT_F, brush: *IBrush) void {
                 self.vtbl.FillRectangle(self, rect, brush);
             }
             pub inline fn FillEllipse(self: *T, ellipse: *const ELLIPSE, brush: *IBrush) void {
@@ -872,8 +813,8 @@ pub const IDeviceContext6 = extern struct {
             }
             pub inline fn DrawLine(
                 self: *T,
-                p0: POINT_2F,
-                p1: POINT_2F,
+                p0: dcommon.POINT_2F,
+                p1: dcommon.POINT_2F,
                 brush: *IBrush,
                 width: f32,
                 style: ?*IStrokeStyle,
@@ -884,11 +825,11 @@ pub const IDeviceContext6 = extern struct {
                 self: *T,
                 string: os.LPCWSTR,
                 length: u32,
-                format: *dwrite.ITextFormat,
-                layout_rect: *const RECT_F,
+                format: *ITextFormat,
+                layout_rect: *const dcommon.RECT_F,
                 brush: *IBrush,
                 options: DRAW_TEXT_OPTIONS,
-                measuring_mode: dwrite.MEASURING_MODE,
+                measuring_mode: dcommon.MEASURING_MODE,
             ) void {
                 self.vtbl.DrawText(
                     self,
