@@ -109,6 +109,35 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &device),
         ));
 
+        if (comptime builtin.mode == .Debug) {
+            // Hide some D3D12 Debug Layer warnings.
+            var info_queue: *d3d12.IInfoQueue = undefined;
+            if (device.QueryInterface(&d3d12.IID_IInfoQueue, @ptrCast(**c_void, &info_queue)) == 0) {
+                defer releaseCom(&info_queue);
+                var hide = [_]d3d12.MESSAGE_ID{
+                    .CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+                };
+                vhr(info_queue.AddStorageFilterEntries(&d3d12.INFO_QUEUE_FILTER{
+                    .AllowList = .{
+                        .NumCategories = 0,
+                        .pCategoryList = null,
+                        .NumSeverities = 0,
+                        .pSeverityList = null,
+                        .NumIDs = 0,
+                        .pIDList = null,
+                    },
+                    .DenyList = .{
+                        .NumCategories = 0,
+                        .pCategoryList = null,
+                        .NumSeverities = 0,
+                        .pSeverityList = null,
+                        .NumIDs = hide.len,
+                        .pIDList = &hide,
+                    },
+                }));
+            }
+        }
+
         var cmdqueue: *d3d12.ICommandQueue = undefined;
         vhr(device.CreateCommandQueue(
             &d3d12.COMMAND_QUEUE_DESC{

@@ -329,6 +329,46 @@ pub const LOGIC_OP = extern enum {
     OR_INVERTED = 15,
 };
 
+pub const MESSAGE_CATEGORY = extern enum {
+    APPLICATION_DEFINED = 0,
+    MISCELLANEOUS = 1,
+    INITIALIZATION = 2,
+    CLEANUP = 3,
+    COMPILATION = 4,
+    STATE_CREATION = 5,
+    STATE_SETTING = 6,
+    STATE_GETTING = 7,
+    RESOURCE_MANIPULATION = 8,
+    EXECUTION = 9,
+    SHADER = 10,
+};
+
+pub const MESSAGE_SEVERITY = extern enum {
+    CORRUPTION = 0,
+    ERROR = 1,
+    WARNING = 2,
+    INFO = 3,
+    MESSAGE = 4,
+};
+
+pub const MESSAGE_ID = extern enum {
+    CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE = 820,
+};
+
+pub const INFO_QUEUE_FILTER_DESC = extern struct {
+    NumCategories: u32,
+    pCategoryList: ?[*]MESSAGE_CATEGORY,
+    NumSeverities: u32,
+    pSeverityList: ?[*]MESSAGE_SEVERITY,
+    NumIDs: u32,
+    pIDList: ?[*]MESSAGE_ID,
+};
+
+pub const INFO_QUEUE_FILTER = extern struct {
+    AllowList: INFO_QUEUE_FILTER_DESC,
+    DenyList: INFO_QUEUE_FILTER_DESC,
+};
+
 pub const RENDER_TARGET_BLEND_DESC = extern struct {
     BlendEnable: os.BOOL = os.FALSE,
     LogicOpEnable: os.BOOL = os.FALSE,
@@ -1293,6 +1333,62 @@ pub const IDebug1 = extern struct {
             }
             pub inline fn SetEnableSynchronizedCommandQueueValidation(self: *T, enable: os.BOOL) void {
                 self.vtbl.SetEnableSynchronizedCommandQueueValidation(self, enable);
+            }
+        };
+    }
+};
+
+pub const IInfoQueue = extern struct {
+    const Self = @This();
+    vtbl: *const extern struct {
+        // IUnknown
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        AddRef: fn (*Self) callconv(.Stdcall) u32,
+        Release: fn (*Self) callconv(.Stdcall) u32,
+        // ID3D12InfoQueue
+        SetMessageCountLimit: *c_void,
+        ClearStoredMessages: *c_void,
+        GetMessage: *c_void,
+        GetNumMessagesAllowedByStorageFilter: *c_void,
+        GetNumMessagesDeniedByStorageFilter: *c_void,
+        GetNumStoredMessages: *c_void,
+        GetNumStoredMessagesAllowedByRetrievalFilter: *c_void,
+        GetNumMessagesDiscardedByMessageCountLimit: *c_void,
+        GetMessageCountLimit: *c_void,
+        AddStorageFilterEntries: fn (*Self, *INFO_QUEUE_FILTER) callconv(.Stdcall) HRESULT,
+        GetStorageFilter: *c_void,
+        ClearStorageFilter: *c_void,
+        PushEmptyStorageFilter: *c_void,
+        PushCopyOfStorageFilter: *c_void,
+        PushStorageFilter: *c_void,
+        PopStorageFilter: *c_void,
+        GetStorageFilterStackSize: *c_void,
+        AddRetrievalFilterEntries: *c_void,
+        GetRetrievalFilter: *c_void,
+        ClearRetrievalFilter: *c_void,
+        PushEmptyRetrievalFilter: *c_void,
+        PushCopyOfRetrievalFilter: *c_void,
+        PushRetrievalFilter: *c_void,
+        PopRetrievalFilter: *c_void,
+        GetRetrievalFilterStackSize: *c_void,
+        AddMessage: *c_void,
+        AddApplicationMessage: *c_void,
+        SetBreakOnCategory: *c_void,
+        SetBreakOnSeverity: *c_void,
+        SetBreakOnID: *c_void,
+        GetBreakOnCategory: *c_void,
+        GetBreakOnSeverity: *c_void,
+        GetBreakOnID: *c_void,
+        SetMuteDebugOutput: *c_void,
+        GetMuteDebugOutput: *c_void,
+    },
+    usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace IInfoQueue.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn AddStorageFilterEntries(self: *T, filter: *INFO_QUEUE_FILTER) HRESULT {
+                return self.vtbl.AddStorageFilterEntries(self, filter);
             }
         };
     }
@@ -3178,6 +3274,12 @@ pub const IID_IPipelineState = os.GUID{
     .Data2 = 0xf624,
     .Data3 = 0x4c6f,
     .Data4 = .{ 0xa8, 0x28, 0xac, 0xe9, 0x48, 0x62, 0x24, 0x45 },
+};
+pub const IID_IInfoQueue = os.GUID{
+    .Data1 = 0x0742a90b,
+    .Data2 = 0xc387,
+    .Data3 = 0x483f,
+    .Data4 = .{ 0xb9, 0x46, 0x30, 0xa7, 0xe4, 0xe6, 0x14, 0x58 },
 };
 
 pub var GetDebugInterface: fn (*const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
