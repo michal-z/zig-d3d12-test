@@ -1,5 +1,4 @@
 * text=auto
-*.zig text eol=lf
 *.ply text eol=lf
-*.png binary
-*.jpg binary
+*.zig text eol=lf
+*.ppm binary

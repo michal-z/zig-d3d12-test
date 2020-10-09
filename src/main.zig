@@ -28,6 +28,12 @@ const Triangle = struct {
     index2: u32,
 };
 
+const Rgb8 = struct {
+    r: u8,
+    g: u8,
+    b: u8,
+};
+
 comptime {
     assert(@sizeOf(Vertex) == 24 and @alignOf(Vertex) == 4);
     assert(@sizeOf(Triangle) == 12 and @alignOf(Triangle) == 4);
@@ -52,12 +58,12 @@ const DemoState = struct {
     vertex_buffer: gr.ResourceHandle,
     index_buffer: gr.ResourceHandle,
     transform_buffer: gr.ResourceHandle,
-    pso: gr.PipelineHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
     depth_texture_dsv: d3d12.CPU_DESCRIPTOR_HANDLE,
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    pso: gr.PipelineHandle,
     entities: [3]Entity,
     brush: *d2d1.ISolidColorBrush,
     text_format: *dwrite.ITextFormat,
@@ -222,6 +228,38 @@ const DemoState = struct {
 
             start_index_location += ply.num_triangles * 3;
             base_vertex_location += ply.num_vertices;
+        }
+
+        {
+            var buf: [256]u8 = undefined;
+            const path = std.fmt.bufPrint(
+                buf[0..],
+                "{}/data/map.ppm",
+                .{std.fs.selfExeDirPath(buf[0..])},
+            ) catch unreachable;
+
+            const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
+            defer file.close();
+
+            // Line 1.
+            const reader = file.reader();
+            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+                assert(std.mem.eql(u8, "P6", line));
+            }
+
+            // Line 2.
+            var map_width: u32 = 0;
+            var map_height: u32 = 0;
+            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+                var it = std.mem.split(line, " ");
+                map_width = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+                map_height = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+            }
+
+            // Line 3.
+            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+                assert(std.mem.eql(u8, "255", line));
+            }
         }
 
         const entities = [_]Entity{
