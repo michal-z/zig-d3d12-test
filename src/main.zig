@@ -54,7 +54,7 @@ const DemoState = struct {
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
-    pso: gr.PipelineHandle,
+    pipelines: std.ArrayList(gr.PipelineHandle),
     entities: std.ArrayList(Entity),
     brush: *d2d1.ISolidColorBrush,
     text_format: *dwrite.ITextFormat,
@@ -62,73 +62,18 @@ const DemoState = struct {
     fn init(allocator: *std.mem.Allocator, window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
 
-        const srgb_texture = dx.createCommittedResource(
-            .DEFAULT,
-            .{},
-            &blk: {
-                var desc = d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
-                desc.Flags = .{ .ALLOW_RENDER_TARGET = true };
-                desc.SampleDesc.Count = window_num_samples;
-                break :blk desc;
-            },
-            .{ .RENDER_TARGET = true },
-            &d3d12.CLEAR_VALUE.color(.R8G8B8A8_UNORM_SRGB, [4]f32{ 0.2, 0.4, 0.8, 1.0 }),
-        );
-        const srgb_texture_rtv = dx.allocateCpuDescriptors(.RTV, 1);
-        dx.device.CreateRenderTargetView(dx.getResource(srgb_texture), null, srgb_texture_rtv);
+        var srgb_texture: gr.ResourceHandle = undefined;
+        var depth_texture: gr.ResourceHandle = undefined;
+        var srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
+        var depth_texture_dsv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
+        initRenderTarget(&dx, &srgb_texture, &depth_texture, &srgb_texture_rtv, &depth_texture_dsv);
 
-        const depth_texture = dx.createCommittedResource(
-            .DEFAULT,
-            .{},
-            &blk: {
-                var desc = d3d12.RESOURCE_DESC.tex2d(.D32_FLOAT, window_width, window_height);
-                desc.Flags = .{ .ALLOW_DEPTH_STENCIL = true, .DENY_SHADER_RESOURCE = true };
-                desc.SampleDesc.Count = window_num_samples;
-                break :blk desc;
-            },
-            .{ .DEPTH_WRITE = true },
-            &d3d12.CLEAR_VALUE.depthStencil(.D32_FLOAT, 1.0, 0),
-        );
-        const depth_texture_dsv = dx.allocateCpuDescriptors(.DSV, 1);
-        dx.device.CreateDepthStencilView(dx.getResource(depth_texture), null, depth_texture_dsv);
-
-        const pso = dx.createGraphicsPipeline(d3d12.GRAPHICS_PIPELINE_STATE_DESC{
-            .PrimitiveTopologyType = .TRIANGLE,
-            .NumRenderTargets = 1,
-            .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
-            .DSVFormat = .D32_FLOAT,
-            .RasterizerState = .{ .CullMode = .NONE },
-            .VS = blk: {
-                const file = @embedFile("../shaders/test.vs.cso");
-                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
-            },
-            .PS = blk: {
-                const file = @embedFile("../shaders/test.ps.cso");
-                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
-            },
-            .SampleDesc = .{ .Count = window_num_samples, .Quality = 0 },
-        });
+        var pipelines = std.ArrayList(gr.PipelineHandle).init(allocator);
+        initDx12Pipelines(&dx, &pipelines);
 
         var brush: *d2d1.ISolidColorBrush = undefined;
-        gr.vhr(dx.d2d.context.CreateSolidColorBrush(
-            &d2d1.COLOR_F{ .r = 1.0, .g = 0.5, .b = 0.0, .a = 1.0 },
-            null,
-            &brush,
-        ));
-
         var text_format: *dwrite.ITextFormat = undefined;
-        gr.vhr(dx.d2d.dwrite_factory.CreateTextFormat(
-            std.unicode.utf8ToUtf16LeStringLiteral("Verdana")[0..],
-            null,
-            .NORMAL,
-            .NORMAL,
-            .NORMAL,
-            50.0,
-            std.unicode.utf8ToUtf16LeStringLiteral("en-us")[0..],
-            &text_format,
-        ));
-        gr.vhr(text_format.SetTextAlignment(.CENTER));
-        gr.vhr(text_format.SetParagraphAlignment(.CENTER));
+        init2dResources(dx, &brush, &text_format);
 
         dx.beginFrame();
 
@@ -138,7 +83,7 @@ const DemoState = struct {
         var index_buffer: gr.ResourceHandle = undefined;
         var vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
         var index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
-        createAndUploadMeshes(
+        initMeshes(
             &dx,
             &meshes,
             &vertex_buffer,
@@ -150,7 +95,7 @@ const DemoState = struct {
         var entities = std.ArrayList(Entity).init(allocator);
         var transform_buffer: gr.ResourceHandle = undefined;
         var transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
-        createEntities(&dx, meshes.items, &entities, &transform_buffer, &transform_buffer_srv);
+        initEntities(&dx, meshes.items, &entities, &transform_buffer, &transform_buffer_srv);
 
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
@@ -170,7 +115,7 @@ const DemoState = struct {
             .vertex_buffer_srv = vertex_buffer_srv,
             .index_buffer_srv = index_buffer_srv,
             .transform_buffer_srv = transform_buffer_srv,
-            .pso = pso,
+            .pipelines = pipelines,
             .entities = entities,
             .brush = brush,
             .text_format = text_format,
@@ -180,6 +125,10 @@ const DemoState = struct {
     fn deinit(self: *DemoState) void {
         self.dx.waitForGpu();
         self.entities.deinit();
+        for (self.pipelines.items) |pso| {
+            _ = self.dx.releasePipeline(pso);
+        }
+        self.pipelines.deinit();
         _ = self.brush.Release();
         _ = self.text_format.Release();
         _ = self.dx.releaseResource(self.vertex_buffer);
@@ -187,7 +136,6 @@ const DemoState = struct {
         _ = self.dx.releaseResource(self.transform_buffer);
         _ = self.dx.releaseResource(self.srgb_texture);
         _ = self.dx.releaseResource(self.depth_texture);
-        _ = self.dx.releasePipeline(self.pso);
         self.dx.deinit();
         self.* = undefined;
     }
@@ -214,7 +162,7 @@ const DemoState = struct {
         );
         dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = true }, 1.0, 0.0, 0, null);
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
-        dx.setPipelineState(self.pso);
+        dx.setPipelineState(self.pipelines.items[0]);
 
         dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.flushResourceBarriers();
@@ -286,7 +234,7 @@ const DemoState = struct {
         dx.endFrame();
     }
 
-    fn createAndUploadMeshes(
+    fn initMeshes(
         dx: *gr.DxContext,
         meshes: *std.ArrayList(Mesh),
         vertex_buffer: *gr.ResourceHandle,
@@ -372,7 +320,7 @@ const DemoState = struct {
         }
     }
 
-    fn createEntities(
+    fn initEntities(
         dx: *gr.DxContext,
         meshes: []Mesh,
         entities: *std.ArrayList(Entity),
@@ -475,6 +423,88 @@ const DemoState = struct {
                 upload.cpu_slice.len * @sizeOf(Mat4),
             );
         }
+    }
+
+    fn initRenderTarget(
+        dx: *gr.DxContext,
+        srgb_texture: *gr.ResourceHandle,
+        depth_texture: *gr.ResourceHandle,
+        srgb_texture_rtv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+        depth_texture_dsv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+    ) void {
+        srgb_texture.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &blk: {
+                var desc = d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
+                desc.Flags = .{ .ALLOW_RENDER_TARGET = true };
+                desc.SampleDesc.Count = window_num_samples;
+                break :blk desc;
+            },
+            .{ .RENDER_TARGET = true },
+            &d3d12.CLEAR_VALUE.color(.R8G8B8A8_UNORM_SRGB, [4]f32{ 0.2, 0.4, 0.8, 1.0 }),
+        );
+        srgb_texture_rtv.* = dx.allocateCpuDescriptors(.RTV, 1);
+        dx.device.CreateRenderTargetView(dx.getResource(srgb_texture.*), null, srgb_texture_rtv.*);
+
+        depth_texture.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &blk: {
+                var desc = d3d12.RESOURCE_DESC.tex2d(.D32_FLOAT, window_width, window_height);
+                desc.Flags = .{ .ALLOW_DEPTH_STENCIL = true, .DENY_SHADER_RESOURCE = true };
+                desc.SampleDesc.Count = window_num_samples;
+                break :blk desc;
+            },
+            .{ .DEPTH_WRITE = true },
+            &d3d12.CLEAR_VALUE.depthStencil(.D32_FLOAT, 1.0, 0),
+        );
+        depth_texture_dsv.* = dx.allocateCpuDescriptors(.DSV, 1);
+        dx.device.CreateDepthStencilView(dx.getResource(depth_texture.*), null, depth_texture_dsv.*);
+    }
+
+    fn initDx12Pipelines(dx: *gr.DxContext, pipelines: *std.ArrayList(gr.PipelineHandle)) void {
+        pipelines.append(dx.createGraphicsPipeline(d3d12.GRAPHICS_PIPELINE_STATE_DESC{
+            .PrimitiveTopologyType = .TRIANGLE,
+            .NumRenderTargets = 1,
+            .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
+            .DSVFormat = .D32_FLOAT,
+            .RasterizerState = .{ .CullMode = .NONE },
+            .VS = blk: {
+                const file = @embedFile("../shaders/test.vs.cso");
+                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
+            },
+            .PS = blk: {
+                const file = @embedFile("../shaders/test.ps.cso");
+                break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
+            },
+            .SampleDesc = .{ .Count = window_num_samples, .Quality = 0 },
+        })) catch unreachable;
+    }
+
+    fn init2dResources(
+        dx: gr.DxContext,
+        brush: **d2d1.ISolidColorBrush,
+        text_format: **dwrite.ITextFormat,
+    ) void {
+        gr.vhr(dx.d2d.context.CreateSolidColorBrush(
+            &d2d1.COLOR_F{ .r = 1.0, .g = 0.5, .b = 0.0, .a = 1.0 },
+            null,
+            &brush.*,
+        ));
+
+        gr.vhr(dx.d2d.dwrite_factory.CreateTextFormat(
+            std.unicode.utf8ToUtf16LeStringLiteral("Verdana")[0..],
+            null,
+            .NORMAL,
+            .NORMAL,
+            .NORMAL,
+            50.0,
+            std.unicode.utf8ToUtf16LeStringLiteral("en-us")[0..],
+            &text_format.*,
+        ));
+        gr.vhr(text_format.*.SetTextAlignment(.CENTER));
+        gr.vhr(text_format.*.SetParagraphAlignment(.CENTER));
     }
 };
 
