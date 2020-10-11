@@ -55,7 +55,7 @@ const DemoState = struct {
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     pso: gr.PipelineHandle,
-    test_entities: [3]Entity,
+    entities: std.ArrayList(Entity),
     brush: *d2d1.ISolidColorBrush,
     text_format: *dwrite.ITextFormat,
 
@@ -109,21 +109,6 @@ const DemoState = struct {
             .SampleDesc = .{ .Count = window_num_samples, .Quality = 0 },
         });
 
-        const transform_buffer = dx.createCommittedResource(
-            .DEFAULT,
-            .{},
-            &d3d12.RESOURCE_DESC.buffer(1024),
-            .{ .COPY_DEST = true },
-            null,
-        );
-
-        const transform_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(transform_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, 8, @sizeOf(Mat4)),
-            transform_buffer_srv,
-        );
-
         var brush: *d2d1.ISolidColorBrush = undefined;
         gr.vhr(dx.d2d.context.CreateSolidColorBrush(
             &d2d1.COLOR_F{ .r = 1.0, .g = 0.5, .b = 0.0, .a = 1.0 },
@@ -162,23 +147,10 @@ const DemoState = struct {
             &index_buffer_srv,
         );
 
-        const test_entities = [_]Entity{
-            Entity{
-                .mesh = meshes.items[0],
-                .id = 1,
-                .position = vec3.init(-2.0, 0.0, 1.0),
-            },
-            Entity{
-                .mesh = meshes.items[1],
-                .id = 2,
-                .position = vec3.init(-0.5, 0.0, 1.0),
-            },
-            Entity{
-                .mesh = meshes.items[0],
-                .id = 3,
-                .position = vec3.init(1.0, 0.0, 1.0),
-            },
-        };
+        var entities = std.ArrayList(Entity).init(allocator);
+        var transform_buffer: gr.ResourceHandle = undefined;
+        var transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
+        createEntities(&dx, meshes.items, &entities, &transform_buffer, &transform_buffer_srv);
 
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
@@ -199,7 +171,7 @@ const DemoState = struct {
             .index_buffer_srv = index_buffer_srv,
             .transform_buffer_srv = transform_buffer_srv,
             .pso = pso,
-            .test_entities = test_entities,
+            .entities = entities,
             .brush = brush,
             .text_format = text_format,
         };
@@ -207,6 +179,7 @@ const DemoState = struct {
 
     fn deinit(self: *DemoState) void {
         self.dx.waitForGpu();
+        self.entities.deinit();
         _ = self.brush.Release();
         _ = self.text_format.Release();
         _ = self.dx.releaseResource(self.vertex_buffer);
@@ -240,42 +213,6 @@ const DemoState = struct {
             null,
         );
         dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = true }, 1.0, 0.0, 0, null);
-        // Upload transform data.
-        {
-            const upload = dx.allocateUploadBufferRegion(Mat4, self.test_entities.len + 1);
-            upload.cpu_slice[0] = mat4.transpose(
-                mat4.mul(
-                    mat4.initLookAt(
-                        vec3.init(0.0, 3.0, -4.0),
-                        vec3.init(0.0, 0.0, 0.0),
-                        vec3.init(0.0, 1.0, 0.0),
-                    ),
-                    mat4.initPerspective(
-                        math.pi / 3.0,
-                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
-                        0.1,
-                        100.0,
-                    ),
-                ),
-            );
-            upload.cpu_slice[1] = mat4.transpose(mat4.mul(
-                mat4.initRotationY(@floatCast(f32, stats.time)),
-                mat4.initTranslation(self.test_entities[0].position),
-            ));
-            upload.cpu_slice[2] = mat4.transpose(mat4.mul(
-                mat4.initRotationY(@floatCast(f32, stats.time)),
-                mat4.initTranslation(self.test_entities[1].position),
-            ));
-            upload.cpu_slice[3] = mat4.transpose(mat4.initTranslation(self.test_entities[2].position));
-
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(self.transform_buffer),
-                0,
-                upload.buffer,
-                upload.buffer_offset,
-                upload.cpu_slice.len * @sizeOf(Mat4),
-            );
-        }
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
         dx.setPipelineState(self.pso);
 
@@ -289,7 +226,7 @@ const DemoState = struct {
             break :blk base;
         });
 
-        for (self.test_entities) |entity| {
+        for (self.entities.items) |entity| {
             dx.cmdlist.SetGraphicsRoot32BitConstants(0, 3, &[_]u32{
                 entity.mesh.start_index_location,
                 entity.mesh.base_vertex_location,
@@ -435,7 +372,13 @@ const DemoState = struct {
         }
     }
 
-    fn createEntities(entities: *std.ArrayList(Entity)) void {
+    fn createEntities(
+        dx: *gr.DxContext,
+        meshes: []Mesh,
+        entities: *std.ArrayList(Entity),
+        transform_buffer: *gr.ResourceHandle,
+        transform_buffer_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+    ) void {
         var buf: [256]u8 = undefined;
         const path = std.fmt.bufPrint(
             buf[0..],
@@ -466,14 +409,72 @@ const DemoState = struct {
             assert(std.mem.eql(u8, "255", line));
         }
 
-        var data = std.ArrayList(u8).init(allocator);
-        defer data.deinit();
-
-        reader.readAllArrayList(&data, 4096) catch unreachable;
-        assert(data.items.len == map_width * map_height * 3);
-
-        var x: u32 = 0;
         var y: u32 = 0;
+        var current_id: u32 = 1;
+        while (y < map_height) : (y += 1) {
+            var x: u32 = 0;
+            while (x < map_width) : (x += 1) {
+                const desc = reader.readBytesNoEof(3) catch unreachable;
+                if (desc[0] == 0 and desc[1] == 0 and desc[2] == 0) {
+                    entities.append(
+                        Entity{
+                            .mesh = meshes[0],
+                            .id = current_id,
+                            .position = vec3.init(@intToFloat(f32, x), 0.0, @intToFloat(f32, y)),
+                        },
+                    ) catch unreachable;
+                    current_id += 1;
+                }
+            }
+        }
+
+        const num_transforms: u32 = @intCast(u32, entities.items.len + 1);
+        transform_buffer.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &d3d12.RESOURCE_DESC.buffer(num_transforms * @sizeOf(Mat4)),
+            .{ .COPY_DEST = true },
+            null,
+        );
+
+        transform_buffer_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(transform_buffer.*),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, num_transforms, @sizeOf(Mat4)),
+            transform_buffer_srv.*,
+        );
+
+        // Upload transform data.
+        {
+            const upload = dx.allocateUploadBufferRegion(Mat4, num_transforms);
+            upload.cpu_slice[0] = mat4.transpose(
+                mat4.mul(
+                    mat4.initLookAt(
+                        vec3.init(8.0, 8.0, -8.0),
+                        vec3.init(0.0, 0.0, 0.0),
+                        vec3.init(0.0, 1.0, 0.0),
+                    ),
+                    mat4.initPerspective(
+                        math.pi / 3.0,
+                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
+                        0.1,
+                        100.0,
+                    ),
+                ),
+            );
+
+            for (entities.items) |entity, entity_idx| {
+                upload.cpu_slice[entity_idx + 1] = mat4.transpose(mat4.initTranslation(entity.position));
+            }
+
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(transform_buffer.*),
+                0,
+                upload.buffer,
+                upload.buffer_offset,
+                upload.cpu_slice.len * @sizeOf(Mat4),
+            );
+        }
     }
 };
 
