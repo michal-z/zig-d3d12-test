@@ -14,9 +14,6 @@ const window_width = 1920;
 const window_height = 1080;
 const window_num_samples = 8;
 
-const max_num_vertices = 10_000;
-const max_num_triangles = 10_000;
-
 const Vertex = struct {
     position: Vec3,
     normal: Vec3,
@@ -26,12 +23,6 @@ const Triangle = struct {
     index0: u32,
     index1: u32,
     index2: u32,
-};
-
-const Rgb8 = struct {
-    r: u8,
-    g: u8,
-    b: u8,
 };
 
 comptime {
@@ -64,11 +55,11 @@ const DemoState = struct {
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     pso: gr.PipelineHandle,
-    entities: [3]Entity,
+    test_entities: [3]Entity,
     brush: *d2d1.ISolidColorBrush,
     text_format: *dwrite.ITextFormat,
 
-    fn init(window: os.HWND) DemoState {
+    fn init(allocator: *std.mem.Allocator, window: os.HWND) DemoState {
         var dx = gr.DxContext.init(window);
 
         const srgb_texture = dx.createCommittedResource(
@@ -118,40 +109,12 @@ const DemoState = struct {
             .SampleDesc = .{ .Count = window_num_samples, .Quality = 0 },
         });
 
-        const vertex_buffer = dx.createCommittedResource(
-            .DEFAULT,
-            .{},
-            &d3d12.RESOURCE_DESC.buffer(max_num_vertices * @sizeOf(Vertex)),
-            .{ .COPY_DEST = true },
-            null,
-        );
-        const index_buffer = dx.createCommittedResource(
-            .DEFAULT,
-            .{},
-            &d3d12.RESOURCE_DESC.buffer(max_num_triangles * @sizeOf(Triangle)),
-            .{ .COPY_DEST = true },
-            null,
-        );
         const transform_buffer = dx.createCommittedResource(
             .DEFAULT,
             .{},
             &d3d12.RESOURCE_DESC.buffer(1024),
             .{ .COPY_DEST = true },
             null,
-        );
-
-        const vertex_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(vertex_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, max_num_vertices, @sizeOf(Vertex)),
-            vertex_buffer_srv,
-        );
-
-        const index_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(index_buffer),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.typedBuffer(.R32_UINT, 0, 3 * max_num_triangles),
-            index_buffer_srv,
         );
 
         const transform_buffer_srv = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
@@ -184,97 +147,34 @@ const DemoState = struct {
 
         dx.beginFrame();
 
-        const mesh_names = [_][]const u8{ "cube", "sphere" };
-        var meshes: [2]Mesh = undefined;
-        var start_index_location: u32 = 0;
-        var base_vertex_location: u32 = 0;
+        var meshes = std.ArrayList(Mesh).init(allocator);
+        defer meshes.deinit();
+        var vertex_buffer: gr.ResourceHandle = undefined;
+        var index_buffer: gr.ResourceHandle = undefined;
+        var vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
+        var index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
+        createAndUploadMeshes(
+            &dx,
+            &meshes,
+            &vertex_buffer,
+            &index_buffer,
+            &vertex_buffer_srv,
+            &index_buffer_srv,
+        );
 
-        for (meshes) |*mesh, mesh_idx| {
-            var buf: [256]u8 = undefined;
-            const path = std.fmt.bufPrint(
-                buf[0..],
-                "{}/data/{}.ply",
-                .{ std.fs.selfExeDirPath(buf[0..]), mesh_names[mesh_idx] },
-            ) catch unreachable;
-
-            var ply = PlyFileLoader.init(path);
-            defer ply.deinit();
-
-            const upload_verts = dx.allocateUploadBufferRegion(Vertex, ply.num_vertices);
-            const upload_tris = dx.allocateUploadBufferRegion(Triangle, ply.num_triangles);
-
-            ply.load(upload_verts.cpu_slice, upload_tris.cpu_slice);
-
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(vertex_buffer),
-                base_vertex_location * @sizeOf(Vertex),
-                upload_verts.buffer,
-                upload_verts.buffer_offset,
-                upload_verts.cpu_slice.len * @sizeOf(Vertex),
-            );
-            dx.cmdlist.CopyBufferRegion(
-                dx.getResource(index_buffer),
-                start_index_location * @sizeOf(u32),
-                upload_tris.buffer,
-                upload_tris.buffer_offset,
-                upload_tris.cpu_slice.len * @sizeOf(Triangle),
-            );
-
-            mesh.* = Mesh{
-                .num_indices = ply.num_triangles * 3,
-                .start_index_location = start_index_location,
-                .base_vertex_location = base_vertex_location,
-            };
-
-            start_index_location += ply.num_triangles * 3;
-            base_vertex_location += ply.num_vertices;
-        }
-
-        {
-            var buf: [256]u8 = undefined;
-            const path = std.fmt.bufPrint(
-                buf[0..],
-                "{}/data/map.ppm",
-                .{std.fs.selfExeDirPath(buf[0..])},
-            ) catch unreachable;
-
-            const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
-            defer file.close();
-
-            // Line 1.
-            const reader = file.reader();
-            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
-                assert(std.mem.eql(u8, "P6", line));
-            }
-
-            // Line 2.
-            var map_width: u32 = 0;
-            var map_height: u32 = 0;
-            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
-                var it = std.mem.split(line, " ");
-                map_width = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
-                map_height = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
-            }
-
-            // Line 3.
-            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
-                assert(std.mem.eql(u8, "255", line));
-            }
-        }
-
-        const entities = [_]Entity{
+        const test_entities = [_]Entity{
             Entity{
-                .mesh = meshes[0],
+                .mesh = meshes.items[0],
                 .id = 1,
                 .position = vec3.init(-2.0, 0.0, 1.0),
             },
             Entity{
-                .mesh = meshes[1],
+                .mesh = meshes.items[1],
                 .id = 2,
                 .position = vec3.init(-0.5, 0.0, 1.0),
             },
             Entity{
-                .mesh = meshes[0],
+                .mesh = meshes.items[0],
                 .id = 3,
                 .position = vec3.init(1.0, 0.0, 1.0),
             },
@@ -299,7 +199,7 @@ const DemoState = struct {
             .index_buffer_srv = index_buffer_srv,
             .transform_buffer_srv = transform_buffer_srv,
             .pso = pso,
-            .entities = entities,
+            .test_entities = test_entities,
             .brush = brush,
             .text_format = text_format,
         };
@@ -342,7 +242,7 @@ const DemoState = struct {
         dx.cmdlist.ClearDepthStencilView(self.depth_texture_dsv, .{ .DEPTH = true }, 1.0, 0.0, 0, null);
         // Upload transform data.
         {
-            const upload = dx.allocateUploadBufferRegion(Mat4, self.entities.len + 1);
+            const upload = dx.allocateUploadBufferRegion(Mat4, self.test_entities.len + 1);
             upload.cpu_slice[0] = mat4.transpose(
                 mat4.mul(
                     mat4.initLookAt(
@@ -360,13 +260,13 @@ const DemoState = struct {
             );
             upload.cpu_slice[1] = mat4.transpose(mat4.mul(
                 mat4.initRotationY(@floatCast(f32, stats.time)),
-                mat4.initTranslation(self.entities[0].position),
+                mat4.initTranslation(self.test_entities[0].position),
             ));
             upload.cpu_slice[2] = mat4.transpose(mat4.mul(
                 mat4.initRotationY(@floatCast(f32, stats.time)),
-                mat4.initTranslation(self.entities[1].position),
+                mat4.initTranslation(self.test_entities[1].position),
             ));
-            upload.cpu_slice[3] = mat4.transpose(mat4.initTranslation(self.entities[2].position));
+            upload.cpu_slice[3] = mat4.transpose(mat4.initTranslation(self.test_entities[2].position));
 
             dx.cmdlist.CopyBufferRegion(
                 dx.getResource(self.transform_buffer),
@@ -389,7 +289,7 @@ const DemoState = struct {
             break :blk base;
         });
 
-        for (self.entities) |entity| {
+        for (self.test_entities) |entity| {
             dx.cmdlist.SetGraphicsRoot32BitConstants(0, 3, &[_]u32{
                 entity.mesh.start_index_location,
                 entity.mesh.base_vertex_location,
@@ -447,6 +347,133 @@ const DemoState = struct {
         dx.endDraw2d();
 
         dx.endFrame();
+    }
+
+    fn createAndUploadMeshes(
+        dx: *gr.DxContext,
+        meshes: *std.ArrayList(Mesh),
+        vertex_buffer: *gr.ResourceHandle,
+        index_buffer: *gr.ResourceHandle,
+        vertex_buffer_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+        index_buffer_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+    ) void {
+        const max_num_vertices = 10_000;
+        const max_num_triangles = 10_000;
+
+        vertex_buffer.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &d3d12.RESOURCE_DESC.buffer(max_num_vertices * @sizeOf(Vertex)),
+            .{ .COPY_DEST = true },
+            null,
+        );
+        index_buffer.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &d3d12.RESOURCE_DESC.buffer(max_num_triangles * @sizeOf(Triangle)),
+            .{ .COPY_DEST = true },
+            null,
+        );
+
+        vertex_buffer_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(vertex_buffer.*),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, max_num_vertices, @sizeOf(Vertex)),
+            vertex_buffer_srv.*,
+        );
+
+        index_buffer_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(index_buffer.*),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.typedBuffer(.R32_UINT, 0, 3 * max_num_triangles),
+            index_buffer_srv.*,
+        );
+
+        const mesh_names = [_][]const u8{ "cube", "sphere" };
+        var start_index_location: u32 = 0;
+        var base_vertex_location: u32 = 0;
+
+        for (mesh_names) |mesh_name, mesh_idx| {
+            var buf: [256]u8 = undefined;
+            const path = std.fmt.bufPrint(
+                buf[0..],
+                "{}/data/{}.ply",
+                .{ std.fs.selfExeDirPath(buf[0..]), mesh_name },
+            ) catch unreachable;
+
+            var ply = PlyFileLoader.init(path);
+            defer ply.deinit();
+
+            const upload_verts = dx.allocateUploadBufferRegion(Vertex, ply.num_vertices);
+            const upload_tris = dx.allocateUploadBufferRegion(Triangle, ply.num_triangles);
+
+            ply.load(upload_verts.cpu_slice, upload_tris.cpu_slice);
+
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(vertex_buffer.*),
+                base_vertex_location * @sizeOf(Vertex),
+                upload_verts.buffer,
+                upload_verts.buffer_offset,
+                upload_verts.cpu_slice.len * @sizeOf(Vertex),
+            );
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(index_buffer.*),
+                start_index_location * @sizeOf(u32),
+                upload_tris.buffer,
+                upload_tris.buffer_offset,
+                upload_tris.cpu_slice.len * @sizeOf(Triangle),
+            );
+
+            meshes.append(Mesh{
+                .num_indices = ply.num_triangles * 3,
+                .start_index_location = start_index_location,
+                .base_vertex_location = base_vertex_location,
+            }) catch unreachable;
+
+            start_index_location += ply.num_triangles * 3;
+            base_vertex_location += ply.num_vertices;
+        }
+    }
+
+    fn createEntities(entities: *std.ArrayList(Entity)) void {
+        var buf: [256]u8 = undefined;
+        const path = std.fmt.bufPrint(
+            buf[0..],
+            "{}/data/map.ppm",
+            .{std.fs.selfExeDirPath(buf[0..])},
+        ) catch unreachable;
+
+        const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
+        defer file.close();
+
+        // Line 1.
+        const reader = file.reader();
+        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+            assert(std.mem.eql(u8, "P6", line));
+        }
+
+        // Line 2.
+        var map_width: u32 = 0;
+        var map_height: u32 = 0;
+        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+            var it = std.mem.split(line, " ");
+            map_width = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+            map_height = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+        }
+
+        // Line 3.
+        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+            assert(std.mem.eql(u8, "255", line));
+        }
+
+        var data = std.ArrayList(u8).init(allocator);
+        defer data.deinit();
+
+        reader.readAllArrayList(&data, 4096) catch unreachable;
+        assert(data.items.len == map_width * map_height * 3);
+
+        var x: u32 = 0;
+        var y: u32 = 0;
     }
 };
 
@@ -635,7 +662,13 @@ pub fn main() !void {
         null,
     );
 
-    var demo_state = DemoState.init(window.?);
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer {
+        const leaked = gpa.deinit();
+        assert(leaked == false);
+    }
+
+    var demo_state = DemoState.init(&gpa.allocator, window.?);
     defer demo_state.deinit();
 
     while (true) {
