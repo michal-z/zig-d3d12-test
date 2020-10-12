@@ -1,4 +1,3 @@
-* text=auto
-*.ply text eol=lf
-*.zig text eol=lf
+* text=auto eol=lf
+*.ply binary
 *.ppm binary
