@@ -214,7 +214,7 @@ const DemoState = struct {
             ) catch unreachable;
 
             self.brush.SetColor(&d2d1.COLOR_F.Black);
-            dx.d2d.context.DrawSimpleText(
+            dx.d2d.context.DrawTextSimple(
                 text,
                 self.text_format,
                 &dcommon.RECT_F{

@@ -887,7 +887,7 @@ pub const IDeviceContext6 = extern struct {
                     measuring_mode,
                 );
             }
-            pub fn DrawSimpleText(
+            pub fn DrawTextSimple(
                 self: *T,
                 string: []u8,
                 format: *ITextFormat,
