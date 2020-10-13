@@ -610,8 +610,8 @@ const FrameStats = struct {
 
     fn update(self: *FrameStats) void {
         const now_ns = self.timer.read();
-        const time = @intToFloat(f64, now_ns) / std.time.ns_per_s;
-        const delta_time = @intToFloat(f32, now_ns - self.previous_time_ns) / std.time.ns_per_s;
+        self.time = @intToFloat(f64, now_ns) / std.time.ns_per_s;
+        self.delta_time = @intToFloat(f32, now_ns - self.previous_time_ns) / std.time.ns_per_s;
         self.previous_time_ns = now_ns;
 
         if ((now_ns - self.fps_refresh_time_ns) >= std.time.ns_per_s) {
