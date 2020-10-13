@@ -293,7 +293,7 @@ pub const DxContext = struct {
                     @ptrCast(*os.IUnknown, buffer),
                     &d3d11.RESOURCE_FLAGS_11ON12{},
                     .{ .RENDER_TARGET = true },
-                    .{},
+                    .{}, // We want out state to be .PRESENT
                     &d3d11.IID_IResource,
                     @ptrCast(**c_void, &wrapped_swapbuffers[buffer_idx]),
                 ));

@@ -31,6 +31,33 @@ pub const COLOR_F = extern struct {
     g: f32,
     b: f32,
     a: f32,
+
+    pub const Black = COLOR_F{ .r = 0.0, .g = 0.0, .b = 0.0, .a = 1.0 };
+
+    fn toSrgb(s: f32) f32 {
+        var l: f32 = undefined;
+        if (s > 0.0031308) {
+            l = 1.055 * (std.math.pow(f32, s, (1.0 / 2.4))) - 0.055;
+        } else {
+            l = 12.92 * s;
+        }
+        return l;
+    }
+
+    pub fn linearToSrgb(r: f32, g: f32, b: f32, a: f32) COLOR_F {
+        return COLOR_F{
+            .r = toSrgb(r),
+            .g = toSrgb(g),
+            .b = toSrgb(b),
+            .a = a,
+        };
+    }
+};
+
+pub const COLOR_SPACE = extern enum {
+    CUSTOM = 0,
+    SRGB = 1,
+    SCRGB = 2,
 };
 
 pub const ELLIPSE = extern struct {
