@@ -214,7 +214,7 @@ const DemoState = struct {
             ) catch unreachable;
 
             self.brush.SetColor(&d2d1.COLOR_F.Black);
-            dx.d2d.context.DrawTextA(
+            dx.d2d.context.DrawSimpleText(
                 text,
                 self.text_format,
                 &dcommon.RECT_F{
@@ -224,8 +224,6 @@ const DemoState = struct {
                     .bottom = @intToFloat(f32, window_height),
                 },
                 @ptrCast(*d2d1.IBrush, self.brush),
-                .{},
-                .NATURAL,
             );
         }
         dx.endDraw2d();
@@ -596,7 +594,7 @@ const FrameStats = struct {
     frame_counter: u64,
 
     fn init() FrameStats {
-        return FrameStats{
+        return .{
             .time = 0.0,
             .delta_time = 0.0,
             .fps = 0.0,

@@ -887,31 +887,21 @@ pub const IDeviceContext6 = extern struct {
                     measuring_mode,
                 );
             }
-            pub fn DrawTextA(
+            pub fn DrawSimpleText(
                 self: *T,
                 string: []u8,
                 format: *ITextFormat,
                 layout_rect: *const dcommon.RECT_F,
                 brush: *IBrush,
-                options: DRAW_TEXT_OPTIONS,
-                measuring_mode: dcommon.MEASURING_MODE,
             ) void {
+                // NOTE: This is helper method, not part of D2D1 API.
                 std.debug.assert(string.len < 128);
 
                 var utf16: [128:0]u16 = undefined;
                 const len = std.unicode.utf8ToUtf16Le(utf16[0..], string) catch unreachable;
                 utf16[len] = 0;
 
-                DrawText(
-                    self,
-                    &utf16,
-                    @intCast(u32, len),
-                    format,
-                    layout_rect,
-                    brush,
-                    options,
-                    measuring_mode,
-                );
+                DrawText(self, &utf16, @intCast(u32, len), format, layout_rect, brush, .{}, .NATURAL);
             }
         };
     }
