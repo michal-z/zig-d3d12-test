@@ -105,6 +105,10 @@ pub const IColorContext = extern struct {
         Release: fn (*Self) callconv(.Stdcall) u32,
         // ID2D1Resource
         GetFactory: *c_void,
+        // ID2D1ColorContext
+        GetColorSpace: *c_void,
+        GetProfileSize: *c_void,
+        GetProfile: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
 };
@@ -215,10 +219,24 @@ pub const ISolidColorBrush = extern struct {
         GetOpacity: *c_void,
         GetTransform: *c_void,
         // ID2D1SolidColorBrush
-        SetColor: *c_void,
-        GetColor: *c_void,
+        SetColor: fn (*Self, *const COLOR_F) callconv(.Stdcall) void,
+        GetColor: fn (*Self, *COLOR_F) callconv(.Stdcall) *COLOR_F,
     },
     usingnamespace os.IUnknown.Methods(Self);
+    usingnamespace ISolidColorBrush.Methods(Self);
+
+    fn Methods(comptime T: type) type {
+        return extern struct {
+            pub inline fn SetColor(self: *T, color: *const COLOR_F) void {
+                self.vtbl.SetColor(self, color);
+            }
+            pub inline fn GetColor(self: *T) COLOR_F {
+                var color: COLOR_F = undefined;
+                _ = self.vtbl.GetColor(self, &color);
+                return color;
+            }
+        };
+    }
 };
 
 pub const ILinearGradientBrush = extern struct {

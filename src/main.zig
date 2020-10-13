@@ -203,8 +203,9 @@ const DemoState = struct {
 
         dx.beginDraw2d();
         dx.d2d.context.SetTransform(&dcommon.MATRIX_3X2_F.identity());
+        self.brush.SetColor(&d2d1.COLOR_F{ .r = 0.2, .g = 0.4, .b = 0.8, .a = 1.0 });
         dx.d2d.context.FillEllipse(
-            &d2d1.ELLIPSE{ .point = .{ .x = 300.0, .y = 300 }, .radiusX = 200.0, .radiusY = 100.0 },
+            &d2d1.ELLIPSE{ .point = .{ .x = 1200.0, .y = 300 }, .radiusX = 200.0, .radiusY = 100.0 },
             @ptrCast(*d2d1.IBrush, self.brush),
         );
         dx.d2d.context.DrawLine(
@@ -215,6 +216,7 @@ const DemoState = struct {
             null,
         );
         const text = std.unicode.utf8ToUtf16LeStringLiteral("magic is everywhere");
+        self.brush.SetColor(&d2d1.COLOR_F{ .r = 0.0, .g = 0.0, .b = 0.0, .a = 1.0 });
         dx.d2d.context.DrawText(
             text[0..],
             text.len,
@@ -488,7 +490,7 @@ const DemoState = struct {
         text_format: **dwrite.ITextFormat,
     ) void {
         gr.vhr(dx.d2d.context.CreateSolidColorBrush(
-            &d2d1.COLOR_F{ .r = 1.0, .g = 0.5, .b = 0.0, .a = 1.0 },
+            &d2d1.COLOR_F{ .r = 1.0, .g = 0.0, .b = 0.0, .a = 0.5 },
             null,
             &brush.*,
         ));
