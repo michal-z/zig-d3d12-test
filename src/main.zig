@@ -60,7 +60,7 @@ const DemoState = struct {
     text_format: *dwrite.ITextFormat,
 
     fn init(allocator: *std.mem.Allocator, window: os.HWND) DemoState {
-        var dx = gr.DxContext.init(window);
+        var dx = gr.DxContext.init(allocator, window);
 
         var srgb_texture: gr.ResourceHandle = undefined;
         var depth_texture: gr.ResourceHandle = undefined;

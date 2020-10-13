@@ -72,8 +72,9 @@ pub const DxContext = struct {
         targets: [num_swapbuffers]*d2d1.IBitmap1,
         dwrite_factory: *dwrite.IFactory,
     },
+    allocator: *std.mem.Allocator,
 
-    pub fn init(window: os.HWND) DxContext {
+    pub fn init(allocator: *std.mem.Allocator, window: os.HWND) DxContext {
         dxgi.init();
         d3d11.init();
         d3d12.init();
@@ -346,11 +347,10 @@ pub const DxContext = struct {
             .resource_pool = resource_pool,
             .pipeline = .{
                 .pool = pipeline_pool,
-                // TODO: Use gpa?
-                .map = std.AutoHashMap(u32, PipelineHandle).init(std.heap.page_allocator),
+                .map = std.AutoHashMap(u32, PipelineHandle).init(allocator),
                 .current = PipelineHandle{ .index = 0, .generation = 0 },
             },
-            .buffered_resource_barriers = std.heap.page_allocator.alloc( // TODO: Use gpa?
+            .buffered_resource_barriers = allocator.alloc(
                 d3d12.RESOURCE_BARRIER,
                 32,
             ) catch unreachable,
@@ -368,11 +368,13 @@ pub const DxContext = struct {
                 .targets = d2d_targets,
                 .dwrite_factory = dwrite_factory,
             },
+            .allocator = allocator,
         };
     }
 
     pub fn deinit(dx: *DxContext) void {
         waitForGpu(dx);
+        dx.allocator.free(dx.buffered_resource_barriers);
         for (dx.d2d.wrapped_swapbuffers) |*buffer| {
             releaseCom(&buffer.*);
         }
