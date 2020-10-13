@@ -44,6 +44,7 @@ const Entity = struct {
 
 const DemoState = struct {
     dx: gr.DxContext,
+    frame_stats: FrameStats,
     srgb_texture: gr.ResourceHandle,
     depth_texture: gr.ResourceHandle,
     vertex_buffer: gr.ResourceHandle,
@@ -119,6 +120,7 @@ const DemoState = struct {
             .entities = entities,
             .brush = brush,
             .text_format = text_format,
+            .frame_stats = FrameStats.init(),
         };
     }
 
@@ -141,7 +143,7 @@ const DemoState = struct {
     }
 
     fn update(self: *DemoState) void {
-        const stats = updateFrameStats(self.dx.window, window_name);
+        self.frame_stats.update();
         var dx = &self.dx;
 
         dx.beginFrame();
@@ -203,34 +205,29 @@ const DemoState = struct {
 
         dx.beginDraw2d();
         dx.d2d.context.SetTransform(&dcommon.MATRIX_3X2_F.identity());
-        self.brush.SetColor(&d2d1.COLOR_F.linearToSrgb(0.8, 0.0, 0.0, 0.5));
-        dx.d2d.context.FillEllipse(
-            &d2d1.ELLIPSE{ .point = .{ .x = 1200.0, .y = 300 }, .radiusX = 200.0, .radiusY = 100.0 },
-            @ptrCast(*d2d1.IBrush, self.brush),
-        );
-        dx.d2d.context.DrawLine(
-            .{ .x = 100.0, .y = 100.0 },
-            .{ .x = 800.0, .y = 800.0 },
-            @ptrCast(*d2d1.IBrush, self.brush),
-            30.0,
-            null,
-        );
-        const text = std.unicode.utf8ToUtf16LeStringLiteral("magic is everywhere");
-        self.brush.SetColor(&d2d1.COLOR_F.Black);
-        dx.d2d.context.DrawText(
-            text[0..],
-            text.len,
-            self.text_format,
-            &dcommon.RECT_F{
-                .left = 0.0,
-                .top = 0.0,
-                .right = @intToFloat(f32, window_width),
-                .bottom = @intToFloat(f32, window_height),
-            },
-            @ptrCast(*d2d1.IBrush, self.brush),
-            .{},
-            .NATURAL,
-        );
+        {
+            var buffer: [128]u8 = undefined;
+            const text = std.fmt.bufPrint(
+                buffer[0..],
+                "FPS: {d:.1}\nCPU time: {d:.3} ms",
+                .{ self.frame_stats.fps, self.frame_stats.average_cpu_time },
+            ) catch unreachable;
+
+            self.brush.SetColor(&d2d1.COLOR_F.Black);
+            dx.d2d.context.DrawTextA(
+                text,
+                self.text_format,
+                &dcommon.RECT_F{
+                    .left = 0.0,
+                    .top = 0.0,
+                    .right = @intToFloat(f32, window_width),
+                    .bottom = @intToFloat(f32, window_height),
+                },
+                @ptrCast(*d2d1.IBrush, self.brush),
+                .{},
+                .NATURAL,
+            );
+        }
         dx.endDraw2d();
 
         dx.endFrame();
@@ -501,12 +498,12 @@ const DemoState = struct {
             .NORMAL,
             .NORMAL,
             .NORMAL,
-            50.0,
+            32.0,
             std.unicode.utf8ToUtf16LeStringLiteral("en-us")[0..],
             &text_format.*,
         ));
-        gr.vhr(text_format.*.SetTextAlignment(.CENTER));
-        gr.vhr(text_format.*.SetParagraphAlignment(.CENTER));
+        gr.vhr(text_format.*.SetTextAlignment(.LEADING));
+        gr.vhr(text_format.*.SetParagraphAlignment(.NEAR));
     }
 };
 
@@ -588,48 +585,48 @@ const PlyFileLoader = struct {
     }
 };
 
-fn updateFrameStats(window: ?os.HWND, name: [*:0]const u8) struct { time: f64, delta_time: f32 } {
-    const state = struct {
-        var timer: std.time.Timer = undefined;
-        var previous_time_ns: u64 = 0;
-        var header_refresh_time_ns: u64 = 0;
-        var frame_count: u64 = ~@as(u64, 0);
-    };
+const FrameStats = struct {
+    time: f64,
+    delta_time: f32,
+    fps: f32,
+    average_cpu_time: f32,
+    timer: std.time.Timer,
+    previous_time_ns: u64,
+    fps_refresh_time_ns: u64,
+    frame_counter: u64,
 
-    if (state.frame_count == ~@as(u64, 0)) {
-        state.timer = std.time.Timer.start() catch unreachable;
-        state.previous_time_ns = 0;
-        state.header_refresh_time_ns = 0;
-        state.frame_count = 0;
+    fn init() FrameStats {
+        return FrameStats{
+            .time = 0.0,
+            .delta_time = 0.0,
+            .fps = 0.0,
+            .average_cpu_time = 0.0,
+            .timer = std.time.Timer.start() catch unreachable,
+            .previous_time_ns = 0,
+            .fps_refresh_time_ns = 0,
+            .frame_counter = 0,
+        };
     }
 
-    const now_ns = state.timer.read();
-    const time = @intToFloat(f64, now_ns) / std.time.ns_per_s;
-    const delta_time = @intToFloat(f32, now_ns - state.previous_time_ns) / std.time.ns_per_s;
-    state.previous_time_ns = now_ns;
+    fn update(self: *FrameStats) void {
+        const now_ns = self.timer.read();
+        const time = @intToFloat(f64, now_ns) / std.time.ns_per_s;
+        const delta_time = @intToFloat(f32, now_ns - self.previous_time_ns) / std.time.ns_per_s;
+        self.previous_time_ns = now_ns;
 
-    if ((now_ns - state.header_refresh_time_ns) >= std.time.ns_per_s) {
-        const t = @intToFloat(f64, now_ns - state.header_refresh_time_ns) / std.time.ns_per_s;
-        const fps = @intToFloat(f64, state.frame_count) / t;
-        const ms = (1.0 / fps) * 1000.0;
+        if ((now_ns - self.fps_refresh_time_ns) >= std.time.ns_per_s) {
+            const t = @intToFloat(f64, now_ns - self.fps_refresh_time_ns) / std.time.ns_per_s;
+            const fps = @intToFloat(f64, self.frame_counter) / t;
+            const ms = (1.0 / fps) * 1000.0;
 
-        var buffer = [_]u8{0} ** 128;
-        const buffer_slice = buffer[0 .. buffer.len - 1];
-        const header = std.fmt.bufPrint(
-            buffer_slice,
-            "[{d:.1} fps  {d:.3} ms] {}",
-            .{ fps, ms, name },
-        ) catch buffer_slice;
-
-        _ = os.SetWindowTextA(window, @ptrCast(os.LPCSTR, header.ptr));
-
-        state.header_refresh_time_ns = now_ns;
-        state.frame_count = 0;
+            self.fps = @floatCast(f32, fps);
+            self.average_cpu_time = @floatCast(f32, ms);
+            self.fps_refresh_time_ns = now_ns;
+            self.frame_counter = 0;
+        }
+        self.frame_counter += 1;
     }
-    state.frame_count += 1;
-
-    return .{ .time = time, .delta_time = delta_time };
-}
+};
 
 fn processWindowMessage(
     window: os.HWND,
