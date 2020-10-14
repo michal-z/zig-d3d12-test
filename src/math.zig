@@ -3,7 +3,6 @@ const assert = std.debug.assert;
 pub const math = std.math;
 
 pub const Vec3 = [3]f32;
-pub const Vec4 = [4]f32;
 pub const Mat4 = [4][4]f32;
 
 pub const vec3 = struct {
