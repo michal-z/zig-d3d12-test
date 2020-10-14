@@ -147,7 +147,36 @@ const DemoState = struct {
         var dx = &self.dx;
 
         dx.beginFrame();
+
+        // Upload camera transform.
+        {
+            const upload = dx.allocateUploadBufferRegion(Mat4, 1);
+            upload.cpu_slice[0] = mat4.transpose(
+                mat4.mul(
+                    mat4.initLookAt(
+                        vec3.init(8.0, 8.0, -8.0),
+                        vec3.init(0.0, 0.0, 0.0),
+                        vec3.init(0.0, 1.0, 0.0),
+                    ),
+                    mat4.initPerspective(
+                        math.pi / 3.0,
+                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
+                        0.1,
+                        100.0,
+                    ),
+                ),
+            );
+            dx.cmdlist.CopyBufferRegion(
+                dx.getResource(self.transform_buffer),
+                0,
+                upload.buffer,
+                upload.buffer_offset,
+                upload.cpu_slice.len * @sizeOf(Mat4),
+            );
+        }
+
         dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = true });
+        dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.flushResourceBarriers();
 
         dx.cmdlist.OMSetRenderTargets(
@@ -166,9 +195,6 @@ const DemoState = struct {
         dx.cmdlist.IASetPrimitiveTopology(.TRIANGLELIST);
         dx.setPipelineState(self.pipelines.items[0]);
 
-        dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
-        dx.flushResourceBarriers();
-
         dx.cmdlist.SetGraphicsRootDescriptorTable(1, blk: {
             const base = dx.copyDescriptorsToGpuHeap(1, self.vertex_buffer_srv);
             _ = dx.copyDescriptorsToGpuHeap(1, self.index_buffer_srv);
@@ -185,11 +211,10 @@ const DemoState = struct {
             dx.cmdlist.DrawInstanced(entity.mesh.num_indices, 1, 0, 0);
         }
 
-        dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = true });
-
         const back_buffer = dx.getBackBuffer();
         dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = true });
         dx.addTransitionBarrier(self.srgb_texture, .{ .RESOLVE_SOURCE = true });
+        dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = true });
         dx.flushResourceBarriers();
 
         dx.cmdlist.ResolveSubresource(
@@ -392,21 +417,6 @@ const DemoState = struct {
         // Upload transform data.
         {
             const upload = dx.allocateUploadBufferRegion(Mat4, num_transforms);
-            upload.cpu_slice[0] = mat4.transpose(
-                mat4.mul(
-                    mat4.initLookAt(
-                        vec3.init(8.0, 8.0, -8.0),
-                        vec3.init(0.0, 0.0, 0.0),
-                        vec3.init(0.0, 1.0, 0.0),
-                    ),
-                    mat4.initPerspective(
-                        math.pi / 3.0,
-                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
-                        0.1,
-                        100.0,
-                    ),
-                ),
-            );
 
             for (entities.items) |entity, entity_idx| {
                 upload.cpu_slice[entity_idx + 1] = mat4.transpose(mat4.initTranslation(entity.position));
