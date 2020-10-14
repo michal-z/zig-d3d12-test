@@ -61,17 +61,13 @@ const DemoState = struct {
     text_format: *dwrite.ITextFormat,
     camera: struct {
         position: Vec3,
-        pitch: f32,
-        yaw: f32,
+        pitch: Scalar,
+        yaw: Scalar,
         forward: Vec3 = vec3.init(0.0, 0.0, 0.0),
     },
     mouse: struct {
-        lbutton_down: bool = false,
-        rbutton_down: bool = false,
         cursor_prev_x: i32 = 0,
         cursor_prev_y: i32 = 0,
-        cursor_delta_x: f32 = 0.0,
-        cursor_delta_y: f32 = 0.0,
     } = .{},
 
     fn init(allocator: *std.mem.Allocator, window: os.HWND) DemoState {
@@ -164,30 +160,24 @@ const DemoState = struct {
     fn update(self: *DemoState) void {
         self.frame_stats.update();
 
-        // Read mouse state.
+        // Handle camera rotation with mouse.
         {
             var pos: os.POINT = undefined;
             _ = os.GetCursorPos(&pos);
-            self.mouse.cursor_delta_x = self.frame_stats.delta_time * @intToFloat(
-                f32,
-                pos.x - self.mouse.cursor_prev_x,
-            );
-            self.mouse.cursor_delta_y = self.frame_stats.delta_time * @intToFloat(
-                f32,
-                pos.y - self.mouse.cursor_prev_y,
-            );
+            const delta_x = @intToFloat(Scalar, pos.x - self.mouse.cursor_prev_x);
+            const delta_y = @intToFloat(Scalar, pos.y - self.mouse.cursor_prev_y);
             self.mouse.cursor_prev_x = pos.x;
             self.mouse.cursor_prev_y = pos.y;
-            self.mouse.lbutton_down = os.GetAsyncKeyState(os.VK_LBUTTON) < 0;
-            self.mouse.rbutton_down = os.GetAsyncKeyState(os.VK_RBUTTON) < 0;
+
+            if (os.GetAsyncKeyState(os.VK_RBUTTON) < 0) {
+                self.camera.pitch += 0.0025 * delta_y;
+                self.camera.yaw += 0.0025 * delta_x;
+                self.camera.pitch = math.clamp(self.camera.pitch, -math.pi * 0.48, math.pi * 0.48);
+                self.camera.yaw = scalar.modAngle(self.camera.yaw);
+            }
         }
 
-        if (self.mouse.rbutton_down) {
-            self.camera.pitch += 0.2 * self.mouse.cursor_delta_y;
-            self.camera.yaw += 0.2 * self.mouse.cursor_delta_x;
-        }
-
-        // Handle 'WASD' movement.
+        // Handle camera movement with 'WASD' keys.
         {
             const transform = mat4.mul(
                 mat4.initRotationX(self.camera.pitch),
@@ -232,7 +222,7 @@ const DemoState = struct {
                     ),
                     mat4.initPerspective(
                         math.pi / 3.0,
-                        @intToFloat(f32, window_width) / @intToFloat(f32, window_height),
+                        @intToFloat(Scalar, window_width) / @intToFloat(Scalar, window_height),
                         0.1,
                         100.0,
                     ),
