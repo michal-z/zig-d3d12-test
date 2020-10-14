@@ -3,6 +3,8 @@ pub usingnamespace std.os.windows;
 
 pub const WS_VISIBLE = 0x10000000;
 pub const VK_ESCAPE = 0x001B;
+pub const VK_LBUTTON = 0x01;
+pub const VK_RBUTTON = 0x02;
 
 pub const POINT = extern struct {
     x: LONG,

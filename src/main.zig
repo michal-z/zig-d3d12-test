@@ -63,7 +63,16 @@ const DemoState = struct {
         position: Vec3,
         pitch: f32,
         yaw: f32,
+        forward: Vec3 = vec3.init(0.0, 0.0, 0.0),
     },
+    mouse: struct {
+        lbutton_down: bool = false,
+        rbutton_down: bool = false,
+        cursor_prev_x: i32 = 0,
+        cursor_prev_y: i32 = 0,
+        cursor_delta_x: f32 = 0.0,
+        cursor_delta_y: f32 = 0.0,
+    } = .{},
 
     fn init(allocator: *std.mem.Allocator, window: os.HWND) DemoState {
         var dx = gr.DxContext.init(allocator, window);
@@ -155,6 +164,55 @@ const DemoState = struct {
     fn update(self: *DemoState) void {
         self.frame_stats.update();
 
+        // Read mouse state.
+        {
+            var pos: os.POINT = undefined;
+            _ = os.GetCursorPos(&pos);
+            self.mouse.cursor_delta_x = self.frame_stats.delta_time * @intToFloat(
+                f32,
+                pos.x - self.mouse.cursor_prev_x,
+            );
+            self.mouse.cursor_delta_y = self.frame_stats.delta_time * @intToFloat(
+                f32,
+                pos.y - self.mouse.cursor_prev_y,
+            );
+            self.mouse.cursor_prev_x = pos.x;
+            self.mouse.cursor_prev_y = pos.y;
+            self.mouse.lbutton_down = os.GetAsyncKeyState(os.VK_LBUTTON) < 0;
+            self.mouse.rbutton_down = os.GetAsyncKeyState(os.VK_RBUTTON) < 0;
+        }
+
+        if (self.mouse.rbutton_down) {
+            self.camera.pitch += 0.2 * self.mouse.cursor_delta_y;
+            self.camera.yaw += 0.2 * self.mouse.cursor_delta_x;
+        }
+
+        // Handle 'WASD' movement.
+        {
+            const transform = mat4.mul(
+                mat4.initRotationX(self.camera.pitch),
+                mat4.initRotationY(self.camera.yaw),
+            );
+            const forward = vec3.normalize(vec3.transform(vec3.init(0.0, 0.0, 1.0), transform));
+            const right = vec3.normalize(vec3.cross(vec3.init(0.0, 1.0, 0.0), forward));
+            self.camera.forward = forward;
+
+            const delta_forward = vec3.scale(forward, 10.0 * self.frame_stats.delta_time);
+            const delta_right = vec3.scale(right, 10.0 * self.frame_stats.delta_time);
+
+            if (os.GetAsyncKeyState('W') < 0) {
+                self.camera.position = vec3.add(self.camera.position, delta_forward);
+            } else if (os.GetAsyncKeyState('S') < 0) {
+                self.camera.position = vec3.sub(self.camera.position, delta_forward);
+            }
+
+            if (os.GetAsyncKeyState('D') < 0) {
+                self.camera.position = vec3.add(self.camera.position, delta_right);
+            } else if (os.GetAsyncKeyState('A') < 0) {
+                self.camera.position = vec3.sub(self.camera.position, delta_right);
+            }
+        }
+
         self.draw();
     }
 
@@ -165,16 +223,11 @@ const DemoState = struct {
         // Upload camera transform.
         {
             const upload = dx.allocateUploadBufferRegion(Mat4, 1);
-            const transform = mat4.mul(
-                mat4.initRotationX(self.camera.pitch),
-                mat4.initRotationY(self.camera.yaw),
-            );
-            const forward = vec3.mulMat4(vec3.init(0.0, 0.0, 1.0), transform);
             upload.cpu_slice[0] = mat4.transpose(
                 mat4.mul(
                     mat4.initLookAt(
                         self.camera.position,
-                        vec3.add(self.camera.position, forward),
+                        vec3.add(self.camera.position, self.camera.forward),
                         vec3.init(0.0, 1.0, 0.0),
                     ),
                     mat4.initPerspective(

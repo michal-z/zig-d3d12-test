@@ -6,8 +6,6 @@ pub const Vec3 = [3]f32;
 pub const Vec4 = [4]f32;
 pub const Mat4 = [4][4]f32;
 
-// performs the roll first, then the pitch, and finally the yaw
-
 pub const vec3 = struct {
     pub fn dot(a: Vec3, b: Vec3) f32 {
         return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -29,6 +27,10 @@ pub const vec3 = struct {
         return .{ a[0] - b[0], a[1] - b[1], a[2] - b[2] };
     }
 
+    pub fn scale(a: Vec3, b: f32) Vec3 {
+        return .{ a[0] * b, a[1] * b, a[2] * b };
+    }
+
     pub fn init(x: f32, y: f32, z: f32) Vec3 {
         return .{ x, y, z };
     }
@@ -44,7 +46,15 @@ pub const vec3 = struct {
         return .{ rcplen * a[0], rcplen * a[1], rcplen * a[2] };
     }
 
-    pub fn mulMat4(a: Vec3, b: Mat4) Vec3 {
+    pub fn transform(a: Vec3, b: Mat4) Vec3 {
+        return .{
+            a[0] * b[0][0] + a[1] * b[1][0] + a[2] * b[2][0] + b[3][0],
+            a[0] * b[0][1] + a[1] * b[1][1] + a[2] * b[2][1] + b[3][1],
+            a[0] * b[0][2] + a[1] * b[1][2] + a[2] * b[2][2] + b[3][2],
+        };
+    }
+
+    pub fn transformNormal(a: Vec3, b: Mat4) Vec3 {
         return .{
             a[0] * b[0][0] + a[1] * b[1][0] + a[2] * b[2][0],
             a[0] * b[0][1] + a[1] * b[1][1] + a[2] * b[2][1],
