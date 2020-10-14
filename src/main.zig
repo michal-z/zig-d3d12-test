@@ -59,6 +59,11 @@ const DemoState = struct {
     entities: std.ArrayList(Entity),
     brush: *d2d1.ISolidColorBrush,
     text_format: *dwrite.ITextFormat,
+    camera: struct {
+        position: Vec3,
+        pitch: f32,
+        yaw: f32,
+    },
 
     fn init(allocator: *std.mem.Allocator, window: os.HWND) DemoState {
         var dx = gr.DxContext.init(allocator, window);
@@ -121,6 +126,11 @@ const DemoState = struct {
             .brush = brush,
             .text_format = text_format,
             .frame_stats = FrameStats.init(),
+            .camera = .{
+                .position = vec3.init(0.0, 8.0, -8.0),
+                .pitch = math.pi / 4.0,
+                .yaw = 0.0,
+            },
         };
     }
 
@@ -144,18 +154,27 @@ const DemoState = struct {
 
     fn update(self: *DemoState) void {
         self.frame_stats.update();
-        var dx = &self.dx;
 
+        self.draw();
+    }
+
+    fn draw(self: *DemoState) void {
+        var dx = &self.dx;
         dx.beginFrame();
 
         // Upload camera transform.
         {
             const upload = dx.allocateUploadBufferRegion(Mat4, 1);
+            const transform = mat4.mul(
+                mat4.initRotationX(self.camera.pitch),
+                mat4.initRotationY(self.camera.yaw),
+            );
+            const forward = vec3.mulMat4(vec3.init(0.0, 0.0, 1.0), transform);
             upload.cpu_slice[0] = mat4.transpose(
                 mat4.mul(
                     mat4.initLookAt(
-                        vec3.init(8.0, 8.0, -8.0),
-                        vec3.init(0.0, 0.0, 0.0),
+                        self.camera.position,
+                        vec3.add(self.camera.position, forward),
                         vec3.init(0.0, 1.0, 0.0),
                     ),
                     mat4.initPerspective(
@@ -683,7 +702,7 @@ pub fn main() !void {
         os.user32.WS_MINIMIZEBOX;
 
     var rect = os.RECT{ .left = 0, .top = 0, .right = window_width, .bottom = window_height };
-    _ = os.AdjustWindowRect(&rect, style, false);
+    _ = os.AdjustWindowRect(&rect, style, os.FALSE);
 
     const window = os.user32.CreateWindowExA(
         0,

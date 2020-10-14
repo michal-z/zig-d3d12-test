@@ -4,6 +4,11 @@ pub usingnamespace std.os.windows;
 pub const WS_VISIBLE = 0x10000000;
 pub const VK_ESCAPE = 0x001B;
 
+pub const POINT = extern struct {
+    x: LONG,
+    y: LONG,
+};
+
 pub const RECT = extern struct {
     left: LONG,
     top: LONG,
@@ -14,12 +19,16 @@ pub const RECT = extern struct {
 pub extern "kernel32" fn AdjustWindowRect(
     lpRect: ?*RECT,
     dwStyle: DWORD,
-    bMenu: bool,
-) callconv(.Stdcall) bool;
+    bMenu: BOOL,
+) callconv(.Stdcall) BOOL;
 
-pub extern "user32" fn SetProcessDPIAware() callconv(.Stdcall) bool;
+pub extern "user32" fn SetProcessDPIAware() callconv(.Stdcall) BOOL;
 
-pub extern "user32" fn SetWindowTextA(hWnd: ?HWND, lpString: LPCSTR) callconv(.Stdcall) bool;
+pub extern "user32" fn SetWindowTextA(hWnd: ?HWND, lpString: LPCSTR) callconv(.Stdcall) BOOL;
+
+pub extern "user32" fn GetCursorPos(lpPoint: *POINT) callconv(.Stdcall) BOOL;
+
+pub extern "user32" fn GetAsyncKeyState(vKey: c_int) callconv(.Stdcall) SHORT;
 
 pub extern "user32" fn LoadCursorA(
     hInstance: ?HINSTANCE,

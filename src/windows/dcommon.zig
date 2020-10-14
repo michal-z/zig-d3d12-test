@@ -24,10 +24,7 @@ pub const POINT_2U = extern struct {
     y: u32,
 };
 
-pub const POINT_2L = extern struct {
-    x: c_long,
-    y: c_long,
-};
+pub const POINT_2L = os.POINT;
 
 pub const RECT_F = extern struct {
     left: f32,
