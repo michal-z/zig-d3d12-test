@@ -457,6 +457,15 @@ const DemoState = struct {
                     ) catch unreachable;
                     current_id += 1;
                 }
+                // Floor.
+                entities.append(
+                    Entity{
+                        .mesh = meshes[0],
+                        .id = current_id,
+                        .position = vec3.init(@intToFloat(f32, x), -1.0, @intToFloat(f32, y)),
+                    },
+                ) catch unreachable;
+                current_id += 1;
             }
         }
 
