@@ -7,20 +7,21 @@ struct Vertex {
     float3 normal;
 };
 
-struct Transform {
+struct EntityInfo {
     float4x4 m4x4;
+    uint color;
 };
 
-struct DrawCallParams {
+struct DrawCallInfo {
     uint start_index_location;
     uint base_vertex_location;
-    uint transform_location;
+    uint entity_id;
 };
 
-ConstantBuffer<DrawCallParams> drawcall : register(b0);
+ConstantBuffer<DrawCallInfo> cbv_drawcall : register(b0);
 StructuredBuffer<Vertex> srv_vertices : register(t0);
 Buffer<uint> srv_indices : register(t1);
-StructuredBuffer<Transform> srv_transforms : register(t2);
+StructuredBuffer<EntityInfo> srv_entities : register(t2);
 
 [RootSignature(root_signature)]
 void vsMain(
@@ -28,19 +29,22 @@ void vsMain(
     out float4 out_position : SV_Position,
     out float3 out_color : _Color)
 {
-    const uint vertex_index = drawcall.base_vertex_location +
-        srv_indices[vertex_id + drawcall.start_index_location];
+    const uint vertex_index = cbv_drawcall.base_vertex_location +
+        srv_indices[vertex_id + cbv_drawcall.start_index_location];
 
     Vertex vertex = srv_vertices[vertex_index];
+    EntityInfo entity = srv_entities[cbv_drawcall.entity_id];
 
     float3 position = vertex.position;
     float3 normal = vertex.normal;
 
-    float4x4 world_to_clip = srv_transforms[0].m4x4;
-    float4x4 object_to_world = srv_transforms[drawcall.transform_location].m4x4;
+    float4x4 world_to_clip = srv_entities[0].m4x4;
+    float4x4 object_to_world = entity.m4x4;
     float4x4 object_to_clip = mul(object_to_world, world_to_clip);
 
-    out_color = abs(normal);
+    out_color = float3((entity.color & 0x000000ff) / 255.0,
+            ((entity.color & 0x0000ff00) >> 8) / 255.0,
+            ((entity.color & 0x00ff0000) >> 16) / 255.0);
     out_position = mul(float4(position, 1.0f), object_to_clip);
 }
 

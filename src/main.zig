@@ -40,6 +40,7 @@ const Entity = struct {
     mesh: Mesh,
     id: u32,
     position: Vec3,
+    color: u32,
 };
 
 const DemoState = struct {
@@ -49,12 +50,12 @@ const DemoState = struct {
     depth_texture: gr.ResourceHandle,
     vertex_buffer: gr.ResourceHandle,
     index_buffer: gr.ResourceHandle,
-    transform_buffer: gr.ResourceHandle,
+    entity_buffer: gr.ResourceHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
     depth_texture_dsv: d3d12.CPU_DESCRIPTOR_HANDLE,
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
-    transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    entity_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     pipelines: std.ArrayList(gr.PipelineHandle),
     entities: std.ArrayList(Entity),
     brush: *d2d1.ISolidColorBrush,
@@ -104,9 +105,9 @@ const DemoState = struct {
         );
 
         var entities = std.ArrayList(Entity).init(allocator);
-        var transform_buffer: gr.ResourceHandle = undefined;
-        var transform_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
-        initEntities(&dx, meshes.items, &entities, &transform_buffer, &transform_buffer_srv);
+        var entity_buffer: gr.ResourceHandle = undefined;
+        var entity_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
+        initEntities(&dx, meshes.items, &entities, &entity_buffer, &entity_buffer_srv);
 
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
@@ -122,10 +123,10 @@ const DemoState = struct {
             .depth_texture_dsv = depth_texture_dsv,
             .vertex_buffer = vertex_buffer,
             .index_buffer = index_buffer,
-            .transform_buffer = transform_buffer,
+            .entity_buffer = entity_buffer,
             .vertex_buffer_srv = vertex_buffer_srv,
             .index_buffer_srv = index_buffer_srv,
-            .transform_buffer_srv = transform_buffer_srv,
+            .entity_buffer_srv = entity_buffer_srv,
             .pipelines = pipelines,
             .entities = entities,
             .brush = brush,
@@ -150,7 +151,7 @@ const DemoState = struct {
         _ = self.text_format.Release();
         _ = self.dx.releaseResource(self.vertex_buffer);
         _ = self.dx.releaseResource(self.index_buffer);
-        _ = self.dx.releaseResource(self.transform_buffer);
+        _ = self.dx.releaseResource(self.entity_buffer);
         _ = self.dx.releaseResource(self.srgb_texture);
         _ = self.dx.releaseResource(self.depth_texture);
         self.dx.deinit();
@@ -229,7 +230,7 @@ const DemoState = struct {
                 ),
             );
             dx.cmdlist.CopyBufferRegion(
-                dx.getResource(self.transform_buffer),
+                dx.getResource(self.entity_buffer),
                 0,
                 upload.buffer,
                 upload.buffer_offset,
@@ -238,7 +239,7 @@ const DemoState = struct {
         }
 
         dx.addTransitionBarrier(self.srgb_texture, .{ .RENDER_TARGET = true });
-        dx.addTransitionBarrier(self.transform_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
+        dx.addTransitionBarrier(self.entity_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.flushResourceBarriers();
 
         dx.cmdlist.OMSetRenderTargets(
@@ -260,7 +261,7 @@ const DemoState = struct {
         dx.cmdlist.SetGraphicsRootDescriptorTable(1, blk: {
             const base = dx.copyDescriptorsToGpuHeap(1, self.vertex_buffer_srv);
             _ = dx.copyDescriptorsToGpuHeap(1, self.index_buffer_srv);
-            _ = dx.copyDescriptorsToGpuHeap(1, self.transform_buffer_srv);
+            _ = dx.copyDescriptorsToGpuHeap(1, self.entity_buffer_srv);
             break :blk base;
         });
 
@@ -276,7 +277,7 @@ const DemoState = struct {
         const back_buffer = dx.getBackBuffer();
         dx.addTransitionBarrier(back_buffer.resource_handle, .{ .RESOLVE_DEST = true });
         dx.addTransitionBarrier(self.srgb_texture, .{ .RESOLVE_SOURCE = true });
-        dx.addTransitionBarrier(self.transform_buffer, .{ .COPY_DEST = true });
+        dx.addTransitionBarrier(self.entity_buffer, .{ .COPY_DEST = true });
         dx.flushResourceBarriers();
 
         dx.cmdlist.ResolveSubresource(
@@ -408,8 +409,8 @@ const DemoState = struct {
         dx: *gr.DxContext,
         meshes: []Mesh,
         entities: *std.ArrayList(Entity),
-        transform_buffer: *gr.ResourceHandle,
-        transform_buffer_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+        entity_buffer: *gr.ResourceHandle,
+        entity_buffer_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
         var buf: [256]u8 = undefined;
         const path = std.fmt.bufPrint(
@@ -453,6 +454,7 @@ const DemoState = struct {
                             .mesh = meshes[0],
                             .id = current_id,
                             .position = vec3.init(@intToFloat(f32, x), 0.0, @intToFloat(f32, y)),
+                            .color = 0x000000ff,
                         },
                     ) catch unreachable;
                     current_id += 1;
@@ -463,42 +465,51 @@ const DemoState = struct {
                         .mesh = meshes[0],
                         .id = current_id,
                         .position = vec3.init(@intToFloat(f32, x), -1.0, @intToFloat(f32, y)),
+                        .color = 0x0000ffff,
                     },
                 ) catch unreachable;
                 current_id += 1;
             }
         }
 
+        const EntityInfo = extern struct {
+            m4x4: Mat4,
+            color: u32,
+        };
+
         const num_transforms: u32 = @intCast(u32, entities.items.len + 1);
-        transform_buffer.* = dx.createCommittedResource(
+        entity_buffer.* = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &d3d12.RESOURCE_DESC.buffer(num_transforms * @sizeOf(Mat4)),
+            &d3d12.RESOURCE_DESC.buffer(num_transforms * @sizeOf(EntityInfo)),
             .{ .COPY_DEST = true },
             null,
         );
 
-        transform_buffer_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        entity_buffer_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
-            dx.getResource(transform_buffer.*),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, num_transforms, @sizeOf(Mat4)),
-            transform_buffer_srv.*,
+            dx.getResource(entity_buffer.*),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, num_transforms, @sizeOf(EntityInfo)),
+            entity_buffer_srv.*,
         );
 
-        // Upload transform data.
+        // Upload entity info to a GPU buffer.
         {
-            const upload = dx.allocateUploadBufferRegion(Mat4, num_transforms);
+            const upload = dx.allocateUploadBufferRegion(EntityInfo, num_transforms);
 
             for (entities.items) |entity, entity_idx| {
-                upload.cpu_slice[entity_idx + 1] = mat4.transpose(mat4.initTranslation(entity.position));
+                upload.cpu_slice[entity_idx + 1].m4x4 = mat4.transpose(
+                    mat4.initTranslation(entity.position),
+                );
+                upload.cpu_slice[entity_idx + 1].color = entity.color;
             }
 
             dx.cmdlist.CopyBufferRegion(
-                dx.getResource(transform_buffer.*),
+                dx.getResource(entity_buffer.*),
                 0,
                 upload.buffer,
                 upload.buffer_offset,
-                upload.cpu_slice.len * @sizeOf(Mat4),
+                upload.cpu_slice.len * @sizeOf(EntityInfo),
             );
         }
     }
