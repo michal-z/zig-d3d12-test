@@ -54,5 +54,5 @@ void psMain(
     in float3 in_color : _Color,
     out float4 out_color : SV_Target0)
 {
-    out_color = float4(normalize(in_color), 1.0f);
+    out_color = float4(in_color, 1.0f);
 }
