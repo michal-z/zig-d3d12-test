@@ -83,8 +83,8 @@ pub const DxContext = struct {
 
         var rect: os.RECT = undefined;
         _ = os.GetClientRect(window, &rect);
-        const viewport_width = @intCast(u32, rect.right);
-        const viewport_height = @intCast(u32, rect.bottom);
+        const viewport_width = @intCast(u32, rect.right - rect.left);
+        const viewport_height = @intCast(u32, rect.bottom - rect.top);
 
         var factory: *dxgi.IFactory4 = undefined;
         vhr(dxgi.CreateFactory2(
