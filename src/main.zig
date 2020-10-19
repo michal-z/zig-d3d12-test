@@ -370,7 +370,7 @@ const DemoState = struct {
                 .{ std.fs.selfExeDirPath(buf[0..]), mesh_name },
             ) catch unreachable;
 
-            var ply = PlyFileLoader.init(path);
+            var ply = MeshLoader.init(path);
             defer ply.deinit();
 
             const upload_verts = dx.allocateUploadBufferRegion(Vertex, ply.num_vertices);
@@ -570,7 +570,6 @@ const DemoState = struct {
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
             .DSVFormat = .D32_FLOAT,
-            .RasterizerState = .{ .FillMode = .WIREFRAME },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
@@ -609,12 +608,51 @@ const DemoState = struct {
     }
 };
 
-const PlyFileLoader = struct {
+const ImageLoader = struct {
+    width: u32,
+    height: u32,
+    file: std.fs.File,
+
+    fn init(path: []const u8) ImageLoader {
+        const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
+
+        const reader = file.reader();
+        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+            assert(std.mem.eql(u8, "P6", line));
+        }
+
+        var width: u32 = 0;
+        var height: u32 = 0;
+        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+            var it = std.mem.split(line, " ");
+            width = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+            height = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+        }
+        assert(width > 0 and height > 0);
+
+        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+            assert(std.mem.eql(u8, "255", line));
+        }
+
+        return ImageLoader{
+            .width = width,
+            .height = height,
+            .file = file,
+        };
+    }
+
+    fn deinit(self: *ImageLoader) void {
+        self.file.close();
+        self.* = undefined;
+    }
+};
+
+const MeshLoader = struct {
     num_vertices: u32,
     num_triangles: u32,
     file: std.fs.File,
 
-    fn init(path: []const u8) PlyFileLoader {
+    fn init(path: []const u8) MeshLoader {
         const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
 
         var num_vertices: u32 = 0;
@@ -637,19 +675,19 @@ const PlyFileLoader = struct {
         }
         assert(num_vertices > 0 and num_triangles > 0);
 
-        return PlyFileLoader{
+        return MeshLoader{
             .num_vertices = num_vertices,
             .num_triangles = num_triangles,
             .file = file,
         };
     }
 
-    fn deinit(self: *PlyFileLoader) void {
+    fn deinit(self: *MeshLoader) void {
         self.file.close();
         self.* = undefined;
     }
 
-    fn load(self: PlyFileLoader, vertices: []Vertex, triangles: []Triangle) void {
+    fn load(self: MeshLoader, vertices: []Vertex, triangles: []Triangle) void {
         var buf: [256]u8 = undefined;
         const reader = self.file.reader();
 

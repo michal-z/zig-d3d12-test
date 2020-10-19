@@ -28,6 +28,7 @@ StructuredBuffer<EntityInfo> srv_entities : register(t2);
 void vsMain(
     uint vertex_id : SV_VertexID,
     out float4 out_position : SV_Position,
+    out float3 out_normal : _Normal,
     out float3 out_color : _Color)
 {
     const uint vertex_index = cbv_drawcall.base_vertex_location +
@@ -47,14 +48,17 @@ void vsMain(
             ((entity.color & 0x0000ff00) >> 8) / 255.0,
             ((entity.color & 0x00ff0000) >> 16) / 255.0);
     out_position = mul(float4(position, 1.0f), object_to_clip);
+    out_normal = mul(normal, (float3x3)object_to_world);
 }
 
 [RootSignature(root_signature)]
 void psMain(
     float4 in_position : SV_Position,
+    float3 in_normal : _Normal,
     float3 in_color : _Color,
     out float4 out_color : SV_Target0)
 {
-    float3 color = in_color;
+    float3 normal = normalize(in_normal);
+    float3 color = abs(normal);
     out_color = float4(color, 1.0f);
 }
