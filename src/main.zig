@@ -763,7 +763,7 @@ pub fn main() !void {
         .lpfnWndProc = processWindowMessage,
         .cbClsExtra = 0,
         .cbWndExtra = 0,
-        .hInstance = @ptrCast(os.HINSTANCE, os.kernel32.GetModuleHandleA(null)),
+        .hInstance = @ptrCast(os.HINSTANCE, os.kernel32.GetModuleHandleW(null)),
         .hIcon = null,
         .hCursor = os.LoadCursorA(null, @intToPtr(os.LPCSTR, 32512)),
         .hbrBackground = null,
