@@ -500,6 +500,9 @@ pub var CreateFactory2: fn (u32, *const os.GUID, **c_void) callconv(.Stdcall) HR
 
 pub fn init() void {
     // TODO: Handle error.
-    var dxgi_dll = std.DynLib.open("/windows/system32/dxgi.dll") catch unreachable;
-    CreateFactory2 = dxgi_dll.lookup(@TypeOf(CreateFactory2), "CreateDXGIFactory2").?;
+    var dxgi_dll = os.LoadLibraryA("dxgi.dll").?;
+    CreateFactory2 = @ptrCast(
+        @TypeOf(CreateFactory2),
+        os.kernel32.GetProcAddress(dxgi_dll, "CreateDXGIFactory2").?,
+    );
 }

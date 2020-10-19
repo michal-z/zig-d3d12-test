@@ -322,6 +322,9 @@ pub var Create11On12Device: fn (
 
 pub fn init() void {
     // TODO: Handle error.
-    var d3d11_dll = std.DynLib.open("/windows/system32/d3d11.dll") catch unreachable;
-    Create11On12Device = d3d11_dll.lookup(@TypeOf(Create11On12Device), "D3D11On12CreateDevice").?;
+    var d3d11_dll = os.LoadLibraryA("d3d11.dll").?;
+    Create11On12Device = @ptrCast(
+        @TypeOf(Create11On12Device),
+        os.kernel32.GetProcAddress(d3d11_dll, "D3D11On12CreateDevice").?,
+    );
 }

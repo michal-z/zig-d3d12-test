@@ -206,6 +206,9 @@ pub var CreateFactory: fn (
 ) callconv(.Stdcall) HRESULT = undefined;
 
 pub fn init() void {
-    var dwrite_dll = std.DynLib.open("/windows/system32/dwrite.dll") catch unreachable;
-    CreateFactory = dwrite_dll.lookup(@TypeOf(CreateFactory), "DWriteCreateFactory").?;
+    var dwrite_dll = os.LoadLibraryA("dwrite.dll").?;
+    CreateFactory = @ptrCast(
+        @TypeOf(CreateFactory),
+        os.kernel32.GetProcAddress(dwrite_dll, "DWriteCreateFactory").?,
+    );
 }

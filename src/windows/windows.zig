@@ -24,6 +24,8 @@ pub extern "kernel32" fn AdjustWindowRect(
     bMenu: BOOL,
 ) callconv(.Stdcall) BOOL;
 
+pub extern "kernel32" fn LoadLibraryA(lpLibFileName: [*:0]const u8) callconv(.Stdcall) ?HMODULE;
+
 pub extern "user32" fn SetProcessDPIAware() callconv(.Stdcall) BOOL;
 
 pub extern "user32" fn SetWindowTextA(hWnd: ?HWND, lpString: LPCSTR) callconv(.Stdcall) BOOL;

@@ -3292,7 +3292,13 @@ pub var CreateDevice: fn (
 
 pub fn init() void {
     // TODO: Handle error.
-    var d3d12_dll = std.DynLib.open("/windows/system32/d3d12.dll") catch unreachable;
-    GetDebugInterface = d3d12_dll.lookup(@TypeOf(GetDebugInterface), "D3D12GetDebugInterface").?;
-    CreateDevice = d3d12_dll.lookup(@TypeOf(CreateDevice), "D3D12CreateDevice").?;
+    var d3d12_dll = os.LoadLibraryA("d3d12.dll").?;
+    GetDebugInterface = @ptrCast(
+        @TypeOf(GetDebugInterface),
+        os.kernel32.GetProcAddress(d3d12_dll, "D3D12GetDebugInterface").?,
+    );
+    CreateDevice = @ptrCast(
+        @TypeOf(CreateDevice),
+        os.kernel32.GetProcAddress(d3d12_dll, "D3D12CreateDevice").?,
+    );
 }

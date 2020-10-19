@@ -1038,6 +1038,9 @@ pub var CreateFactory: fn (
 ) callconv(.Stdcall) HRESULT = undefined;
 
 pub fn init() void {
-    var d2d1_dll = std.DynLib.open("/windows/system32/d2d1.dll") catch unreachable;
-    CreateFactory = d2d1_dll.lookup(@TypeOf(CreateFactory), "D2D1CreateFactory").?;
+    var d2d1_dll = os.LoadLibraryA("d2d1.dll").?;
+    CreateFactory = @ptrCast(@TypeOf(CreateFactory), os.kernel32.GetProcAddress(
+        d2d1_dll,
+        "D2D1CreateFactory",
+    ).?);
 }
