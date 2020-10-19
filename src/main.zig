@@ -15,8 +15,9 @@ const window_height = 1080;
 const window_num_samples = 8;
 
 const Vertex = struct {
-    position: Vec3,
-    normal: Vec3,
+    position: [3]f32,
+    normal: [3]f32,
+    texcoord: [2]f32,
 };
 
 const Triangle = struct {
@@ -26,7 +27,7 @@ const Triangle = struct {
 };
 
 comptime {
-    assert(@sizeOf(Vertex) == 24 and @alignOf(Vertex) == 4);
+    assert(@sizeOf(Vertex) == 32 and @alignOf(Vertex) == 4);
     assert(@sizeOf(Triangle) == 12 and @alignOf(Triangle) == 4);
 }
 
@@ -359,7 +360,8 @@ const DemoState = struct {
             index_buffer_srv.*,
         );
 
-        const mesh_names = [_][]const u8{ "cube", "sphere" };
+        //const mesh_names = [_][]const u8{ "cube", "sphere" };
+        const mesh_names = [_][]const u8{"map1"};
         var start_index_location: u32 = 0;
         var base_vertex_location: u32 = 0;
 
@@ -422,66 +424,75 @@ const DemoState = struct {
         const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
         defer file.close();
 
-        // Line 1.
-        const reader = file.reader();
-        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
-            assert(std.mem.eql(u8, "P6", line));
-        }
+        if (false) {
+            // Line 1.
+            const reader = file.reader();
+            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+                assert(std.mem.eql(u8, "P6", line));
+            }
 
-        // Line 2.
-        var map_width: u32 = 0;
-        var map_height: u32 = 0;
-        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
-            var it = std.mem.split(line, " ");
-            map_width = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
-            map_height = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
-        }
+            // Line 2.
+            var map_width: u32 = 0;
+            var map_height: u32 = 0;
+            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+                var it = std.mem.split(line, " ");
+                map_width = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+                map_height = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable;
+            }
 
-        // Line 3.
-        if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
-            assert(std.mem.eql(u8, "255", line));
-        }
+            // Line 3.
+            if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
+                assert(std.mem.eql(u8, "255", line));
+            }
 
-        var y: u32 = 0;
-        var current_id: u32 = 1;
-        while (y < map_height) : (y += 1) {
-            var x: u32 = 0;
-            while (x < map_width) : (x += 1) {
-                const desc = reader.readBytesNoEof(3) catch unreachable;
-                if (desc[0] == 0 and desc[1] == 0 and desc[2] == 0) {
+            var y: u32 = 0;
+            var current_id: u32 = 1;
+            while (y < map_height) : (y += 1) {
+                var x: u32 = 0;
+                while (x < map_width) : (x += 1) {
+                    const desc = reader.readBytesNoEof(3) catch unreachable;
+                    if (desc[0] == 0 and desc[1] == 0 and desc[2] == 0) {
+                        entities.append(
+                            Entity{
+                                .mesh = meshes[0],
+                                .id = current_id,
+                                .position = vec3.init(@intToFloat(f32, x), 0.0, @intToFloat(f32, y)),
+                                .color = 0x000000ff,
+                            },
+                        ) catch unreachable;
+                        current_id += 1;
+                    }
+                    // Floor.
                     entities.append(
                         Entity{
                             .mesh = meshes[0],
                             .id = current_id,
-                            .position = vec3.init(@intToFloat(f32, x), 0.0, @intToFloat(f32, y)),
-                            .color = 0x000000ff,
+                            .position = vec3.init(@intToFloat(f32, x), -1.0, @intToFloat(f32, y)),
+                            .color = 0x0000ffff,
                         },
                     ) catch unreachable;
                     current_id += 1;
                 }
-                // Floor.
-                entities.append(
-                    Entity{
-                        .mesh = meshes[0],
-                        .id = current_id,
-                        .position = vec3.init(@intToFloat(f32, x), -1.0, @intToFloat(f32, y)),
-                        .color = 0x0000ffff,
-                    },
-                ) catch unreachable;
-                current_id += 1;
             }
         }
+
+        entities.append(Entity{
+            .mesh = meshes[0],
+            .id = 1,
+            .position = vec3.init(0.0, 0.0, 0.0),
+            .color = 0x00008800,
+        }) catch unreachable;
 
         const EntityInfo = extern struct {
             m4x4: Mat4,
             color: u32,
         };
 
-        const num_transforms: u32 = @intCast(u32, entities.items.len + 1);
+        const num_slots: u32 = @intCast(u32, entities.items.len + 1);
         entity_buffer.* = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &d3d12.RESOURCE_DESC.buffer(num_transforms * @sizeOf(EntityInfo)),
+            &d3d12.RESOURCE_DESC.buffer(num_slots * @sizeOf(EntityInfo)),
             .{ .COPY_DEST = true },
             null,
         );
@@ -489,13 +500,13 @@ const DemoState = struct {
         entity_buffer_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
         dx.device.CreateShaderResourceView(
             dx.getResource(entity_buffer.*),
-            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, num_transforms, @sizeOf(EntityInfo)),
+            &d3d12.SHADER_RESOURCE_VIEW_DESC.structuredBuffer(0, num_slots, @sizeOf(EntityInfo)),
             entity_buffer_srv.*,
         );
 
         // Upload entity info to a GPU buffer.
         {
-            const upload = dx.allocateUploadBufferRegion(EntityInfo, num_transforms);
+            const upload = dx.allocateUploadBufferRegion(EntityInfo, num_slots);
 
             for (entities.items) |entity, entity_idx| {
                 upload.cpu_slice[entity_idx + 1].m4x4 = mat4.transpose(
@@ -558,7 +569,6 @@ const DemoState = struct {
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
             .DSVFormat = .D32_FLOAT,
-            .RasterizerState = .{ .CullMode = .NONE },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
@@ -646,13 +656,17 @@ const PlyFileLoader = struct {
             var it = std.mem.split(line.?, " ");
 
             vertex.* = Vertex{
-                .position = Vec3{
+                .position = [3]f32{
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
                 },
-                .normal = Vec3{
+                .normal = [3]f32{
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
+                },
+                .texcoord = [2]f32{
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
                 },

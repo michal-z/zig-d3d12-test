@@ -5,6 +5,7 @@
 struct Vertex {
     float3 position;
     float3 normal;
+    float2 texcoord;
 };
 
 struct EntityInfo {
@@ -25,7 +26,7 @@ StructuredBuffer<EntityInfo> srv_entities : register(t2);
 
 [RootSignature(root_signature)]
 void vsMain(
-    in uint vertex_id : SV_VertexID,
+    uint vertex_id : SV_VertexID,
     out float4 out_position : SV_Position,
     out float3 out_color : _Color)
 {
@@ -48,11 +49,26 @@ void vsMain(
     out_position = mul(float4(position, 1.0f), object_to_clip);
 }
 
+float edgeInfluence(float3 distance, float line_width) {
+    float3 dx = ddx(distance);
+    float3 dy = ddy(distance);
+    float3 dd = dx * dx + dy * dy;
+    float3 pix = (distance * distance) / dd;
+    float d = sqrt(min(min(pix.x, pix.y), pix.z));
+    d = d - (0.5f * line_width - 1.0f);
+    d = clamp(d, 0.0f, 2.0f);
+    return exp2(-2.0f * d * d);
+}
+
 [RootSignature(root_signature)]
 void psMain(
-    in float4 in_position : SV_Position,
-    in float3 in_color : _Color,
+    float3 tri_distance : SV_Barycentrics,
+    float4 in_position : SV_Position,
+    float3 in_color : _Color,
     out float4 out_color : SV_Target0)
 {
-    out_color = float4(in_color, 1.0f);
+    float3 color = in_color;
+    float tri_edge = edgeInfluence(tri_distance, 3.0);
+    color = lerp(color, 0.0f, tri_edge);
+    out_color = float4(color, 1.0f);
 }
