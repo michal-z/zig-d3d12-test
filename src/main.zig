@@ -9,9 +9,6 @@ const dcommon = @import("windows/dcommon.zig");
 const gr = @import("graphics.zig");
 usingnamespace @import("math.zig");
 
-const window_name = "zig d3d12 test";
-const window_width = 1920;
-const window_height = 1080;
 const window_num_samples = 8;
 
 const Vertex = struct {
@@ -224,7 +221,7 @@ const DemoState = struct {
                     ),
                     mat4.initPerspective(
                         math.pi / 3.0,
-                        @intToFloat(Scalar, window_width) / @intToFloat(Scalar, window_height),
+                        @intToFloat(Scalar, dx.viewport_width) / @intToFloat(Scalar, dx.viewport_height),
                         0.1,
                         100.0,
                     ),
@@ -309,8 +306,8 @@ const DemoState = struct {
                 &dcommon.RECT_F{
                     .left = 0.0,
                     .top = 0.0,
-                    .right = @intToFloat(f32, window_width),
-                    .bottom = @intToFloat(f32, window_height),
+                    .right = @intToFloat(f32, dx.viewport_width),
+                    .bottom = @intToFloat(f32, dx.viewport_height),
                 },
                 @ptrCast(*d2d1.IBrush, self.brush),
             );
@@ -536,7 +533,11 @@ const DemoState = struct {
             .DEFAULT,
             .{},
             &blk: {
-                var desc = d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM_SRGB, window_width, window_height);
+                var desc = d3d12.RESOURCE_DESC.tex2d(
+                    .R8G8B8A8_UNORM_SRGB,
+                    dx.viewport_width,
+                    dx.viewport_height,
+                );
                 desc.Flags = .{ .ALLOW_RENDER_TARGET = true };
                 desc.SampleDesc.Count = window_num_samples;
                 break :blk desc;
@@ -551,7 +552,7 @@ const DemoState = struct {
             .DEFAULT,
             .{},
             &blk: {
-                var desc = d3d12.RESOURCE_DESC.tex2d(.D32_FLOAT, window_width, window_height);
+                var desc = d3d12.RESOURCE_DESC.tex2d(.D32_FLOAT, dx.viewport_width, dx.viewport_height);
                 desc.Flags = .{ .ALLOW_DEPTH_STENCIL = true, .DENY_SHADER_RESOURCE = true };
                 desc.SampleDesc.Count = window_num_samples;
                 break :blk desc;
@@ -758,6 +759,10 @@ fn processWindowMessage(
 
 pub fn main() !void {
     _ = os.SetProcessDPIAware();
+
+    const window_name = "zig d3d12 test";
+    const window_width = 1920;
+    const window_height = 1080;
 
     const winclass = os.user32.WNDCLASSEXA{
         .style = 0,
