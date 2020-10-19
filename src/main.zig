@@ -480,7 +480,7 @@ const DemoState = struct {
             .mesh = meshes[0],
             .id = 1,
             .position = vec3.init(0.0, 0.0, 0.0),
-            .color = 0x00008800,
+            .color = 0x00ffffff,
         }) catch unreachable;
 
         const EntityInfo = extern struct {
@@ -569,6 +569,7 @@ const DemoState = struct {
             .NumRenderTargets = 1,
             .RTVFormats = [_]dxgi.FORMAT{.R8G8B8A8_UNORM_SRGB} ++ [_]dxgi.FORMAT{.UNKNOWN} ** 7,
             .DSVFormat = .D32_FLOAT,
+            .RasterizerState = .{ .FillMode = .WIREFRAME },
             .VS = blk: {
                 const file = @embedFile("../shaders/test.vs.cso");
                 break :blk .{ .pShaderBytecode = file, .BytecodeLength = file.len };
