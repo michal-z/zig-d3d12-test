@@ -6,6 +6,7 @@ const d3d12 = @import("windows/d3d12.zig");
 const d2d1 = @import("windows/d2d1.zig");
 const dwrite = @import("windows/dwrite.zig");
 const dcommon = @import("windows/dcommon.zig");
+const wincodec = @import("windows/wincodec.zig");
 const gr = @import("graphics.zig");
 usingnamespace @import("math.zig");
 
@@ -621,20 +622,63 @@ const DemoState = struct {
         lightmap_texture: *gr.ResourceHandle,
         lightmap_texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
-        var buf: [256]u8 = undefined;
-        const path = std.fmt.bufPrint(
-            buf[0..],
-            "{}/data/lightmap.ppm",
-            .{std.fs.selfExeDirPath(buf[0..])},
-        ) catch unreachable;
+        var path: [256:0]u16 = undefined;
+        {
+            var buf: [256]u8 = undefined;
+            const string = std.fmt.bufPrint(
+                buf[0..],
+                "{}/data/test.png",
+                .{std.fs.selfExeDirPath(buf[0..])},
+            ) catch unreachable;
 
-        var image_loader = ImageLoader.init(path);
-        defer image_loader.deinit();
+            const len = std.unicode.utf8ToUtf16Le(path[0..], string) catch unreachable;
+            path[len] = 0;
+        }
+
+        var imaging_factory: *wincodec.IImagingFactory = undefined;
+        gr.vhr(os.CoCreateInstance(
+            &wincodec.CLSID_ImagingFactory,
+            null,
+            os.CLSCTX_INPROC_SERVER,
+            &wincodec.IID_IImagingFactory,
+            @ptrCast(**c_void, &imaging_factory),
+        ));
+
+        var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
+        gr.vhr(imaging_factory.CreateDecoderFromFilename(
+            &path,
+            null,
+            os.GENERIC_READ,
+            .MetadataCacheOnDemand,
+            &bitmap_decoder,
+        ));
+
+        var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
+        gr.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
+
+        var format_converter: *wincodec.IFormatConverter = undefined;
+        gr.vhr(imaging_factory.CreateFormatConverter(&format_converter));
+
+        gr.vhr(format_converter.Initialize(
+            @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
+            &wincodec.GUID_PixelFormat32bppRGBA,
+            .None,
+            null,
+            0.0,
+            .Custom,
+        ));
+
+        var image_width: u32 = undefined;
+        var image_height: u32 = undefined;
+        gr.vhr(bitmap_frame.GetSize(&image_width, &image_height));
+
+        var pixel_format: os.GUID = undefined;
+        gr.vhr(format_converter.GetPixelFormat(&pixel_format));
 
         lightmap_texture.* = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, image_loader.width, image_loader.height),
+            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, image_width, image_height),
             .{},
             null,
         );
@@ -657,7 +701,7 @@ const DemoState = struct {
         const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
         layout.Offset = upload.buffer_offset;
 
-        image_loader.load(upload.cpu_slice);
+        gr.vhr(format_converter.CopyPixels(null, 512 * 4, 512 * 512 * 4, upload.cpu_slice.ptr));
 
         const dst = d3d12.TEXTURE_COPY_LOCATION{
             .pResource = dx.getResource(lightmap_texture.*),
