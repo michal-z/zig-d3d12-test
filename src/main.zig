@@ -61,6 +61,7 @@ const DemoState = struct {
     entities: std.ArrayList(Entity),
     brush: *d2d1.ISolidColorBrush,
     text_format: *dwrite.ITextFormat,
+    bitmap: *d2d1.IBitmap1,
     camera: struct {
         position: Vec3,
         pitch: Scalar,
@@ -110,6 +111,66 @@ const DemoState = struct {
         var entity_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
         initEntities(&dx, meshes.items, &entities, &entity_buffer, &entity_buffer_srv);
 
+        var path: [256:0]u16 = undefined;
+        {
+            var buf: [256]u8 = undefined;
+            const string = std.fmt.bufPrint(
+                buf[0..],
+                "{}/data/test.png",
+                .{std.fs.selfExeDirPath(buf[0..])},
+            ) catch unreachable;
+
+            const len = std.unicode.utf8ToUtf16Le(path[0..], string) catch unreachable;
+            path[len] = 0;
+        }
+
+        var imaging_factory: *wincodec.IImagingFactory = undefined;
+        gr.vhr(os.CoCreateInstance(
+            &wincodec.CLSID_ImagingFactory,
+            null,
+            os.CLSCTX_INPROC_SERVER,
+            &wincodec.IID_IImagingFactory,
+            @ptrCast(**c_void, &imaging_factory),
+        ));
+
+        var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
+        gr.vhr(imaging_factory.CreateDecoderFromFilename(
+            &path,
+            null,
+            os.GENERIC_READ,
+            .MetadataCacheOnDemand,
+            &bitmap_decoder,
+        ));
+
+        var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
+        gr.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
+
+        var format_converter: *wincodec.IFormatConverter = undefined;
+        gr.vhr(imaging_factory.CreateFormatConverter(&format_converter));
+
+        gr.vhr(format_converter.Initialize(
+            @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
+            &wincodec.GUID_PixelFormat32bppPBGRA,
+            .None,
+            null,
+            0.0,
+            .Custom,
+        ));
+
+        //var image_width: u32 = undefined;
+        //var image_height: u32 = undefined;
+        //gr.vhr(bitmap_frame.GetSize(&image_width, &image_height));
+
+        //var pixel_format: os.GUID = undefined;
+        //gr.vhr(format_converter.GetPixelFormat(&pixel_format));
+
+        var bitmap: *d2d1.IBitmap1 = undefined;
+        gr.vhr(dx.d2d.context.CreateBitmapFromWicBitmap1(
+            @ptrCast(*wincodec.IBitmapSource, format_converter),
+            null,
+            &bitmap,
+        ));
+
         var lightmap_texture: gr.ResourceHandle = undefined;
         var lightmap_texture_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
         initLightmap(&dx, &lightmap_texture, &lightmap_texture_srv);
@@ -138,6 +199,7 @@ const DemoState = struct {
             .entities = entities,
             .brush = brush,
             .text_format = text_format,
+            .bitmap = bitmap,
             .frame_stats = FrameStats.init(),
             .camera = .{
                 .position = vec3.init(0.0, 8.0, -8.0),
@@ -155,6 +217,7 @@ const DemoState = struct {
         }
         self.pipelines.deinit();
         _ = self.brush.Release();
+        _ = self.bitmap.Release();
         _ = self.text_format.Release();
         _ = self.dx.releaseResource(self.vertex_buffer);
         _ = self.dx.releaseResource(self.index_buffer);
@@ -308,6 +371,8 @@ const DemoState = struct {
                 "FPS: {d:.1}\nCPU time: {d:.3} ms",
                 .{ self.frame_stats.fps, self.frame_stats.average_cpu_time },
             ) catch unreachable;
+
+            dx.d2d.context.DrawBitmap(self.bitmap, null, 1.0, .LINEAR, null);
 
             self.brush.SetColor(&d2d1.COLOR_F.Black);
             dx.d2d.context.DrawTextSimple(
@@ -622,63 +687,10 @@ const DemoState = struct {
         lightmap_texture: *gr.ResourceHandle,
         lightmap_texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
-        var path: [256:0]u16 = undefined;
-        {
-            var buf: [256]u8 = undefined;
-            const string = std.fmt.bufPrint(
-                buf[0..],
-                "{}/data/test.png",
-                .{std.fs.selfExeDirPath(buf[0..])},
-            ) catch unreachable;
-
-            const len = std.unicode.utf8ToUtf16Le(path[0..], string) catch unreachable;
-            path[len] = 0;
-        }
-
-        var imaging_factory: *wincodec.IImagingFactory = undefined;
-        gr.vhr(os.CoCreateInstance(
-            &wincodec.CLSID_ImagingFactory,
-            null,
-            os.CLSCTX_INPROC_SERVER,
-            &wincodec.IID_IImagingFactory,
-            @ptrCast(**c_void, &imaging_factory),
-        ));
-
-        var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
-        gr.vhr(imaging_factory.CreateDecoderFromFilename(
-            &path,
-            null,
-            os.GENERIC_READ,
-            .MetadataCacheOnDemand,
-            &bitmap_decoder,
-        ));
-
-        var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
-        gr.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
-
-        var format_converter: *wincodec.IFormatConverter = undefined;
-        gr.vhr(imaging_factory.CreateFormatConverter(&format_converter));
-
-        gr.vhr(format_converter.Initialize(
-            @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
-            &wincodec.GUID_PixelFormat32bppRGBA,
-            .None,
-            null,
-            0.0,
-            .Custom,
-        ));
-
-        var image_width: u32 = undefined;
-        var image_height: u32 = undefined;
-        gr.vhr(bitmap_frame.GetSize(&image_width, &image_height));
-
-        var pixel_format: os.GUID = undefined;
-        gr.vhr(format_converter.GetPixelFormat(&pixel_format));
-
         lightmap_texture.* = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, image_width, image_height),
+            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, 512, 512),
             .{},
             null,
         );
@@ -690,31 +702,33 @@ const DemoState = struct {
             lightmap_texture_srv.*,
         );
 
-        const desc = dx.getResource(lightmap_texture.*).GetDesc();
+        if (false) {
+            const desc = dx.getResource(lightmap_texture.*).GetDesc();
 
-        var layout: d3d12.PLACED_SUBRESOURCE_FOOTPRINT = undefined;
-        var num_rows: u32 = undefined;
-        var row_size: u64 = undefined;
-        var required_size: u64 = undefined;
-        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, &num_rows, &row_size, &required_size);
+            var layout: d3d12.PLACED_SUBRESOURCE_FOOTPRINT = undefined;
+            var num_rows: u32 = undefined;
+            var row_size: u64 = undefined;
+            var required_size: u64 = undefined;
+            dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, &num_rows, &row_size, &required_size);
 
-        const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
-        layout.Offset = upload.buffer_offset;
+            const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
+            layout.Offset = upload.buffer_offset;
 
-        gr.vhr(format_converter.CopyPixels(null, 512 * 4, 512 * 512 * 4, upload.cpu_slice.ptr));
+            gr.vhr(format_converter.CopyPixels(null, 512 * 4, 512 * 512 * 4, upload.cpu_slice.ptr));
 
-        const dst = d3d12.TEXTURE_COPY_LOCATION{
-            .pResource = dx.getResource(lightmap_texture.*),
-            .Type = .SUBRESOURCE_INDEX,
-            .u = .{ .SubresourceIndex = 0 },
-        };
-        const src = d3d12.TEXTURE_COPY_LOCATION{
-            .pResource = upload.buffer,
-            .Type = .PLACED_FOOTPRINT,
-            .u = .{ .PlacedFootprint = layout },
-        };
+            const dst = d3d12.TEXTURE_COPY_LOCATION{
+                .pResource = dx.getResource(lightmap_texture.*),
+                .Type = .SUBRESOURCE_INDEX,
+                .u = .{ .SubresourceIndex = 0 },
+            };
+            const src = d3d12.TEXTURE_COPY_LOCATION{
+                .pResource = upload.buffer,
+                .Type = .PLACED_FOOTPRINT,
+                .u = .{ .PlacedFootprint = layout },
+            };
 
-        dx.cmdlist.CopyTextureRegion(&dst, 0, 0, 0, &src, null);
+            dx.cmdlist.CopyTextureRegion(&dst, 0, 0, 0, &src, null);
+        }
     }
 };
 

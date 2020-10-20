@@ -5,6 +5,7 @@ const dxgi = @import("dxgi.zig");
 const dcommon = @import("dcommon.zig");
 const HRESULT = os.HRESULT;
 const ITextFormat = @import("dwrite.zig").ITextFormat;
+const IWICBitmapSource = @import("wincodec.zig").IBitmapSource;
 
 pub const FACTORY_TYPE = extern enum {
     SINGLE_THREADED = 0,
@@ -73,6 +74,17 @@ pub const BITMAP_OPTIONS = packed struct {
     GDI_COMPATIBLE: bool = false,
 
     padding: u28 = 0,
+};
+
+pub const BITMAP_INTERPOLATION_MODE = extern enum {
+    NEAREST_NEIGHBOR = 0,
+    LINEAR = 1,
+    CUBIC = 2,
+    MULTI_SAMPLE_LINEAR = 3,
+    ANISOTROPIC = 4,
+    HIGH_QUALITY_CUBIC = 5,
+    FANT = 6,
+    MIPMAP_LINEAR = 7,
 };
 
 pub const BRUSH_PROPERTIES = extern struct {
@@ -698,7 +710,14 @@ pub const IDeviceContext6 = extern struct {
         FillGeometry: *c_void,
         FillMesh: *c_void,
         FillOpacityMask: *c_void,
-        DrawBitmap: *c_void,
+        DrawBitmap: fn (
+            *Self,
+            *IBitmap1,
+            ?*const dcommon.RECT_F,
+            f32,
+            BITMAP_INTERPOLATION_MODE,
+            ?*const dcommon.RECT_F,
+        ) callconv(.Stdcall) void,
         DrawText: fn (
             *Self,
             os.LPCWSTR,
@@ -740,7 +759,12 @@ pub const IDeviceContext6 = extern struct {
         IsSupported: *c_void,
         // ID2D1DeviceContext
         CreateBitmap1: *c_void,
-        CreateBitmapFromWicBitmap1: *c_void,
+        CreateBitmapFromWicBitmap1: fn (
+            *Self,
+            *IWICBitmapSource,
+            ?*const BITMAP_PROPERTIES1,
+            **IBitmap1,
+        ) callconv(.Stdcall) HRESULT,
         CreateColorContext: *c_void,
         CreateColorContextFromFilename: *c_void,
         CreateColorContextFromWicColorContext: *c_void,
@@ -902,6 +926,24 @@ pub const IDeviceContext6 = extern struct {
                 utf16[len] = 0;
 
                 DrawText(self, &utf16, @intCast(u32, len), format, layout_rect, brush, .{}, .NATURAL);
+            }
+            pub inline fn DrawBitmap(
+                self: *T,
+                bitmap: *IBitmap1,
+                dst_rect: ?*const dcommon.RECT_F,
+                opacity: f32,
+                interpolation_mode: BITMAP_INTERPOLATION_MODE,
+                src_rect: ?*const dcommon.RECT_F,
+            ) void {
+                self.vtbl.DrawBitmap(self, bitmap, dst_rect, opacity, interpolation_mode, src_rect);
+            }
+            pub inline fn CreateBitmapFromWicBitmap1(
+                self: *T,
+                wic_src: *IWICBitmapSource,
+                props: ?*const BITMAP_PROPERTIES1,
+                bitmap: **IBitmap1,
+            ) HRESULT {
+                return self.vtbl.CreateBitmapFromWicBitmap1(self, wic_src, props, bitmap);
             }
         };
     }
