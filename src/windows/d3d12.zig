@@ -1958,7 +1958,7 @@ pub const IGraphicsCommandList = extern struct {
             u32,
             u32,
             *const TEXTURE_COPY_LOCATION,
-            *const BOX,
+            ?*const BOX,
         ) callconv(.Stdcall) void,
         CopyResource: fn (*Self, *IResource, *IResource) callconv(.Stdcall) void,
         CopyTiles: fn (
@@ -2151,7 +2151,7 @@ pub const IGraphicsCommandList = extern struct {
                 dst_y: u32,
                 dst_z: u32,
                 src: *const TEXTURE_COPY_LOCATION,
-                src_box: *const BOX,
+                src_box: ?*const BOX,
             ) void {
                 self.vtbl.CopyTextureRegion(self, dst, dst_x, dst_y, dst_z, src, src_box);
             }
@@ -2815,10 +2815,10 @@ pub const IDevice = extern struct {
             u32,
             u32,
             u64,
-            *PLACED_SUBRESOURCE_FOOTPRINT,
-            *u32,
-            *u64,
-            *u64,
+            ?*PLACED_SUBRESOURCE_FOOTPRINT,
+            ?*u32,
+            ?*u64,
+            ?*u64,
         ) callconv(.Stdcall) void,
         CreateQueryHeap: fn (
             *Self,
@@ -3150,10 +3150,10 @@ pub const IDevice = extern struct {
                 first_subresource: u32,
                 num_subresources: u32,
                 base_offset: u64,
-                layouts: *PLACED_SUBRESOURCE_FOOTPRINT,
-                num_rows: *u32,
-                row_size: *u64,
-                total_sizie: *u64,
+                layouts: ?*PLACED_SUBRESOURCE_FOOTPRINT,
+                num_rows: ?*u32,
+                row_size: ?*u64,
+                total_sizie: ?*u64,
             ) void {
                 self.vtbl.GetCopyableFootprints(
                     self,

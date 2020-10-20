@@ -773,7 +773,7 @@ pub const DxContext = struct {
     ) struct { cpu_slice: []T, buffer: *d3d12.IResource, buffer_offset: u64 } {
         const size = num_elements * @sizeOf(T);
         const memory = dx.allocateUploadMemory(size);
-        const aligned_size = (size + 255) & 0xffff_ff00;
+        const aligned_size = (size + 511) & 0xffff_fe00;
         return .{
             .cpu_slice = std.mem.bytesAsSlice(T, @alignCast(@alignOf(T), memory.cpu_slice)),
             .buffer = dx.upload_memory_heaps[dx.frame_index].heap,
@@ -1087,7 +1087,7 @@ const GpuMemoryHeap = struct {
     ) struct { cpu_slice: ?[]u8, gpu_addr: ?d3d12.GPU_VIRTUAL_ADDRESS } {
         assert(size > 0);
 
-        const aligned_size = (size + 255) & 0xffff_ff00;
+        const aligned_size = (size + 511) & 0xffff_fe00;
         if ((self.size + aligned_size) >= self.capacity) {
             return .{ .cpu_slice = null, .gpu_addr = null };
         }

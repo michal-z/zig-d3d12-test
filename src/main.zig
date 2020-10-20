@@ -46,11 +46,13 @@ const DemoState = struct {
     frame_stats: FrameStats,
     srgb_texture: gr.ResourceHandle,
     depth_texture: gr.ResourceHandle,
+    lightmap_texture: gr.ResourceHandle,
     vertex_buffer: gr.ResourceHandle,
     index_buffer: gr.ResourceHandle,
     entity_buffer: gr.ResourceHandle,
     srgb_texture_rtv: d3d12.CPU_DESCRIPTOR_HANDLE,
     depth_texture_dsv: d3d12.CPU_DESCRIPTOR_HANDLE,
+    lightmap_texture_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     vertex_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     index_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
     entity_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE,
@@ -107,6 +109,10 @@ const DemoState = struct {
         var entity_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
         initEntities(&dx, meshes.items, &entities, &entity_buffer, &entity_buffer_srv);
 
+        var lightmap_texture: gr.ResourceHandle = undefined;
+        var lightmap_texture_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
+        initLightmap(&dx, &lightmap_texture, &lightmap_texture_srv);
+
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.flushResourceBarriers();
@@ -119,6 +125,8 @@ const DemoState = struct {
             .srgb_texture_rtv = srgb_texture_rtv,
             .depth_texture = depth_texture,
             .depth_texture_dsv = depth_texture_dsv,
+            .lightmap_texture = lightmap_texture,
+            .lightmap_texture_srv = lightmap_texture_srv,
             .vertex_buffer = vertex_buffer,
             .index_buffer = index_buffer,
             .entity_buffer = entity_buffer,
@@ -152,6 +160,7 @@ const DemoState = struct {
         _ = self.dx.releaseResource(self.entity_buffer);
         _ = self.dx.releaseResource(self.srgb_texture);
         _ = self.dx.releaseResource(self.depth_texture);
+        _ = self.dx.releaseResource(self.lightmap_texture);
         self.dx.deinit();
         self.* = undefined;
     }
@@ -606,6 +615,63 @@ const DemoState = struct {
         gr.vhr(text_format.*.SetTextAlignment(.LEADING));
         gr.vhr(text_format.*.SetParagraphAlignment(.NEAR));
     }
+
+    fn initLightmap(
+        dx: *gr.DxContext,
+        lightmap_texture: *gr.ResourceHandle,
+        lightmap_texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+    ) void {
+        var buf: [256]u8 = undefined;
+        const path = std.fmt.bufPrint(
+            buf[0..],
+            "{}/data/lightmap.ppm",
+            .{std.fs.selfExeDirPath(buf[0..])},
+        ) catch unreachable;
+
+        var image_loader = ImageLoader.init(path);
+        defer image_loader.deinit();
+
+        lightmap_texture.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, image_loader.width, image_loader.height),
+            .{},
+            null,
+        );
+
+        lightmap_texture_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(lightmap_texture.*),
+            null,
+            lightmap_texture_srv.*,
+        );
+
+        const desc = dx.getResource(lightmap_texture.*).GetDesc();
+
+        var layout: d3d12.PLACED_SUBRESOURCE_FOOTPRINT = undefined;
+        var num_rows: u32 = undefined;
+        var row_size: u64 = undefined;
+        var required_size: u64 = undefined;
+        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, &num_rows, &row_size, &required_size);
+
+        const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
+        layout.Offset = upload.buffer_offset;
+
+        image_loader.load(upload.cpu_slice);
+
+        const dst = d3d12.TEXTURE_COPY_LOCATION{
+            .pResource = dx.getResource(lightmap_texture.*),
+            .Type = .SUBRESOURCE_INDEX,
+            .u = .{ .SubresourceIndex = 0 },
+        };
+        const src = d3d12.TEXTURE_COPY_LOCATION{
+            .pResource = upload.buffer,
+            .Type = .PLACED_FOOTPRINT,
+            .u = .{ .PlacedFootprint = layout },
+        };
+
+        dx.cmdlist.CopyTextureRegion(&dst, 0, 0, 0, &src, null);
+    }
 };
 
 const ImageLoader = struct {
@@ -616,6 +682,7 @@ const ImageLoader = struct {
     fn init(path: []const u8) ImageLoader {
         const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
 
+        var buf: [128]u8 = undefined;
         const reader = file.reader();
         if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
             assert(std.mem.eql(u8, "P6", line));
@@ -644,6 +711,27 @@ const ImageLoader = struct {
     fn deinit(self: *ImageLoader) void {
         self.file.close();
         self.* = undefined;
+    }
+
+    fn load(self: *ImageLoader, data: []u8) void {
+        const reader = self.file.reader();
+        var ptr: [*]u8 = data.ptr;
+
+        var y: u32 = 0;
+        while (y < self.height) : (y += 1) {
+            var x: u32 = 0;
+            while (x < self.width) : (x += 1) {
+                const rgb = reader.readBytesNoEof(3) catch unreachable;
+                ptr.* = rgb[0];
+                ptr += 1;
+                ptr.* = rgb[1];
+                ptr += 1;
+                ptr.* = rgb[2];
+                ptr += 1;
+                ptr.* = 255;
+                ptr += 1;
+            }
+        }
     }
 };
 
