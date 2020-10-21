@@ -1,6 +1,8 @@
 #define root_signature \
     "RootConstants(b0, num32BitConstants = 3), " \
-    "DescriptorTable(SRV(t0, numDescriptors = 3), visibility = SHADER_VISIBILITY_VERTEX)"
+    "DescriptorTable(SRV(t0, numDescriptors = 3), visibility = SHADER_VISIBILITY_VERTEX), " \
+    "DescriptorTable(SRV(t3), visibility = SHADER_VISIBILITY_PIXEL), " \
+    "StaticSampler(s0, filter = FILTER_MIN_MAG_MIP_LINEAR, visibility = SHADER_VISIBILITY_PIXEL)"
 
 struct Vertex {
     float3 position;
@@ -29,6 +31,7 @@ void vsMain(
     uint vertex_id : SV_VertexID,
     out float4 out_position : SV_Position,
     out float3 out_normal : _Normal,
+    out float2 out_texcoord : _Texcoord,
     out float3 out_color : _Color)
 {
     const uint vertex_index = cbv_drawcall.base_vertex_location +
@@ -49,16 +52,21 @@ void vsMain(
             ((entity.color & 0x00ff0000) >> 16) / 255.0);
     out_position = mul(float4(position, 1.0f), object_to_clip);
     out_normal = mul(normal, (float3x3)object_to_world);
+    out_texcoord = vertex.texcoord;
 }
+
+Texture2D srv_lightmap : register(t3);
+SamplerState sam_linear : register(s0);
 
 [RootSignature(root_signature)]
 void psMain(
     float4 in_position : SV_Position,
     float3 in_normal : _Normal,
+    float2 in_texcoord : _Texcoord,
     float3 in_color : _Color,
     out float4 out_color : SV_Target0)
 {
     float3 normal = normalize(in_normal);
     float3 color = abs(normal);
-    out_color = float4(color, 1.0f);
+    out_color = srv_lightmap.Sample(sam_linear, in_texcoord);
 }
