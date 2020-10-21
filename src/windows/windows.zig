@@ -67,6 +67,8 @@ pub const IUnknown = extern struct {
 };
 pub const CLSCTX_INPROC_SERVER = 0x1;
 
+pub extern "ole32" fn CoInitialize(reserved: ?*c_void) callconv(.Stdcall) HRESULT;
+
 pub extern "ole32" fn CoCreateInstance(
     rclsid: *const GUID,
     pUnkOuter: ?*IUnknown,

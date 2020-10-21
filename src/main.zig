@@ -114,6 +114,8 @@ const DemoState = struct {
         var path: [256:0]u16 = undefined;
         makeUtf16Path(path[0..], "data/lightmap.png");
 
+        gr.vhr(os.CoInitialize(null));
+
         var wic_factory: *wincodec.IImagingFactory = undefined;
         gr.vhr(os.CoCreateInstance(
             &wincodec.CLSID_ImagingFactory,
