@@ -643,21 +643,6 @@ const DemoState = struct {
         lightmap_texture: *gr.ResourceHandle,
         lightmap_texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
-        lightmap_texture.* = dx.createCommittedResource(
-            .DEFAULT,
-            .{},
-            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, 1024, 1024),
-            .{ .COPY_DEST = true },
-            null,
-        );
-
-        lightmap_texture_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(lightmap_texture.*),
-            null,
-            lightmap_texture_srv.*,
-        );
-
         var path: [256:0]u16 = undefined;
         makeUtf16Path(path[0..], "data/lightmap.png");
 
@@ -669,12 +654,15 @@ const DemoState = struct {
             .MetadataCacheOnDemand,
             &bitmap_decoder,
         ));
+        defer gr.releaseCom(&bitmap_decoder);
 
         var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
         gr.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
+        defer gr.releaseCom(&bitmap_frame);
 
         var format_converter: *wincodec.IFormatConverter = undefined;
         gr.vhr(wic_factory.CreateFormatConverter(&format_converter));
+        defer gr.releaseCom(&format_converter);
 
         gr.vhr(format_converter.Initialize(
             @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
@@ -685,18 +673,41 @@ const DemoState = struct {
             .Custom,
         ));
 
+        var image_width: u32 = undefined;
+        var image_height: u32 = undefined;
+        gr.vhr(format_converter.GetSize(&image_width, &image_height));
+
+        lightmap_texture.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, image_width, image_height),
+            .{ .COPY_DEST = true },
+            null,
+        );
+
+        lightmap_texture_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(
+            dx.getResource(lightmap_texture.*),
+            null,
+            lightmap_texture_srv.*,
+        );
+
         const desc = dx.getResource(lightmap_texture.*).GetDesc();
 
         var layout: d3d12.PLACED_SUBRESOURCE_FOOTPRINT = undefined;
         var num_rows: u32 = undefined;
-        var row_size: u64 = undefined;
         var required_size: u64 = undefined;
-        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, &num_rows, &row_size, &required_size);
+        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, &num_rows, null, &required_size);
 
         const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
         layout.Offset = upload.buffer_offset;
 
-        gr.vhr(format_converter.CopyPixels(null, 1024 * 4, 1024 * 1024 * 4, upload.cpu_slice.ptr));
+        gr.vhr(format_converter.CopyPixels(
+            null,
+            layout.Footprint.RowPitch,
+            layout.Footprint.RowPitch * num_rows,
+            upload.cpu_slice.ptr,
+        ));
 
         const dst = d3d12.TEXTURE_COPY_LOCATION{
             .pResource = dx.getResource(lightmap_texture.*),
