@@ -695,9 +695,8 @@ const DemoState = struct {
         const desc = dx.getResource(lightmap_texture.*).GetDesc();
 
         var layout: d3d12.PLACED_SUBRESOURCE_FOOTPRINT = undefined;
-        var num_rows: u32 = undefined;
         var required_size: u64 = undefined;
-        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, &num_rows, null, &required_size);
+        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, null, null, &required_size);
 
         const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
         layout.Offset = upload.buffer_offset;
@@ -705,7 +704,7 @@ const DemoState = struct {
         gr.vhr(format_converter.CopyPixels(
             null,
             layout.Footprint.RowPitch,
-            layout.Footprint.RowPitch * num_rows,
+            layout.Footprint.RowPitch * layout.Footprint.Height,
             upload.cpu_slice.ptr,
         ));
 
