@@ -8,6 +8,8 @@ const d3d12 = @import("windows/d3d12.zig");
 const d3d11 = @import("windows/d3d11.zig");
 const d2d1 = @import("windows/d2d1.zig");
 const dwrite = @import("windows/dwrite.zig");
+const vhr = os.vhr;
+const releaseCom = os.releaseCom;
 
 const num_frames = 3;
 const num_swapbuffers = 3;
@@ -20,18 +22,6 @@ const max_num_resources = 256;
 const max_num_pipelines = 128;
 
 const upload_heaps_capacity = 8 * 1024 * 1024;
-
-pub inline fn vhr(hr: os.HRESULT) void {
-    if (hr != 0) {
-        std.debug.panic("D3D12 function failed.", .{});
-    }
-}
-
-pub inline fn releaseCom(obj: anytype) void {
-    comptime assert(@hasDecl(@TypeOf(obj.*.*), "Release"));
-    _ = obj.*.Release();
-    obj.* = undefined;
-}
 
 pub const DxContext = struct {
     device: *d3d12.IDevice,

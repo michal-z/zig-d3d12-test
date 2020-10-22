@@ -76,3 +76,15 @@ pub extern "ole32" fn CoCreateInstance(
     riid: *const GUID,
     ppv: **c_void,
 ) callconv(.Stdcall) HRESULT;
+
+pub inline fn vhr(hr: HRESULT) void {
+    if (hr != 0) {
+        std.debug.panic("HRESULT function failed ({}).", .{hr});
+    }
+}
+
+pub inline fn releaseCom(obj: anytype) void {
+    comptime std.debug.assert(@hasDecl(@TypeOf(obj.*.*), "Release"));
+    _ = obj.*.Release();
+    obj.* = undefined;
+}

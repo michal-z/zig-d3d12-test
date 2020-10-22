@@ -114,10 +114,10 @@ const DemoState = struct {
         var path: [256:0]u16 = undefined;
         makeUtf16Path(path[0..], "data/lightmap.png");
 
-        gr.vhr(os.CoInitialize(null));
+        os.vhr(os.CoInitialize(null));
 
         var wic_factory: *wincodec.IImagingFactory = undefined;
-        gr.vhr(os.CoCreateInstance(
+        os.vhr(os.CoCreateInstance(
             &wincodec.CLSID_ImagingFactory,
             null,
             os.CLSCTX_INPROC_SERVER,
@@ -619,13 +619,13 @@ const DemoState = struct {
         brush: **d2d1.ISolidColorBrush,
         text_format: **dwrite.ITextFormat,
     ) void {
-        gr.vhr(dx.d2d.context.CreateSolidColorBrush(
+        os.vhr(dx.d2d.context.CreateSolidColorBrush(
             &d2d1.COLOR_F{ .r = 1.0, .g = 0.0, .b = 0.0, .a = 0.5 },
             null,
             &brush.*,
         ));
 
-        gr.vhr(dx.d2d.dwrite_factory.CreateTextFormat(
+        os.vhr(dx.d2d.dwrite_factory.CreateTextFormat(
             std.unicode.utf8ToUtf16LeStringLiteral("Verdana")[0..],
             null,
             .NORMAL,
@@ -635,8 +635,8 @@ const DemoState = struct {
             std.unicode.utf8ToUtf16LeStringLiteral("en-us")[0..],
             &text_format.*,
         ));
-        gr.vhr(text_format.*.SetTextAlignment(.LEADING));
-        gr.vhr(text_format.*.SetParagraphAlignment(.NEAR));
+        os.vhr(text_format.*.SetTextAlignment(.LEADING));
+        os.vhr(text_format.*.SetParagraphAlignment(.NEAR));
     }
 
     fn initLightmap(
@@ -649,24 +649,24 @@ const DemoState = struct {
         makeUtf16Path(path[0..], "data/lightmap.png");
 
         var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
-        gr.vhr(wic_factory.CreateDecoderFromFilename(
+        os.vhr(wic_factory.CreateDecoderFromFilename(
             &path,
             null,
             os.GENERIC_READ,
             .MetadataCacheOnDemand,
             &bitmap_decoder,
         ));
-        defer gr.releaseCom(&bitmap_decoder);
+        defer os.releaseCom(&bitmap_decoder);
 
         var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
-        gr.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
-        defer gr.releaseCom(&bitmap_frame);
+        os.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
+        defer os.releaseCom(&bitmap_frame);
 
         var format_converter: *wincodec.IFormatConverter = undefined;
-        gr.vhr(wic_factory.CreateFormatConverter(&format_converter));
-        defer gr.releaseCom(&format_converter);
+        os.vhr(wic_factory.CreateFormatConverter(&format_converter));
+        defer os.releaseCom(&format_converter);
 
-        gr.vhr(format_converter.Initialize(
+        os.vhr(format_converter.Initialize(
             @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
             &wincodec.GUID_PixelFormat32bppRGBA,
             .None,
@@ -677,7 +677,7 @@ const DemoState = struct {
 
         var image_width: u32 = undefined;
         var image_height: u32 = undefined;
-        gr.vhr(format_converter.GetSize(&image_width, &image_height));
+        os.vhr(format_converter.GetSize(&image_width, &image_height));
 
         lightmap_texture.* = dx.createCommittedResource(
             .DEFAULT,
@@ -703,7 +703,7 @@ const DemoState = struct {
         const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
         layout.Offset = upload.buffer_offset;
 
-        gr.vhr(format_converter.CopyPixels(
+        os.vhr(format_converter.CopyPixels(
             null,
             layout.Footprint.RowPitch,
             layout.Footprint.RowPitch * layout.Footprint.Height,
