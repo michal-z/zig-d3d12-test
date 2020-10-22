@@ -111,9 +111,6 @@ const DemoState = struct {
         var entity_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
         initEntities(&dx, meshes.items, &entities, &entity_buffer, &entity_buffer_srv);
 
-        var path: [256:0]u16 = undefined;
-        makeUtf16Path(path[0..], "data/lightmap.png");
-
         os.vhr(os.CoInitialize(null));
 
         var wic_factory: *wincodec.IImagingFactory = undefined;
