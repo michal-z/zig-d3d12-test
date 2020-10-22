@@ -645,39 +645,12 @@ const DemoState = struct {
         lightmap_texture: *gr.ResourceHandle,
         lightmap_texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
-        var path: [256:0]u16 = undefined;
-        makeUtf16Path(path[0..], "data/lightmap.png");
-
-        var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
-        os.vhr(wic_factory.CreateDecoderFromFilename(
-            &path,
-            null,
-            os.GENERIC_READ,
-            .MetadataCacheOnDemand,
-            &bitmap_decoder,
-        ));
-        defer os.releaseCom(&bitmap_decoder);
-
-        var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
-        os.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
-        defer os.releaseCom(&bitmap_frame);
-
-        var format_converter: *wincodec.IFormatConverter = undefined;
-        os.vhr(wic_factory.CreateFormatConverter(&format_converter));
-        defer os.releaseCom(&format_converter);
-
-        os.vhr(format_converter.Initialize(
-            @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
-            &wincodec.GUID_PixelFormat32bppRGBA,
-            .None,
-            null,
-            0.0,
-            .Custom,
-        ));
+        var image = initWicBitmapFromFilename(wic_factory, "data/lightmap.png");
+        defer os.releaseCom(&image);
 
         var image_width: u32 = undefined;
         var image_height: u32 = undefined;
-        os.vhr(format_converter.GetSize(&image_width, &image_height));
+        os.vhr(image.GetSize(&image_width, &image_height));
 
         lightmap_texture.* = dx.createCommittedResource(
             .DEFAULT,
@@ -703,7 +676,7 @@ const DemoState = struct {
         const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
         layout.Offset = upload.buffer_offset;
 
-        os.vhr(format_converter.CopyPixels(
+        os.vhr(image.CopyPixels(
             null,
             layout.Footprint.RowPitch,
             layout.Footprint.RowPitch * layout.Footprint.Height,
@@ -819,6 +792,42 @@ fn makeUtf16Path(path: []u16, filename: []const u8) void {
 
     const len = std.unicode.utf8ToUtf16Le(path[0..], string) catch unreachable;
     path[len] = 0;
+}
+
+fn initWicBitmapFromFilename(
+    wic_factory: *wincodec.IImagingFactory,
+    filename: []const u8,
+) *wincodec.IBitmapSource {
+    var path: [256:0]u16 = undefined;
+    makeUtf16Path(path[0..], filename);
+
+    var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
+    os.vhr(wic_factory.CreateDecoderFromFilename(
+        &path,
+        null,
+        os.GENERIC_READ,
+        .MetadataCacheOnDemand,
+        &bitmap_decoder,
+    ));
+    defer os.releaseCom(&bitmap_decoder);
+
+    var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
+    os.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
+    defer os.releaseCom(&bitmap_frame);
+
+    var format_converter: *wincodec.IFormatConverter = undefined;
+    os.vhr(wic_factory.CreateFormatConverter(&format_converter));
+
+    os.vhr(format_converter.Initialize(
+        @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
+        &wincodec.GUID_PixelFormat32bppRGBA,
+        .None,
+        null,
+        0.0,
+        .Custom,
+    ));
+
+    return @ptrCast(*wincodec.IBitmapSource, format_converter);
 }
 
 const FrameStats = struct {
