@@ -170,9 +170,9 @@ const DemoState = struct {
             _ = self.dx.releasePipeline(pso);
         }
         self.pipelines.deinit();
-        _ = self.brush.Release();
-        _ = self.wic_factory.Release();
-        _ = self.text_format.Release();
+        os.releaseCom(&self.brush);
+        os.releaseCom(&self.wic_factory);
+        os.releaseCom(&self.text_format);
         _ = self.dx.releaseResource(self.vertex_buffer);
         _ = self.dx.releaseResource(self.index_buffer);
         _ = self.dx.releaseResource(self.entity_buffer);
