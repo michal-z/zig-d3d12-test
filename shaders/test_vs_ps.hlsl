@@ -2,7 +2,11 @@
     "RootConstants(b0, num32BitConstants = 3), " \
     "DescriptorTable(SRV(t0, numDescriptors = 3), visibility = SHADER_VISIBILITY_VERTEX), " \
     "DescriptorTable(SRV(t3), visibility = SHADER_VISIBILITY_PIXEL), " \
-    "StaticSampler(s0, filter = FILTER_MIN_MAG_MIP_LINEAR, visibility = SHADER_VISIBILITY_PIXEL)"
+    "StaticSampler(s0, " \
+    "   filter = FILTER_MIN_MAG_LINEAR_MIP_POINT, " \
+    "   visibility = SHADER_VISIBILITY_PIXEL, " \
+    "   addressU = TEXTURE_ADDRESS_CLAMP, " \
+    "   addressV = TEXTURE_ADDRESS_CLAMP)"
 
 struct Vertex {
     float3 position;
