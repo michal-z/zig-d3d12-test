@@ -610,6 +610,7 @@ pub const DxContext = struct {
         texture: *ResourceHandle,
         texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
+        // TODO: Hardcoded max path length.
         var path: [256:0]u16 = undefined;
         {
             assert(filename.len < 64);
