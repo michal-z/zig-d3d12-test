@@ -111,7 +111,7 @@ const DemoState = struct {
 
         var lightmap_texture: gr.ResourceHandle = undefined;
         var lightmap_texture_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
-        dx.createTextureFromFile("data/lightmap.png", &lightmap_texture, &lightmap_texture_srv);
+        dx.createTextureFromFile("data/lightmap.png", 1, &lightmap_texture, &lightmap_texture_srv);
         dx.addTransitionBarrier(lightmap_texture, .{ .PIXEL_SHADER_RESOURCE = true });
 
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });

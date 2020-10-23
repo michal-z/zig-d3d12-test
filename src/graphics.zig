@@ -607,6 +607,7 @@ pub const DxContext = struct {
     pub fn createTextureFromFile(
         dx: *DxContext,
         filename: []const u8,
+        num_mip_levels: u32,
         texture: *ResourceHandle,
         texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
@@ -695,10 +696,17 @@ pub const DxContext = struct {
         var image_height: u32 = undefined;
         os.vhr(image.GetSize(&image_width, &image_height));
 
+        // TODO: Remove this limitation.
+        assert(num_mip_levels == 1);
+
         texture.* = dx.createCommittedResource(
             .DEFAULT,
             .{},
-            &d3d12.RESOURCE_DESC.tex2d(dxgi_format, image_width, image_height),
+            &blk: {
+                var desc = d3d12.RESOURCE_DESC.tex2d(dxgi_format, image_width, image_height);
+                desc.MipLevels = @intCast(u16, num_mip_levels);
+                break :blk desc;
+            },
             .{ .COPY_DEST = true },
             null,
         );
