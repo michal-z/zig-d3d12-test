@@ -72,5 +72,6 @@ void psMain(
 {
     float3 normal = normalize(in_normal);
     float3 color = abs(normal);
-    out_color = srv_lightmap.Sample(sam_linear, in_texcoord);
+    float ao = srv_lightmap.Sample(sam_linear, in_texcoord).r;
+    out_color = float4(ao, ao, ao, 1.0f);
 }
