@@ -6,7 +6,6 @@ const d3d12 = @import("windows/d3d12.zig");
 const d2d1 = @import("windows/d2d1.zig");
 const dwrite = @import("windows/dwrite.zig");
 const dcommon = @import("windows/dcommon.zig");
-const wincodec = @import("windows/wincodec.zig");
 const gr = @import("graphics.zig");
 usingnamespace @import("math.zig");
 
@@ -44,7 +43,6 @@ const Entity = struct {
 
 const DemoState = struct {
     dx: gr.DxContext,
-    wic_factory: *wincodec.IImagingFactory,
     frame_stats: FrameStats,
     srgb_texture: gr.ResourceHandle,
     depth_texture: gr.ResourceHandle,
@@ -111,20 +109,10 @@ const DemoState = struct {
         var entity_buffer_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
         initEntities(&dx, meshes.items, &entities, &entity_buffer, &entity_buffer_srv);
 
-        os.vhr(os.CoInitialize(null));
-
-        var wic_factory: *wincodec.IImagingFactory = undefined;
-        os.vhr(os.CoCreateInstance(
-            &wincodec.CLSID_ImagingFactory,
-            null,
-            os.CLSCTX_INPROC_SERVER,
-            &wincodec.IID_IImagingFactory,
-            @ptrCast(**c_void, &wic_factory),
-        ));
-
         var lightmap_texture: gr.ResourceHandle = undefined;
         var lightmap_texture_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
-        initLightmap(&dx, wic_factory, &lightmap_texture, &lightmap_texture_srv);
+        dx.createTextureFromFile("data/lightmap.png", &lightmap_texture, &lightmap_texture_srv);
+        dx.addTransitionBarrier(lightmap_texture, .{ .PIXEL_SHADER_RESOURCE = true });
 
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
         dx.addTransitionBarrier(index_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
@@ -134,7 +122,6 @@ const DemoState = struct {
 
         return DemoState{
             .dx = dx,
-            .wic_factory = wic_factory,
             .srgb_texture = srgb_texture,
             .srgb_texture_rtv = srgb_texture_rtv,
             .depth_texture = depth_texture,
@@ -168,7 +155,6 @@ const DemoState = struct {
         }
         self.pipelines.deinit();
         os.releaseCom(&self.brush);
-        os.releaseCom(&self.wic_factory);
         os.releaseCom(&self.text_format);
         _ = self.dx.releaseResource(self.vertex_buffer);
         _ = self.dx.releaseResource(self.index_buffer);
@@ -635,65 +621,6 @@ const DemoState = struct {
         os.vhr(text_format.*.SetTextAlignment(.LEADING));
         os.vhr(text_format.*.SetParagraphAlignment(.NEAR));
     }
-
-    fn initLightmap(
-        dx: *gr.DxContext,
-        wic_factory: *wincodec.IImagingFactory,
-        lightmap_texture: *gr.ResourceHandle,
-        lightmap_texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
-    ) void {
-        var image = initWicBitmapFromFilename(wic_factory, "data/lightmap.png");
-        defer os.releaseCom(&image);
-
-        var image_width: u32 = undefined;
-        var image_height: u32 = undefined;
-        os.vhr(image.GetSize(&image_width, &image_height));
-
-        lightmap_texture.* = dx.createCommittedResource(
-            .DEFAULT,
-            .{},
-            &d3d12.RESOURCE_DESC.tex2d(.R8G8B8A8_UNORM, image_width, image_height),
-            .{ .COPY_DEST = true },
-            null,
-        );
-
-        lightmap_texture_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
-        dx.device.CreateShaderResourceView(
-            dx.getResource(lightmap_texture.*),
-            null,
-            lightmap_texture_srv.*,
-        );
-
-        const desc = dx.getResource(lightmap_texture.*).GetDesc();
-
-        var layout: d3d12.PLACED_SUBRESOURCE_FOOTPRINT = undefined;
-        var required_size: u64 = undefined;
-        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, null, null, &required_size);
-
-        const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
-        layout.Offset = upload.buffer_offset;
-
-        os.vhr(image.CopyPixels(
-            null,
-            layout.Footprint.RowPitch,
-            layout.Footprint.RowPitch * layout.Footprint.Height,
-            upload.cpu_slice.ptr,
-        ));
-
-        const dst = d3d12.TEXTURE_COPY_LOCATION{
-            .pResource = dx.getResource(lightmap_texture.*),
-            .Type = .SUBRESOURCE_INDEX,
-            .u = .{ .SubresourceIndex = 0 },
-        };
-        const src = d3d12.TEXTURE_COPY_LOCATION{
-            .pResource = upload.buffer,
-            .Type = .PLACED_FOOTPRINT,
-            .u = .{ .PlacedFootprint = layout },
-        };
-
-        dx.cmdlist.CopyTextureRegion(&dst, 0, 0, 0, &src, null);
-        dx.addTransitionBarrier(lightmap_texture.*, .{ .PIXEL_SHADER_RESOURCE = true });
-    }
 };
 
 const MeshLoader = struct {
@@ -777,55 +704,6 @@ const MeshLoader = struct {
         }
     }
 };
-
-fn makeUtf16Path(path: []u16, filename: []const u8) void {
-    assert(filename.len < 64);
-    var buf: [256]u8 = undefined;
-    const string = std.fmt.bufPrint(
-        buf[0..],
-        "{}/{}",
-        .{ std.fs.selfExeDirPath(buf[0..]), filename },
-    ) catch unreachable;
-
-    const len = std.unicode.utf8ToUtf16Le(path[0..], string) catch unreachable;
-    path[len] = 0;
-}
-
-fn initWicBitmapFromFilename(
-    wic_factory: *wincodec.IImagingFactory,
-    filename: []const u8,
-) *wincodec.IBitmapSource {
-    var path: [256:0]u16 = undefined;
-    makeUtf16Path(path[0..], filename);
-
-    var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
-    os.vhr(wic_factory.CreateDecoderFromFilename(
-        &path,
-        null,
-        os.GENERIC_READ,
-        .MetadataCacheOnDemand,
-        &bitmap_decoder,
-    ));
-    defer os.releaseCom(&bitmap_decoder);
-
-    var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
-    os.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
-    defer os.releaseCom(&bitmap_frame);
-
-    var format_converter: *wincodec.IFormatConverter = undefined;
-    os.vhr(wic_factory.CreateFormatConverter(&format_converter));
-
-    os.vhr(format_converter.Initialize(
-        @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
-        &wincodec.GUID_PixelFormat32bppRGBA,
-        .None,
-        null,
-        0.0,
-        .Custom,
-    ));
-
-    return @ptrCast(*wincodec.IBitmapSource, format_converter);
-}
 
 const FrameStats = struct {
     time: f64,

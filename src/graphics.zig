@@ -8,6 +8,7 @@ const d3d12 = @import("windows/d3d12.zig");
 const d3d11 = @import("windows/d3d11.zig");
 const d2d1 = @import("windows/d2d1.zig");
 const dwrite = @import("windows/dwrite.zig");
+const wincodec = @import("windows/wincodec.zig");
 const vhr = os.vhr;
 const releaseCom = os.releaseCom;
 
@@ -24,6 +25,7 @@ const max_num_pipelines = 128;
 const upload_heaps_capacity = 8 * 1024 * 1024;
 
 pub const DxContext = struct {
+    wic_factory: *wincodec.IImagingFactory,
     device: *d3d12.IDevice,
     cmdlist: *d3d12.IGraphicsCommandList,
     cmdqueue: *d3d12.ICommandQueue,
@@ -70,6 +72,17 @@ pub const DxContext = struct {
         d3d12.init();
         d2d1.init();
         dwrite.init();
+
+        os.vhr(os.CoInitialize(null));
+
+        var wic_factory: *wincodec.IImagingFactory = undefined;
+        os.vhr(os.CoCreateInstance(
+            &wincodec.CLSID_ImagingFactory,
+            null,
+            os.CLSCTX_INPROC_SERVER,
+            &wincodec.IID_IImagingFactory,
+            @ptrCast(**c_void, &wic_factory),
+        ));
 
         var rect: os.RECT = undefined;
         _ = os.GetClientRect(window, &rect);
@@ -321,6 +334,7 @@ pub const DxContext = struct {
         vhr(cmdlist.Close());
 
         return DxContext{
+            .wic_factory = wic_factory,
             .device = device,
             .cmdlist = cmdlist,
             .cmdqueue = cmdqueue,
@@ -371,6 +385,7 @@ pub const DxContext = struct {
         for (dx.d2d.targets) |*target| {
             releaseCom(&target.*);
         }
+        releaseCom(&dx.wic_factory);
         releaseCom(&dx.d2d.dwrite_factory);
         releaseCom(&dx.d2d.context);
         releaseCom(&dx.d2d.device);
@@ -587,6 +602,137 @@ pub const DxContext = struct {
             @ptrCast(**c_void, &raw),
         ));
         return dx.resource_pool.addResource(raw, initial_state, desc.Format);
+    }
+
+    pub fn createTextureFromFile(
+        dx: *DxContext,
+        filename: []const u8,
+        texture: *ResourceHandle,
+        texture_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
+    ) void {
+        var path: [256:0]u16 = undefined;
+        {
+            assert(filename.len < 64);
+            var buf: [256]u8 = undefined;
+            const string = std.fmt.bufPrint(
+                buf[0..],
+                "{}/{}",
+                .{ std.fs.selfExeDirPath(buf[0..]), filename },
+            ) catch unreachable;
+            const len = std.unicode.utf8ToUtf16Le(path[0..], string) catch unreachable;
+            path[len] = 0;
+        }
+
+        var bitmap_decoder: *wincodec.IBitmapDecoder = undefined;
+        os.vhr(dx.wic_factory.CreateDecoderFromFilename(
+            &path,
+            null,
+            os.GENERIC_READ,
+            .MetadataCacheOnDemand,
+            &bitmap_decoder,
+        ));
+        defer os.releaseCom(&bitmap_decoder);
+
+        var bitmap_frame: *wincodec.IBitmapFrameDecode = undefined;
+        os.vhr(bitmap_decoder.GetFrame(0, &bitmap_frame));
+        defer os.releaseCom(&bitmap_frame);
+
+        var pixel_format: os.GUID = undefined;
+        os.vhr(bitmap_frame.GetPixelFormat(&pixel_format));
+
+        const eql = std.mem.eql;
+        const asBytes = std.mem.asBytes;
+
+        const num_components: u32 = blk: {
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat24bppRGB)))
+                break :blk 4;
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat32bppRGB)))
+                break :blk 4;
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat32bppRGBA)))
+                break :blk 4;
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat32bppPRGBA)))
+                break :blk 4;
+
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat24bppBGR)))
+                break :blk 4;
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat32bppBGR)))
+                break :blk 4;
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat32bppBGRA)))
+                break :blk 4;
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat32bppPBGRA)))
+                break :blk 4;
+
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat8bppGray)))
+                break :blk 1;
+            if (eql(u8, asBytes(&pixel_format), asBytes(&wincodec.GUID_PixelFormat8bppAlpha)))
+                break :blk 1;
+            break :blk 0;
+        };
+        assert(num_components != 0);
+
+        const wic_format = if (num_components == 1)
+            &wincodec.GUID_PixelFormat8bppGray
+        else
+            &wincodec.GUID_PixelFormat32bppRGBA;
+
+        const dxgi_format = if (num_components == 1) dxgi.FORMAT.R8_UNORM else dxgi.FORMAT.R8G8B8A8_UNORM;
+
+        var image: *wincodec.IFormatConverter = undefined;
+        os.vhr(dx.wic_factory.CreateFormatConverter(&image));
+        defer os.releaseCom(&image);
+
+        os.vhr(image.Initialize(
+            @ptrCast(*wincodec.IBitmapSource, bitmap_frame),
+            wic_format,
+            .None,
+            null,
+            0.0,
+            .Custom,
+        ));
+
+        var image_width: u32 = undefined;
+        var image_height: u32 = undefined;
+        os.vhr(image.GetSize(&image_width, &image_height));
+
+        texture.* = dx.createCommittedResource(
+            .DEFAULT,
+            .{},
+            &d3d12.RESOURCE_DESC.tex2d(dxgi_format, image_width, image_height),
+            .{ .COPY_DEST = true },
+            null,
+        );
+
+        texture_srv.* = dx.allocateCpuDescriptors(.CBV_SRV_UAV, 1);
+        dx.device.CreateShaderResourceView(dx.getResource(texture.*), null, texture_srv.*);
+
+        const desc = dx.getResource(texture.*).GetDesc();
+
+        var layout: d3d12.PLACED_SUBRESOURCE_FOOTPRINT = undefined;
+        var required_size: u64 = undefined;
+        dx.device.GetCopyableFootprints(&desc, 0, 1, 0, &layout, null, null, &required_size);
+
+        const upload = dx.allocateUploadBufferRegion(u8, @intCast(u32, required_size));
+        layout.Offset = upload.buffer_offset;
+
+        os.vhr(image.CopyPixels(
+            null,
+            layout.Footprint.RowPitch,
+            layout.Footprint.RowPitch * layout.Footprint.Height,
+            upload.cpu_slice.ptr,
+        ));
+
+        const dst = d3d12.TEXTURE_COPY_LOCATION{
+            .pResource = dx.getResource(texture.*),
+            .Type = .SUBRESOURCE_INDEX,
+            .u = .{ .SubresourceIndex = 0 },
+        };
+        const src = d3d12.TEXTURE_COPY_LOCATION{
+            .pResource = upload.buffer,
+            .Type = .PLACED_FOOTPRINT,
+            .u = .{ .PlacedFootprint = layout },
+        };
+
+        dx.cmdlist.CopyTextureRegion(&dst, 0, 0, 0, &src, null);
     }
 
     pub fn addResourceRef(dx: DxContext, handle: ResourceHandle) u32 {
