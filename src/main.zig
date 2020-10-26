@@ -426,17 +426,17 @@ const DemoState = struct {
         entity_buffer: *gr.ResourceHandle,
         entity_buffer_srv: *d3d12.CPU_DESCRIPTOR_HANDLE,
     ) void {
-        var buf: [256]u8 = undefined;
-        const path = std.fmt.bufPrint(
-            buf[0..],
-            "{}/data/map.ppm",
-            .{std.fs.selfExeDirPath(buf[0..])},
-        ) catch unreachable;
-
-        const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
-        defer file.close();
-
         if (false) {
+            var buf: [256]u8 = undefined;
+            const path = std.fmt.bufPrint(
+                buf[0..],
+                "{}/data/map.ppm",
+                .{std.fs.selfExeDirPath(buf[0..])},
+            ) catch unreachable;
+
+            const file = std.fs.openFileAbsolute(path, .{ .read = true }) catch unreachable;
+            defer file.close();
+
             // Line 1.
             const reader = file.reader();
             if (reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable) |line| {
