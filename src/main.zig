@@ -111,7 +111,7 @@ const DemoState = struct {
 
         var lightmap_texture: gr.ResourceHandle = undefined;
         var lightmap_texture_srv: d3d12.CPU_DESCRIPTOR_HANDLE = undefined;
-        dx.createTextureFromFile("data/lightmap.png", 1, &lightmap_texture, &lightmap_texture_srv);
+        dx.createTextureFromFile("data/level1_ao.png", 1, &lightmap_texture, &lightmap_texture_srv);
         dx.addTransitionBarrier(lightmap_texture, .{ .PIXEL_SHADER_RESOURCE = true });
 
         dx.addTransitionBarrier(vertex_buffer, .{ .NON_PIXEL_SHADER_RESOURCE = true });
@@ -373,7 +373,7 @@ const DemoState = struct {
         );
 
         //const mesh_names = [_][]const u8{ "cube", "sphere" };
-        const mesh_names = [_][]const u8{"map1"};
+        const mesh_names = [_][]const u8{"level1_map"};
         var start_index_location: u32 = 0;
         var base_vertex_location: u32 = 0;
 
@@ -671,12 +671,13 @@ const MeshLoader = struct {
             const line = reader.readUntilDelimiterOrEof(buf[0..], '\n') catch unreachable;
             var it = std.mem.split(line.?, " ");
 
+            const x = std.fmt.parseFloat(f32, it.next().?) catch unreachable;
+            const y = std.fmt.parseFloat(f32, it.next().?) catch unreachable;
+            const z = std.fmt.parseFloat(f32, it.next().?) catch unreachable;
+
             vertex.* = Vertex{
-                .position = [3]f32{
-                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
-                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
-                    std.fmt.parseFloat(f32, it.next().?) catch unreachable,
-                },
+                // NOTE: We mirror on x-axis to convert from Blender to our coordinate system.
+                .position = [3]f32{ -x, y, z },
                 .normal = [3]f32{
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
                     std.fmt.parseFloat(f32, it.next().?) catch unreachable,
@@ -697,9 +698,10 @@ const MeshLoader = struct {
             assert(num_verts == 3);
 
             tri.* = Triangle{
+                // NOTE: We change indices order to end up with 'clockwise is front winding'.
                 .index0 = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable,
-                .index1 = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable,
                 .index2 = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable,
+                .index1 = std.fmt.parseInt(u32, it.next().?, 10) catch unreachable,
             };
         }
     }
