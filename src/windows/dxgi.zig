@@ -184,18 +184,18 @@ pub const IObject = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDXGIObject
-        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.C) HRESULT,
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
             ?*const os.IUnknown,
-        ) callconv(.Stdcall) HRESULT,
-        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
-        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.C) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -236,18 +236,18 @@ pub const IDevice = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDXGIObject
-        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.C) HRESULT,
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
             ?*const os.IUnknown,
-        ) callconv(.Stdcall) HRESULT,
-        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
-        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.C) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
         // IDXGIDevice
         GetAdapter: *c_void,
         CreateSurface: *c_void,
@@ -263,20 +263,20 @@ pub const IDeviceSubObject = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDXGIObject
-        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.C) HRESULT,
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
             ?*const os.IUnknown,
-        ) callconv(.Stdcall) HRESULT,
-        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
-        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.C) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
         // IDXGIDeviceSubObject
-        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IObject.Methods(Self);
@@ -295,20 +295,20 @@ pub const ISurface = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDXGIObject
-        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.C) HRESULT,
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
             ?*const os.IUnknown,
-        ) callconv(.Stdcall) HRESULT,
-        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
-        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.C) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
         // IDXGIDeviceSubObject
-        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
         // IDXGISurface
         GetDesc: *c_void,
         Map: *c_void,
@@ -323,18 +323,18 @@ pub const IFactory4 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDXGIObject
-        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.C) HRESULT,
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
             ?*const os.IUnknown,
-        ) callconv(.Stdcall) HRESULT,
-        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
-        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.C) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
         // IDXGIFactory
         EnumAdapters: *c_void,
         MakeWindowAssociation: *c_void,
@@ -344,7 +344,7 @@ pub const IFactory4 = extern struct {
             *os.IUnknown,
             *SWAP_CHAIN_DESC,
             **os.IUnknown,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
         CreateSoftwareAdapter: *c_void,
         // IDXGIFactory1
         EnumAdapters1: *c_void,
@@ -389,23 +389,23 @@ pub const ISwapChain3 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDXGIObject
-        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.Stdcall) HRESULT,
+        SetPrivateData: fn (*Self, *const os.GUID, u32, ?*const c_void) callconv(.C) HRESULT,
         SetPrivateDataInterface: fn (
             *Self,
             *const os.GUID,
             ?*const os.IUnknown,
-        ) callconv(.Stdcall) HRESULT,
-        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.Stdcall) HRESULT,
-        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
+        GetPrivateData: fn (*Self, *const os.GUID, *u32, ?*c_void) callconv(.C) HRESULT,
+        GetParent: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
         // IDXGIDeviceSubObject
-        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        GetDevice: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
         // IDXGISwapChain
-        Present: fn (*Self, u32, u32) callconv(.Stdcall) HRESULT,
-        GetBuffer: fn (*Self, u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
+        Present: fn (*Self, u32, u32) callconv(.C) HRESULT,
+        GetBuffer: fn (*Self, u32, *const os.GUID, **c_void) callconv(.C) HRESULT,
         SetFullscreenState: *c_void,
         GetFullscreenState: *c_void,
         GetDesc: *c_void,
@@ -435,7 +435,7 @@ pub const ISwapChain3 = extern struct {
         SetMatrixTransform: *c_void,
         GetMatrixTransform: *c_void,
         // IDXGISwapChain3
-        GetCurrentBackBufferIndex: fn (*Self) callconv(.Stdcall) u32,
+        GetCurrentBackBufferIndex: fn (*Self) callconv(.C) u32,
         CheckColorSpaceSupport: *c_void,
         SetColorSpace1: *c_void,
         ResizeBuffers1: *c_void,
@@ -496,7 +496,7 @@ pub const IID_ISurface = os.GUID{
     .Data4 = .{ 0xbf, 0x47, 0x9e, 0x23, 0xbb, 0xd2, 0x60, 0xec },
 };
 
-pub var CreateFactory2: fn (u32, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT = undefined;
+pub var CreateFactory2: fn (u32, *const os.GUID, **c_void) callconv(.C) HRESULT = undefined;
 
 pub fn init() void {
     // TODO: Handle error.

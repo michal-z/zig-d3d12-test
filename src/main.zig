@@ -755,7 +755,7 @@ fn processWindowMessage(
     message: os.UINT,
     wparam: os.WPARAM,
     lparam: os.LPARAM,
-) callconv(.Stdcall) os.LRESULT {
+) callconv(.C) os.LRESULT {
     const processed = switch (message) {
         os.user32.WM_DESTROY => blk: {
             os.user32.PostQuitMessage(0);

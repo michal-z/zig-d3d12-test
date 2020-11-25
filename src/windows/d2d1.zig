@@ -113,9 +113,9 @@ pub const IResource = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
     },
@@ -126,9 +126,9 @@ pub const IImage = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
     },
@@ -139,9 +139,9 @@ pub const IColorContext = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1ColorContext
@@ -156,9 +156,9 @@ pub const IBitmap1 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Bitmap
@@ -183,9 +183,9 @@ pub const IGradientStopCollection = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1GradientStopCollection
@@ -201,9 +201,9 @@ pub const IBrush = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Brush
@@ -219,11 +219,11 @@ pub const IBitmapBrush = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
-        GetFactory: fn (*Self, **IFactory) callconv(.Stdcall) void,
+        GetFactory: fn (*Self, **IFactory) callconv(.C) void,
         GetFactory: *c_void,
         // ID2D1Brush
         SetOpacity: *c_void,
@@ -247,9 +247,9 @@ pub const ISolidColorBrush = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Brush
@@ -258,8 +258,8 @@ pub const ISolidColorBrush = extern struct {
         GetOpacity: *c_void,
         GetTransform: *c_void,
         // ID2D1SolidColorBrush
-        SetColor: fn (*Self, *const COLOR_F) callconv(.Stdcall) void,
-        GetColor: fn (*Self, *COLOR_F) callconv(.Stdcall) *COLOR_F,
+        SetColor: fn (*Self, *const COLOR_F) callconv(.C) void,
+        GetColor: fn (*Self, *COLOR_F) callconv(.C) *COLOR_F,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace ISolidColorBrush.Methods(Self);
@@ -282,9 +282,9 @@ pub const ILinearGradientBrush = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Brush
@@ -306,9 +306,9 @@ pub const IRadialGradientBrush = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Brush
@@ -334,9 +334,9 @@ pub const IStrokeStyle = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1StrokeStyle
@@ -357,9 +357,9 @@ pub const IGeometry = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Geometry
@@ -384,9 +384,9 @@ pub const IRectangleGeometry = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Geometry
@@ -413,9 +413,9 @@ pub const IRoundedRectangleGeometry = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Geometry
@@ -442,9 +442,9 @@ pub const IEllipseGeometry = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Geometry
@@ -471,9 +471,9 @@ pub const IGeometryGroup = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Geometry
@@ -502,9 +502,9 @@ pub const ITransformedGeometry = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Geometry
@@ -532,9 +532,9 @@ pub const ISimplifiedGeometrySink = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1SimplifiedGeometrySink
         SetFillMode: *c_void,
         SetSegmentFlags: *c_void,
@@ -551,9 +551,9 @@ pub const IGeometrySink = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1SimplifiedGeometrySink
         SetFillMode: *c_void,
         SetSegmentFlags: *c_void,
@@ -576,9 +576,9 @@ pub const ITessellationSink = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1TessellationSink
         AddTriangles: *c_void,
         Close: *c_void,
@@ -590,9 +590,9 @@ pub const IPathGeometry = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Geometry
@@ -622,9 +622,9 @@ pub const IMesh = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Mesh
@@ -637,9 +637,9 @@ pub const ILayer = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Layer
@@ -652,9 +652,9 @@ pub const IDrawingStateBlock = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1DrawingStateBlock
@@ -670,9 +670,9 @@ pub const IDeviceContext6 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1RenderTarget
@@ -685,7 +685,7 @@ pub const IDeviceContext6 = extern struct {
             *const COLOR_F,
             ?*const BRUSH_PROPERTIES,
             **ISolidColorBrush,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
         CreateGradientStopCollection: *c_void,
         CreateLinearGradientBrush: *c_void,
         CreateRadialGradientBrush: *c_void,
@@ -699,13 +699,13 @@ pub const IDeviceContext6 = extern struct {
             *IBrush,
             f32,
             ?*IStrokeStyle,
-        ) callconv(.Stdcall) void,
+        ) callconv(.C) void,
         DrawRectangle: *c_void,
-        FillRectangle: fn (*Self, *const dcommon.RECT_F, *IBrush) callconv(.Stdcall) void,
+        FillRectangle: fn (*Self, *const dcommon.RECT_F, *IBrush) callconv(.C) void,
         DrawRoundedRectangle: *c_void,
         FillRoundedRectangle: *c_void,
         DrawEllipse: *c_void,
-        FillEllipse: fn (*Self, *const ELLIPSE, *IBrush) callconv(.Stdcall) void,
+        FillEllipse: fn (*Self, *const ELLIPSE, *IBrush) callconv(.C) void,
         DrawGeometry: *c_void,
         FillGeometry: *c_void,
         FillMesh: *c_void,
@@ -717,7 +717,7 @@ pub const IDeviceContext6 = extern struct {
             f32,
             BITMAP_INTERPOLATION_MODE,
             ?*const dcommon.RECT_F,
-        ) callconv(.Stdcall) void,
+        ) callconv(.C) void,
         DrawText: fn (
             *Self,
             os.LPCWSTR,
@@ -727,10 +727,10 @@ pub const IDeviceContext6 = extern struct {
             *IBrush,
             DRAW_TEXT_OPTIONS,
             dcommon.MEASURING_MODE,
-        ) callconv(.Stdcall) void,
+        ) callconv(.C) void,
         DrawTextLayout: *c_void,
         DrawGlyphRun: *c_void,
-        SetTransform: fn (*Self, *const dcommon.MATRIX_3X2_F) callconv(.Stdcall) void,
+        SetTransform: fn (*Self, *const dcommon.MATRIX_3X2_F) callconv(.C) void,
         GetTransform: *c_void,
         SetAntialiasMode: *c_void,
         GetAntialiasMode: *c_void,
@@ -747,9 +747,9 @@ pub const IDeviceContext6 = extern struct {
         RestoreDrawingState: *c_void,
         PushAxisAlignedClip: *c_void,
         PopAxisAlignedClip: *c_void,
-        Clear: fn (*Self, *const COLOR_F) callconv(.Stdcall) void,
-        BeginDraw: fn (*Self) callconv(.Stdcall) void,
-        EndDraw: fn (*Self, ?*u64, ?*u64) callconv(.Stdcall) HRESULT,
+        Clear: fn (*Self, *const COLOR_F) callconv(.C) void,
+        BeginDraw: fn (*Self) callconv(.C) void,
+        EndDraw: fn (*Self, ?*u64, ?*u64) callconv(.C) HRESULT,
         GetPixelFormat: *c_void,
         SetDpi: *c_void,
         GetDpi: *c_void,
@@ -764,7 +764,7 @@ pub const IDeviceContext6 = extern struct {
             *IWICBitmapSource,
             ?*const BITMAP_PROPERTIES1,
             **IBitmap1,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
         CreateColorContext: *c_void,
         CreateColorContextFromFilename: *c_void,
         CreateColorContextFromWicColorContext: *c_void,
@@ -773,7 +773,7 @@ pub const IDeviceContext6 = extern struct {
             *dxgi.ISurface,
             *const BITMAP_PROPERTIES1,
             **IBitmap1,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
         CreateEffect: *c_void,
         CreateGradientStopCollection1: *c_void,
         CreateImageBrush: *c_void,
@@ -785,7 +785,7 @@ pub const IDeviceContext6 = extern struct {
         GetImageWorldBounds: *c_void,
         GetGlyphRunWorldBounds: *c_void,
         GetDevice: *c_void,
-        SetTarget: fn (*Self, *IImage) callconv(.Stdcall) void,
+        SetTarget: fn (*Self, *IImage) callconv(.C) void,
         GetTarget: *c_void,
         SetRenderingControls: *c_void,
         GetRenderingControls: *c_void,
@@ -953,9 +953,9 @@ pub const IDevice6 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Resource
         GetFactory: *c_void,
         // ID2D1Device
@@ -985,7 +985,7 @@ pub const IDevice6 = extern struct {
             *Self,
             DEVICE_CONTEXT_OPTIONS,
             **IDeviceContext6,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IDevice6.Methods(Self);
@@ -1007,9 +1007,9 @@ pub const IFactory7 = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID2D1Factory
         ReloadSystemMetrics: *c_void,
         GetDesktopDpi: *c_void,
@@ -1047,7 +1047,7 @@ pub const IFactory7 = extern struct {
         // ID2D1Factory6
         CreateDevice5: *c_void,
         // ID2D1Factory7
-        CreateDevice6: fn (*Self, *dxgi.IDevice, **IDevice6) callconv(.Stdcall) HRESULT,
+        CreateDevice6: fn (*Self, *dxgi.IDevice, **IDevice6) callconv(.C) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IFactory7.Methods(Self);
@@ -1077,7 +1077,7 @@ pub var CreateFactory: fn (
     *const os.GUID,
     *const FACTORY_OPTIONS,
     **c_void,
-) callconv(.Stdcall) HRESULT = undefined;
+) callconv(.C) HRESULT = undefined;
 
 pub fn init() void {
     var d2d1_dll = os.LoadLibraryA("d2d1.dll").?;

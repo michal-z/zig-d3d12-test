@@ -22,9 +22,9 @@ pub const IDevice = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID3D11Device
         CreateBuffer: *c_void,
         CreateTexture1D: *c_void,
@@ -74,9 +74,9 @@ pub const IResource = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID3D11DeviceChild
         GetDevice: *c_void,
         GetPrivateData: *c_void,
@@ -94,9 +94,9 @@ pub const IDeviceContext = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID3D11DeviceChild
         GetDevice: *c_void,
         GetPrivateData: *c_void,
@@ -207,7 +207,7 @@ pub const IDeviceContext = extern struct {
         CSGetSamplers: *c_void,
         CSGetConstantBuffers: *c_void,
         ClearState: *c_void,
-        Flush: fn (*Self) callconv(.Stdcall) void,
+        Flush: fn (*Self) callconv(.C) void,
         GetType: *c_void,
         GetContextFlags: *c_void,
         FinishCommandList: *c_void,
@@ -235,9 +235,9 @@ pub const I11On12Device = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // ID3D11On12Device
         CreateWrappedResource: fn (
             *Self,
@@ -247,9 +247,9 @@ pub const I11On12Device = extern struct {
             RESOURCE_STATES,
             *const os.GUID,
             **c_void,
-        ) callconv(.Stdcall) HRESULT,
-        ReleaseWrappedResources: fn (*Self, [*]const *IResource, u32) callconv(.Stdcall) void,
-        AcquireWrappedResources: fn (*Self, [*]const *IResource, u32) callconv(.Stdcall) void,
+        ) callconv(.C) HRESULT,
+        ReleaseWrappedResources: fn (*Self, [*]const *IResource, u32) callconv(.C) void,
+        AcquireWrappedResources: fn (*Self, [*]const *IResource, u32) callconv(.C) void,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace I11On12Device.Methods(Self);
@@ -318,7 +318,7 @@ pub var Create11On12Device: fn (
     ?**IDevice,
     ?**IDeviceContext,
     ?*dcommon.FEATURE_LEVEL,
-) callconv(.Stdcall) HRESULT = undefined;
+) callconv(.C) HRESULT = undefined;
 
 pub fn init() void {
     // TODO: Handle error.

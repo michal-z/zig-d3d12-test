@@ -22,32 +22,32 @@ pub extern "kernel32" fn AdjustWindowRect(
     lpRect: ?*RECT,
     dwStyle: DWORD,
     bMenu: BOOL,
-) callconv(.Stdcall) BOOL;
+) callconv(.C) BOOL;
 
-pub extern "kernel32" fn LoadLibraryA(lpLibFileName: [*:0]const u8) callconv(.Stdcall) ?HMODULE;
+pub extern "kernel32" fn LoadLibraryA(lpLibFileName: [*:0]const u8) callconv(.C) ?HMODULE;
 
-pub extern "user32" fn SetProcessDPIAware() callconv(.Stdcall) BOOL;
+pub extern "user32" fn SetProcessDPIAware() callconv(.C) BOOL;
 
-pub extern "user32" fn SetWindowTextA(hWnd: ?HWND, lpString: LPCSTR) callconv(.Stdcall) BOOL;
+pub extern "user32" fn SetWindowTextA(hWnd: ?HWND, lpString: LPCSTR) callconv(.C) BOOL;
 
-pub extern "user32" fn GetCursorPos(lpPoint: *POINT) callconv(.Stdcall) BOOL;
+pub extern "user32" fn GetCursorPos(lpPoint: *POINT) callconv(.C) BOOL;
 
-pub extern "user32" fn GetAsyncKeyState(vKey: c_int) callconv(.Stdcall) SHORT;
+pub extern "user32" fn GetAsyncKeyState(vKey: c_int) callconv(.C) SHORT;
 
 pub extern "user32" fn LoadCursorA(
     hInstance: ?HINSTANCE,
     lpCursorName: LPCSTR,
-) callconv(.Stdcall) HCURSOR;
+) callconv(.C) HCURSOR;
 
-pub extern "user32" fn GetClientRect(HWND, *RECT) callconv(.Stdcall) BOOL;
+pub extern "user32" fn GetClientRect(HWND, *RECT) callconv(.C) BOOL;
 
 pub const IUnknown = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
     },
     usingnamespace IUnknown.Methods(Self);
 
@@ -67,7 +67,7 @@ pub const IUnknown = extern struct {
 };
 pub const CLSCTX_INPROC_SERVER = 0x1;
 
-pub extern "ole32" fn CoInitialize(reserved: ?*c_void) callconv(.Stdcall) HRESULT;
+pub extern "ole32" fn CoInitialize(reserved: ?*c_void) callconv(.C) HRESULT;
 
 pub extern "ole32" fn CoCreateInstance(
     rclsid: *const GUID,
@@ -75,7 +75,7 @@ pub extern "ole32" fn CoCreateInstance(
     dwClsContext: DWORD,
     riid: *const GUID,
     ppv: **c_void,
-) callconv(.Stdcall) HRESULT;
+) callconv(.C) HRESULT;
 
 pub inline fn vhr(hr: HRESULT) void {
     if (hr != 0) {

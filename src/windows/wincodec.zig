@@ -47,15 +47,15 @@ pub const IBitmapSource = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IWICBitmapSource
-        GetSize: fn (*Self, *u32, *u32) callconv(.Stdcall) HRESULT,
-        GetPixelFormat: fn (*Self, *os.GUID) callconv(.Stdcall) HRESULT,
+        GetSize: fn (*Self, *u32, *u32) callconv(.C) HRESULT,
+        GetPixelFormat: fn (*Self, *os.GUID) callconv(.C) HRESULT,
         GetResolution: *c_void,
         CopyPalette: *c_void,
-        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.Stdcall) HRESULT,
+        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.C) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IBitmapSource.Methods(Self);
@@ -85,15 +85,15 @@ pub const IBitmapFrameDecode = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IWICBitmapSource
-        GetSize: fn (*Self, *u32, *u32) callconv(.Stdcall) HRESULT,
-        GetPixelFormat: fn (*Self, *os.GUID) callconv(.Stdcall) HRESULT,
+        GetSize: fn (*Self, *u32, *u32) callconv(.C) HRESULT,
+        GetPixelFormat: fn (*Self, *os.GUID) callconv(.C) HRESULT,
         GetResolution: *c_void,
         CopyPalette: *c_void,
-        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.Stdcall) HRESULT,
+        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.C) HRESULT,
         // IBitmapFrameDecode
         GetMetadataQueryReader: *c_void,
         GetColorContexts: *c_void,
@@ -107,15 +107,15 @@ pub const IBitmap = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IWICBitmapSource
-        GetSize: fn (*Self, *u32, *u32) callconv(.Stdcall) HRESULT,
-        GetPixelFormat: fn (*Self, *os.GUID) callconv(.Stdcall) HRESULT,
+        GetSize: fn (*Self, *u32, *u32) callconv(.C) HRESULT,
+        GetPixelFormat: fn (*Self, *os.GUID) callconv(.C) HRESULT,
         GetResolution: *c_void,
         CopyPalette: *c_void,
-        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.Stdcall) HRESULT,
+        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.C) HRESULT,
         // IWICBitmap
         Lock: *c_void,
         SetPalette: *c_void,
@@ -129,15 +129,15 @@ pub const IFormatConverter = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IWICBitmapSource
-        GetSize: fn (*Self, *u32, *u32) callconv(.Stdcall) HRESULT,
-        GetPixelFormat: fn (*Self, *os.GUID) callconv(.Stdcall) HRESULT,
+        GetSize: fn (*Self, *u32, *u32) callconv(.C) HRESULT,
+        GetPixelFormat: fn (*Self, *os.GUID) callconv(.C) HRESULT,
         GetResolution: *c_void,
         CopyPalette: *c_void,
-        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.Stdcall) HRESULT,
+        CopyPixels: fn (*Self, ?*const Rect, u32, u32, [*]u8) callconv(.C) HRESULT,
         // IWICFormatConverter
         Initialize: fn (
             *Self,
@@ -147,7 +147,7 @@ pub const IFormatConverter = extern struct {
             ?*IPalette,
             f64,
             BitmapPaletteType,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
         CanConvert: *c_void,
     },
     usingnamespace os.IUnknown.Methods(Self);
@@ -183,9 +183,9 @@ pub const IPalette = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IWICPalette
         InitializePredefined: *c_void,
         InitializeCustom: *c_void,
@@ -205,9 +205,9 @@ pub const IBitmapDecoder = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IWICBitmapDecoder
         QueryCapability: *c_void,
         Initialize: *c_void,
@@ -219,7 +219,7 @@ pub const IBitmapDecoder = extern struct {
         GetColorContexts: *c_void,
         GetThumbnail: *c_void,
         GetFrameCount: *c_void,
-        GetFrame: fn (*Self, u32, **IBitmapFrameDecode) callconv(.Stdcall) HRESULT,
+        GetFrame: fn (*Self, u32, **IBitmapFrameDecode) callconv(.C) HRESULT,
     },
     usingnamespace os.IUnknown.Methods(Self);
     usingnamespace IBitmapDecoder.Methods(Self);
@@ -237,9 +237,9 @@ pub const IImagingFactory = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IWICImagingFactory
         CreateDecoderFromFilename: fn (
             *Self,
@@ -248,14 +248,14 @@ pub const IImagingFactory = extern struct {
             os.DWORD,
             DecodeOptions,
             **IBitmapDecoder,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
         CreateDecoderFromStream: *c_void,
         CreateDecoderFromFileHandle: *c_void,
         CreateComponentInfo: *c_void,
         CreateDecoder: *c_void,
         CreateEncoder: *c_void,
         CreatePalette: *c_void,
-        CreateFormatConverter: fn (*Self, **IFormatConverter) callconv(.Stdcall) HRESULT,
+        CreateFormatConverter: fn (*Self, **IFormatConverter) callconv(.C) HRESULT,
         CreateBitmapScaler: *c_void,
         CreateBitmapClipper: *c_void,
         CreateBitmapFlipRotator: *c_void,

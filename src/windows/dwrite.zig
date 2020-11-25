@@ -59,9 +59,9 @@ pub const IFactory = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDWriteFactory
         GetSystemFontCollection: *c_void,
         CreateCustomFontCollection: *c_void,
@@ -85,7 +85,7 @@ pub const IFactory = extern struct {
             f32,
             os.LPCWSTR,
             **ITextFormat,
-        ) callconv(.Stdcall) HRESULT,
+        ) callconv(.C) HRESULT,
         CreateTypography: *c_void,
         GetGdiInterop: *c_void,
         CreateTextLayout: *c_void,
@@ -131,9 +131,9 @@ pub const IFontCollection = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDWriteFontCollection
         GetFontFamilyCount: *c_void,
         GetFontFamily: *c_void,
@@ -147,12 +147,12 @@ pub const ITextFormat = extern struct {
     const Self = @This();
     vtbl: *const extern struct {
         // IUnknown
-        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.Stdcall) HRESULT,
-        AddRef: fn (*Self) callconv(.Stdcall) u32,
-        Release: fn (*Self) callconv(.Stdcall) u32,
+        QueryInterface: fn (*Self, *const os.GUID, **c_void) callconv(.C) HRESULT,
+        AddRef: fn (*Self) callconv(.C) u32,
+        Release: fn (*Self) callconv(.C) u32,
         // IDWriteTextFormat
-        SetTextAlignment: fn (*Self, TEXT_ALIGNMENT) callconv(.Stdcall) HRESULT,
-        SetParagraphAlignment: fn (*Self, PARAGRAPH_ALIGNMENT) callconv(.Stdcall) HRESULT,
+        SetTextAlignment: fn (*Self, TEXT_ALIGNMENT) callconv(.C) HRESULT,
+        SetParagraphAlignment: fn (*Self, PARAGRAPH_ALIGNMENT) callconv(.C) HRESULT,
         SetWordWrapping: *c_void,
         SetReadingDirection: *c_void,
         SetFlowDirection: *c_void,
@@ -203,7 +203,7 @@ pub var CreateFactory: fn (
     FACTORY_TYPE,
     *const os.GUID,
     **c_void,
-) callconv(.Stdcall) HRESULT = undefined;
+) callconv(.C) HRESULT = undefined;
 
 pub fn init() void {
     var dwrite_dll = os.LoadLibraryA("dwrite.dll").?;
